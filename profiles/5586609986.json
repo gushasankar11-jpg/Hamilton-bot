@@ -1,0 +1,42 @@
+{
+  "secured": true,
+  "name": "Krishna Vamsi",
+  "institute": "Viswasai",
+  "level": "Senior",
+  "exams": [
+    "JEE_ADV",
+    "JEE_MAIN"
+  ],
+  "priority": "JEE_MAIN",
+  "priority_pct": 60,
+  "target_year": 2027,
+  "target_marks": {
+    "JEE_ADV": 180,
+    "JEE_MAIN": 190
+  },
+  "selected_chapters": {},
+  "subtopic_stats": {},
+  "onboarding_step": "done",
+  "behavior": {
+    "strikes": 0,
+    "blocked_until": null
+  },
+  "strikes_total": 0,
+  "blocks_total": 0,
+  "api_calls_total": 0,
+  "last_strike_at": null,
+  "last_block_at": null,
+  "leaderboard_optin": true,
+  "story_shown": true,
+  "no_key_attempts": 0,
+  "hku_id": "HKU-000012",
+  "activation_key": "HK Publications 2026-27",
+  "key_expired": false,
+  "_practice_active": false,
+  "_practice_exam": null,
+  "_practice_level": "medium",
+  "created_at": "2026-10-20T18:43:55.112287",
+  "last_seen": "2026-10-20T18:47:43.433226",
+  "name_strikes": 0,
+  "phone": "8074231426"
+}

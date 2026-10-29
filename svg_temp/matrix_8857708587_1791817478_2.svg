@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="164" viewBox="0 0 800 120"><rect width="100%" height="100%" fill="#0a0a1a"/><text x="15" y="96" font-size="64" font-family="serif" fill="#ffffff">|</text><text x="155" y="96" font-size="64" font-family="serif" fill="#ffffff">|</text><text x="60" y="64" text-anchor="middle" font-size="18" font-family="Arial" fill="#ffffff">c_1</text><text x="120" y="64" text-anchor="middle" font-size="18" font-family="Arial" fill="#ffffff">b_1</text><text x="60" y="96" text-anchor="middle" font-size="18" font-family="Arial" fill="#ffffff">c_2</text><text x="120" y="96" text-anchor="middle" font-size="18" font-family="Arial" fill="#ffffff">b_2</text><text x="30" y="32" font-size="14" font-family="Arial" fill="#cccccc">\Delta_x=</text><g transform="translate(720,10) scale(0.35)" opacity="0.9">
+  <defs>
+    <style>
+      .g { fill: #c9a961; }
+      .g-line { stroke: #c9a961; fill: none; }
+      .g-fill { fill: #c9a961; }
+    </style>
+  </defs>
+
+  <!-- LEFT LAUREL BRANCH -->
+  <g class="g-fill">
+    <ellipse cx="26" cy="66" rx="8" ry="3.5" transform="rotate(-50 26 66)"/>
+    <ellipse cx="22" cy="80" rx="9" ry="3.5" transform="rotate(-35 22 80)"/>
+    <ellipse cx="19" cy="95" rx="10" ry="3.5" transform="rotate(-20 19 95)"/>
+    <ellipse cx="18" cy="110" rx="10" ry="3.5"/>
+    <ellipse cx="20" cy="125" rx="10" ry="3.5" transform="rotate(20 20 125)"/>
+    <ellipse cx="24" cy="139" rx="9" ry="3.5" transform="rotate(35 24 139)"/>
+    <ellipse cx="31" cy="152" rx="8" ry="3.5" transform="rotate(50 31 152)"/>
+    <ellipse cx="42" cy="163" rx="7" ry="3" transform="rotate(65 42 163)"/>
+    <ellipse cx="55" cy="171" rx="6" ry="2.8" transform="rotate(80 55 171)"/>
+  </g>
+
+  <!-- RIGHT LAUREL BRANCH -->
+  <g class="g-fill">
+    <ellipse cx="174" cy="66" rx="8" ry="3.5" transform="rotate(50 174 66)"/>
+    <ellipse cx="178" cy="80" rx="9" ry="3.5" transform="rotate(35 178 80)"/>
+    <ellipse cx="181" cy="95" rx="10" ry="3.5" transform="rotate(20 181 95)"/>
+    <ellipse cx="182" cy="110" rx="10" ry="3.5"/>
+    <ellipse cx="180" cy="125" rx="10" ry="3.5" transform="rotate(-20 180 125)"/>
+    <ellipse cx="176" cy="139" rx="9" ry="3.5" transform="rotate(-35 176 139)"/>
+    <ellipse cx="169" cy="152" rx="8" ry="3.5" transform="rotate(-50 169 152)"/>
+    <ellipse cx="158" cy="163" rx="7" ry="3" transform="rotate(-65 158 163)"/>
+    <ellipse cx="145" cy="171" rx="6" ry="2.8" transform="rotate(-80 145 171)"/>
+  </g>
+
+  <!-- SHIELD -->
+  <path d="M 100,42 L 148,58 L 148,115 Q 148,148 100,168 Q 52,148 52,115 L 52,58 Z"
+        class="g-line" stroke-width="3.5"/>
+
+  <!-- H (left) -->
+  <text x="70" y="110" font-family="Georgia, 'Times New Roman', serif"
+        font-weight="bold" font-size="42" class="g-fill">H</text>
+  <!-- Vertical bar between -->
+  <rect x="98" y="72" width="3" height="60" class="g-fill"/>
+  <!-- K (right) -->
+  <text x="108" y="110" font-family="Georgia, 'Times New Roman', serif"
+        font-weight="bold" font-size="42" class="g-fill">K</text>
+
+  <!-- BOOK (bottom left of shield) -->
+  <g transform="translate(62, 118)">
+    <path d="M 0,0 Q 9,-4 18,0 L 18,15 Q 9,11 0,15 Z" class="g-line" stroke-width="2"/>
+    <line x1="9" y1="0" x2="9" y2="15" class="g-line" stroke-width="1.6"/>
+  </g>
+
+  <!-- LEAF/QUILL (top right of shield) -->
+  <g transform="translate(120, 68)">
+    <path d="M 0,22 Q 6,6 20,0 Q 22,16 8,24 Z" class="g-fill"/>
+    <path d="M 2,20 Q 8,12 16,6" class="g-line" stroke-width="1.5"/>
+  </g>
+</g></svg>

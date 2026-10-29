@@ -1,0 +1,43 @@
+bot.py Chunk 1 loaded: foundation ready.
+bot.py Chunk 2 loaded: start, onboarding, mode, status ready.
+bot.py Chunk 3 loaded: select, health, plan, target, graph ready.
+bot.py Chunk 4 loaded: exam + practice + chapter picker + clear_data ready.
+bot.py Chunk 5 loaded: practice handlers + doubt border ready.
+bot.py Chunk 6 loaded: test setup ready.
+bot.py Chunk 7 loaded: test handler + paper break + review ready.
+bot.py Chunk 8 loaded: conceptual mode (General + Exception) ready.
+bot.py Chunk 10 loaded: help + device binding + anti-guess + multi-correct ready.
+bot.py Chunk 11 loaded: rich text overrides ready.
+bot.py Chunk 12 loaded: new page-based notes flow ready.
+bot.py Chunk 13 loaded: rich questions everywhere ready.
+bot.py Chunk 14 loaded: Round 1 fixes ready.
+bot.py Chunk 15 loaded: remaining bug fixes ready.
+bot.py Chunk 16 loaded: notes AI-estimated pages + apps + exceptions.
+bot.py Chunk 17 loaded: multi-correct + rich progress ready.
+bot.py Chunk 18 loaded: matrix image fallback ready.
+bot.py Chunk 19 loaded: better page estimate + matrix-aware notes.
+bot.py Chunk 20 loaded: notes_engine pipeline ready.
+bot.py Chunk 21 loaded: find + leaderboard + rank ready.
+bot.py Chunk 22 loaded: interactive /find + /list_ids ready.
+bot.py Chunk 23 loaded: notes file-only + continue fixed.
+bot.py Chunk 24 loaded: bulletproof /continue ready.
+bot.py Chunk 25 loaded: AUTO notes ready.
+bot.py Chunk 26 loaded: PDF + diagrams ready.
+bot.py Chunk 27 loaded: critical fixes + developer credit ready.
+bot.py Chunk 28 loaded: PDF fixed + NameError guard ready.
+[c29] Cooldowns reset
+[c29] Groq keys: 4, Gemini keys: 4
+bot.py Chunk 29 loaded: cooldowns reset + safety wrappers ready.
+[c30] fpdf2 loaded
+[c30] Font present: True
+bot.py Chunk 30 loaded: 4-barrier + PDF (Unicode font) ready.
+c30e_admin_auth: loaded.
+c30b_admin: loaded (role-aware).
+bot.py Chunk 31 loaded: developer credit footer ready.
+🚀 Hamilton Study AI is live.
+[DEBUG] free_text_handler: uid=8857708587 text='HK-DELETE-MASTER-X8K3Q7W2M9P4N6V1B5T3R8L2D7A4E9C6Z1Y5J'
+[DEBUG] free_text_handler: uid=8857708587 text='Jailor 2'
+[DEBUG] free_text_handler: uid=8857708587 text='1. tell me about a movie\n2. sing me a song\n3. tell me a joke\n4. what is your favorite color\n5. who is your crush\n6. what did you eat today\n7. tell me about cricket\n8. what is the weather\n9. what is your name\n10. say hello in French'
+[DEBUG] free_text_handler: uid=8857708587 text='Tell me about a movie'
+[DEBUG] free_text_handler: uid=8857708587 text='Who is Naruto'
+[DEBUG] free_text_handler: uid=8857708587 text='What is the meaning of learning objectives'

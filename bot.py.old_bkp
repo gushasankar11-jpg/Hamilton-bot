@@ -1,0 +1,2859 @@
+# ==========================================================
+# bot.py — Hamilton Study AI (Fresh Rebuild)
+# Block 1 of 3: setup, onboarding, mode, status
+# ==========================================================
+
+import telebot
+import json
+import os
+import time
+import threading
+import random
+import re
+from datetime import datetime, timedelta
+
+import config
+import ai_client
+import health
+import exam_engine
+import svg_renderer
+import svg_templates
+import timer_manager
+
+TELEGRAM_TOKEN = config.TELEGRAM_TOKEN
+ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
+ADMIN_UNBLOCK_CODE = config.ADMIN_UNBLOCK_CODE
+EXAM_OPTIONS = config.EXAM_OPTIONS
+EXAM_NAMES = config.EXAM_NAMES
+EXAM_MD = config.EXAM_MD
+MAX_MARKS = config.MAX_MARKS
+MAX_FUTURE_YEARS = config.MAX_FUTURE_YEARS
+KEYS_FILE = config.KEYS_FILE
+PROFILE_DIR = config.PROFILE_DIR
+BOOKMARK_DIR = config.BOOKMARK_DIR
+USER_ID_FILE = config.USER_ID_FILE
+TELEGRAM_MSG_LIMIT = config.TELEGRAM_MSG_LIMIT
+STRIKE_LIMIT = config.STRIKE_LIMIT
+BLOCK_MINUTES = config.BLOCK_MINUTES
+SVG_ENABLED = config.SVG_ENABLED
+WHATSAPP_CONTACT = config.WHATSAPP_CONTACT
+PRICE_UNIVERSAL = config.PRICE_UNIVERSAL
+PRICING_NOTE = config.PRICING_NOTE
+
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+os.makedirs(PROFILE_DIR, exist_ok=True)
+os.makedirs(BOOKMARK_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(USER_ID_FILE), exist_ok=True)
+
+PRELOAD_QUEUE = {}
+PENDING_NUMERICAL = {}
+_NOTES_STATE = {}
+
+
+# ==========================================================
+# PROFILE I/O
+# ==========================================================
+def load_profile(uid):
+    path = os.path.join(PROFILE_DIR, str(uid) + ".json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def save_profile(uid, profile):
+    path = os.path.join(PROFILE_DIR, str(uid) + ".json")
+    with open(path, "w") as f:
+        json.dump(profile, f, indent=2, ensure_ascii=False)
+
+
+def new_profile():
+    return {
+        "secured": False,
+        "name": None,
+        "institute": None,
+        "level": None,
+        "exams": [],
+        "priority": None,
+        "priority_pct": 100,
+        "target_year": None,
+        "target_marks": {},
+        "selected_chapters": {},
+        "onboarding_step": "name",
+        "behavior": {"strikes": 0, "blocked_until": None},
+        "story_shown": False,
+        "no_key_attempts": 0,
+        "hku_id": None,
+        "activation_key": None,
+        "key_expired": False,
+        "_practice_active": False,
+        "_practice_exam": None,
+        "_practice_level": "medium",
+        "created_at": datetime.now().isoformat(),
+    }
+
+
+def get_or_create_profile(uid):
+    p = load_profile(uid)
+    if p:
+        return p
+    return new_profile()
+
+
+# ==========================================================
+# HKU ID
+# ==========================================================
+def _load_user_ids():
+    if not os.path.exists(USER_ID_FILE):
+        return {"counter": 0, "mapping": {}}
+    try:
+        with open(USER_ID_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {"counter": 0, "mapping": {}}
+
+
+def _save_user_ids(data):
+    with open(USER_ID_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def allocate_user_id(uid):
+    data = _load_user_ids()
+    uid_str = str(uid)
+    if uid_str in data["mapping"]:
+        return data["mapping"][uid_str]
+    data["counter"] += 1
+    new_id = "HKU-" + str(data["counter"]).zfill(6)
+    data["mapping"][uid_str] = new_id
+    _save_user_ids(data)
+    return new_id
+
+
+def find_user_by_hku_id(hku_id):
+    data = _load_user_ids()
+    for uid_str, stored in data["mapping"].items():
+        if stored == hku_id:
+            return uid_str
+    return None
+
+
+# ==========================================================
+# KEYS
+# ==========================================================
+def load_keys():
+    if not os.path.exists(KEYS_FILE):
+        return {}
+    try:
+        with open(KEYS_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def is_valid_key(key):
+    return key.strip() in load_keys()
+
+
+def check_key_binding(uid, key):
+    keys = load_keys()
+    if key not in keys:
+        return False, "invalid"
+    info = keys[key]
+    if not isinstance(info, dict):
+        keys[key] = {"year": None, "bound_to": str(uid), "bound_at": datetime.now().isoformat()}
+        with open(KEYS_FILE, "w") as f:
+            json.dump(keys, f, indent=2)
+        return True, "bound"
+    if info.get("bound_to") is None:
+        info["bound_to"] = str(uid)
+        info["bound_at"] = datetime.now().isoformat()
+        keys[key] = info
+        with open(KEYS_FILE, "w") as f:
+            json.dump(keys, f, indent=2)
+        return True, "bound"
+    if str(info["bound_to"]) == str(uid):
+        return True, "same"
+    return False, "other"
+
+
+# ==========================================================
+# STRIKE / BLOCK
+# ==========================================================
+def check_blocked(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, 0
+    bu = p.get("behavior", {}).get("blocked_until")
+    if not bu:
+        return False, 0
+    try:
+        dt = datetime.fromisoformat(bu)
+    except Exception:
+        return False, 0
+    if datetime.now() < dt:
+        secs = int((dt - datetime.now()).total_seconds())
+        return True, str(secs // 60) + " min " + str(secs % 60) + " sec"
+    p["behavior"]["blocked_until"] = None
+    p["behavior"]["strikes"] = 0
+    save_profile(uid, p)
+    return False, 0
+
+
+def register_strike(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, None
+    p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+    p["behavior"]["strikes"] = p["behavior"].get("strikes", 0) + 1
+    if p["behavior"]["strikes"] >= STRIKE_LIMIT:
+        until = datetime.now() + timedelta(minutes=BLOCK_MINUTES)
+        p["behavior"]["blocked_until"] = until.isoformat()
+        save_profile(uid, p)
+        return True, BLOCK_MINUTES
+    save_profile(uid, p)
+    return False, None
+
+
+# ==========================================================
+# SAFE SEND
+# ==========================================================
+def safe_send(chat_id, text, parse_mode=None, reply_markup=None):
+    if not text:
+        return
+    while len(text) > TELEGRAM_MSG_LIMIT:
+        cut = text.rfind("\n", 0, TELEGRAM_MSG_LIMIT)
+        if cut == -1:
+            cut = TELEGRAM_MSG_LIMIT
+        try:
+            bot.send_message(chat_id, text[:cut], parse_mode=parse_mode)
+        except Exception:
+            bot.send_message(chat_id, text[:cut])
+        text = text[cut:].lstrip()
+        time.sleep(0.3)
+    if text:
+        try:
+            bot.send_message(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
+        except Exception:
+            bot.send_message(chat_id, text, reply_markup=reply_markup)
+
+
+def safe_edit(chat_id, message_id, text, parse_mode=None, reply_markup=None):
+    try:
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                              text=text, parse_mode=parse_mode,
+                              reply_markup=reply_markup)
+    except Exception:
+        safe_send(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
+
+
+def safe_send_photo(chat_id, photo_path, caption=None):
+    try:
+        with open(photo_path, "rb") as f:
+            bot.send_photo(chat_id, f, caption=caption)
+        return True
+    except Exception:
+        return False
+
+
+# ==========================================================
+# GATING
+# ==========================================================
+def profile_ready(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, "no_profile"
+    if not p.get("secured"):
+        return False, "not_secured"
+    if not p.get("name") or not p.get("institute") or not p.get("level"):
+        return False, "not_onboarded"
+    if not p.get("exams"):
+        return False, "no_exams"
+    if not p.get("target_year"):
+        return False, "no_year"
+    return True, None
+
+
+def send_setup_prompt(uid, reason):
+    msgs = {
+        "not_secured": "Please activate first. Send your key.",
+        "not_onboarded": "Finish your profile setup first. Send /start.",
+        "no_exams": "Complete your setup first. Type /mode.",
+        "no_year": "Type /mode to set your target year.",
+        "no_profile": "Welcome! Send /start to begin.",
+    }
+    safe_send(uid, msgs.get(reason, "Complete setup with /mode first."))
+
+
+def check_key_expired(uid, profile):
+    if not profile.get("secured"):
+        return False
+    used_key = profile.get("activation_key")
+    if not used_key:
+        return False
+    if used_key not in load_keys():
+        profile["secured"] = False
+        profile["key_expired"] = True
+        save_profile(uid, profile)
+        safe_send(uid, "Your activation key has expired. WhatsApp " + WHATSAPP_CONTACT)
+        return True
+    return False
+
+
+# ==========================================================
+# COUNTDOWN
+# ==========================================================
+def days_until_exam(exam, year):
+    if exam not in EXAM_MD:
+        return None
+    m, d = EXAM_MD[exam]
+    try:
+        exam_date = datetime(year, m, d).date()
+    except Exception:
+        return None
+    return max(0, (exam_date - datetime.now().date()).days)
+
+
+def countdown_footer(uid):
+    p = load_profile(uid)
+    if not p:
+        return ""
+    exams = p.get("exams", [])
+    priority = p.get("priority")
+    year = p.get("target_year")
+    if not exams or not year:
+        return ""
+    ordered = []
+    if priority and priority in exams:
+        ordered.append(priority)
+    for e in exams:
+        if e not in ordered:
+            ordered.append(e)
+    lines = []
+    for e in ordered:
+        days = days_until_exam(e, year)
+        if days is None:
+            continue
+        name = EXAM_NAMES.get(e, e)
+        if e == priority:
+            lines.append("⏳ *" + name + " " + str(year) + ": " + str(days) + " days left* (primary)")
+        else:
+            lines.append("⏳ " + name + " " + str(year) + ": " + str(days) + " days left")
+    if not lines:
+        return ""
+    return "\n\n━━━━━━━━━━━━━━━\n" + "\n".join(lines)
+
+
+# ==========================================================
+# NO-KEY / STORY
+# ==========================================================
+def pricing_message():
+    return ("💰 *Price: ₹" + str(PRICE_UNIVERSAL) + "* — any exam, full prep duration.\n\n"
+            + PRICING_NOTE + "\n"
+            + "📞 Contact admin *Krishna Vamsi* at *Hemanth and Krishna Publications*\n"
+            + "WhatsApp *" + WHATSAPP_CONTACT + "*")
+
+
+def no_key_message(short=False):
+    if short:
+        return ("🔒 Hamilton needs an activation key.\n\n"
+                + "Send your key to begin, or contact *" + WHATSAPP_CONTACT + "*.")
+    return ("🔒 *Hamilton needs an activation key to begin.*\n\n"
+            + "If you don't have a key yet, message WhatsApp *" + WHATSAPP_CONTACT + "*.\n\n"
+            + pricing_message())
+
+
+def hamilton_story():
+    return ("🎬 *Why \"Hamilton\"?*\n\n"
+            + "Remember Cars 3? Lightning McQueen needed to beat Jackson Storm. "
+            + "He had three months. He had one shot.\n\n"
+            + "His trainer wasn't another racer. It was *Hamilton* — an AI that "
+            + "studied every lap, every turn, every mistake, and quietly guided "
+            + "Lightning back to the top.\n\n"
+            + "Just like that, Hamilton was built to do one thing:\n"
+            + "*Stand beside you for these final months and pull you to your rank.*\n\n"
+            + "Three months. One shot. Let's make it count.\n\n"
+            + "— Hamilton Study AI\n"
+            + "   by Hemanth and Krishna Publications")
+
+
+# ==========================================================
+# UTILITY
+# ==========================================================
+def difficulty_str(d):
+    if not isinstance(d, str):
+        return str(d)
+    return {"easy": "Easy", "medium": "Medium", "hard": "Hard"}.get(d, d.capitalize())
+
+
+# ==========================================================
+# /start
+# ==========================================================
+@bot.message_handler(commands=['start'])
+def cmd_start(message):
+    uid = message.chat.id
+    p = get_or_create_profile(uid)
+
+    if not p.get("secured"):
+        save_profile(uid, p)
+        bot.reply_to(message,
+            "🙏 *Namaskaram, Aspirant!*\n\n"
+            "You stand in the final stretch of your *Intermediate journey* — "
+            "balancing board studies with deep, focused preparation for your "
+            "competitive exams.\n\n"
+            "I am *Hamilton Study AI* *(by Hemanth and Krishna Publications)*, "
+            "your personal exam mentor.\n\n"
+            "🔒 *To begin, send your activation key.*",
+            parse_mode="Markdown")
+        return
+
+    if p.get("onboarding_step") and p["onboarding_step"] != "done":
+        run_onboarding(uid)
+        return
+
+    bot.reply_to(message, "Welcome back, " + p.get("name", "Aspirant") + "!\n\n"
+                 "Type /mode to change setup, or /exam to start.",
+                 parse_mode="Markdown")
+
+
+def run_onboarding(uid):
+    p = load_profile(uid)
+    step = p.get("onboarding_step")
+    if step == "name":
+        msg = bot.send_message(uid, "📝 What is your name?")
+        bot.register_next_step_handler(msg, onb_name)
+    elif step == "institute":
+        msg = bot.send_message(uid, "🏫 Which institute / school / college?")
+        bot.register_next_step_handler(msg, onb_institute)
+    elif step == "level":
+        markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        markup.add("Junior", "Senior", "Dropper")
+        msg = bot.send_message(uid,
+            "🎓 Junior, Senior, or Dropper?",
+            reply_markup=markup, parse_mode="Markdown")
+        bot.register_next_step_handler(msg, onb_level)
+    else:
+        bot.send_message(uid, "Type /mode to begin.")
+
+
+def onb_name(message):
+    uid = message.chat.id
+    name = (message.text or "").strip()[:40]
+    if not name or len(name) < 2:
+        bot.reply_to(message, "Please type your name (at least 2 characters).")
+        return
+    p = load_profile(uid)
+    p["name"] = name
+    p["onboarding_step"] = "institute"
+    save_profile(uid, p)
+    run_onboarding(uid)
+
+
+def onb_institute(message):
+    uid = message.chat.id
+    inst = (message.text or "").strip()[:60]
+    if not inst or len(inst) < 2:
+        bot.reply_to(message, "Please type your institute name.")
+        return
+    p = load_profile(uid)
+    p["institute"] = inst
+    p["onboarding_step"] = "level"
+    save_profile(uid, p)
+    run_onboarding(uid)
+
+
+def onb_level(message):
+    uid = message.chat.id
+    txt = (message.text or "").strip().lower()
+    if txt not in ("junior", "senior", "dropper"):
+        bot.reply_to(message, "Please tap Junior / Senior / Dropper.")
+        return
+    p = load_profile(uid)
+    p["level"] = txt.capitalize()
+    p["onboarding_step"] = "done"
+    if not p.get("hku_id"):
+        p["hku_id"] = allocate_user_id(uid)
+    save_profile(uid, p)
+    bot.reply_to(message,
+        "✅ Profile saved\n\n"
+        "👤 " + p["name"] + "\n"
+        "🏫 " + p["institute"] + "\n"
+        "🎓 " + p["level"] + "\n"
+        "🆔 " + p["hku_id"] + "\n\n"
+        "Type /mode to set up your exams.",
+        reply_markup=telebot.types.ReplyKeyboardRemove(),
+        parse_mode="Markdown")
+
+
+# ==========================================================
+# /mode
+# ==========================================================
+@bot.message_handler(commands=['mode'])
+def cmd_mode(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    if not p or not p.get("secured"):
+        bot.reply_to(message, "Activate first.")
+        return
+    if p.get("exams") and p.get("target_year"):
+        current = ", ".join(EXAM_NAMES[e] for e in p["exams"])
+        msg = bot.reply_to(message,
+            "🎯 Current setup:\n"
+            "Exams: " + current + "\n"
+            "Priority: " + EXAM_NAMES.get(p.get("priority", "—"), "—") + "\n"
+            "Year: " + str(p.get("target_year")) + "\n\n"
+            "Change setup? Type YES or NO.",
+            parse_mode="Markdown")
+        bot.register_next_step_handler(msg, mode_confirm)
+        return
+    mode_start(uid)
+
+
+def mode_confirm(message):
+    uid = message.chat.id
+    if (message.text or "").strip().lower() == "yes":
+        mode_start(uid)
+    else:
+        bot.reply_to(message, "Setup unchanged.")
+
+
+def mode_start(uid):
+    msg = bot.send_message(uid,
+        "🎯 Choose target exam(s):\n\n"
+        "A → JEE Advanced\nB → JEE Mains\nC → EAMCET\n\n"
+        "Reply combo: A, B, C, AB, BC, AC, ABC",
+        parse_mode="Markdown")
+    bot.register_next_step_handler(msg, mode_exams)
+
+
+def mode_exams(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    txt = (message.text or "").strip().upper()
+    sel = [EXAM_OPTIONS[c] for c in txt if c in EXAM_OPTIONS]
+    if not sel:
+        bot.reply_to(message, "Invalid. Send A, B, C, AB, BC, AC or ABC.")
+        return
+    p["exams"] = sel
+    p["priority"] = None
+    p["priority_pct"] = 100
+    p["target_year"] = None
+    p["target_marks"] = {}
+    save_profile(uid, p)
+    if len(sel) == 1:
+        p["priority"] = sel[0]
+        p["priority_pct"] = 100
+        save_profile(uid, p)
+        ask_year(uid)
+        return
+    names = " / ".join(EXAM_NAMES[e] for e in sel)
+    msg = bot.reply_to(message, "Active: " + names + "\n\nWhich is PRIMARY? Reply exact name.",
+                       parse_mode="Markdown")
+    bot.register_next_step_handler(msg, mode_priority)
+
+
+def mode_priority(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip()
+    chosen = None
+    for e in p["exams"]:
+        if EXAM_NAMES[e].lower() == t.lower():
+            chosen = e
+            break
+    if not chosen:
+        bot.reply_to(message, "Not recognised.")
+        return
+    p["priority"] = chosen
+    save_profile(uid, p)
+    msg = bot.reply_to(message,
+        "Primary: " + EXAM_NAMES[chosen] + "\n\nPriority focus %? Reply 50-100",
+        parse_mode="Markdown")
+    bot.register_next_step_handler(msg, mode_pct)
+
+
+def mode_pct(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    try:
+        pct = int((message.text or "").strip())
+        if pct < 50 or pct > 100:
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "Send 50-100.")
+        return
+    p["priority_pct"] = pct
+    save_profile(uid, p)
+    ask_year(uid)
+
+
+def ask_year(uid):
+    current = datetime.now().year
+    max_yr = current + MAX_FUTURE_YEARS
+    msg = bot.send_message(uid,
+        "📅 Which YEAR are you targeting?\n\nType year like " + str(current + 1) + ". Range: " + str(current) + "-" + str(max_yr),
+        parse_mode="Markdown")
+    bot.register_next_step_handler(msg, mode_year)
+
+
+def mode_year(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip()
+    current = datetime.now().year
+    max_yr = current + MAX_FUTURE_YEARS
+    if not t.isdigit():
+        bot.reply_to(message, "Type a year like " + str(current + 1))
+        return
+    yr = int(t)
+    if yr < current or yr > max_yr:
+        bot.reply_to(message, "Try between " + str(current) + " and " + str(max_yr))
+        return
+    p["target_year"] = yr
+    save_profile(uid, p)
+    mode_start_marks(uid)
+
+
+def mode_start_marks(uid):
+    p = load_profile(uid)
+    p["_marks_queue"] = list(p["exams"])
+    p["target_marks"] = {}
+    save_profile(uid, p)
+    mode_ask_next_mark(uid)
+
+
+def mode_ask_next_mark(uid):
+    p = load_profile(uid)
+    queue = p.get("_marks_queue", [])
+    if not queue:
+        mode_finish(uid)
+        return
+    exam = queue.pop(0)
+    p["_marks_queue"] = queue
+    save_profile(uid, p)
+    max_m = MAX_MARKS.get(exam, 100)
+    msg = bot.send_message(uid,
+        "Expected marks for " + EXAM_NAMES[exam] + "? (0-" + str(max_m) + ")")
+    bot.register_next_step_handler(msg, mode_capture_marks, exam, max_m)
+
+
+def mode_capture_marks(message, exam, max_m):
+    uid = message.chat.id
+    p = load_profile(uid)
+    try:
+        val = int((message.text or "").strip())
+        if val < 0 or val > max_m:
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "Send 0-" + str(max_m))
+        p["_marks_queue"].insert(0, exam)
+        save_profile(uid, p)
+        mode_ask_next_mark(uid)
+        return
+    p.setdefault("target_marks", {})
+    p["target_marks"][exam] = val
+    save_profile(uid, p)
+    mode_ask_next_mark(uid)
+
+
+def mode_finish(uid):
+    p = load_profile(uid)
+    names = ", ".join(EXAM_NAMES[e] for e in p["exams"])
+    lines = ["✅ SETUP COMPLETE", "",
+             "👤 " + p["name"],
+             "🏫 " + p["institute"],
+             "🎓 " + p["level"],
+             "🆔 " + p.get("hku_id", "—"), "",
+             "📚 Exams: " + names]
+    if p.get("priority") and len(p["exams"]) > 1:
+        lines.append("🎯 Priority: " + EXAM_NAMES[p["priority"]] + " (" + str(p["priority_pct"]) + "%)")
+    lines.append("📅 Year: " + str(p["target_year"]))
+    targets = p.get("target_marks", {})
+    if targets:
+        lines.append("")
+        lines.append("Expected marks:")
+        for e in p["exams"]:
+            if e in targets:
+                lines.append("   " + EXAM_NAMES[e] + ": " + str(targets[e]) + " / " + str(MAX_MARKS.get(e, 100)))
+    lines += ["", "Next: /select /exam /health"]
+    bot.send_message(uid, "\n".join(lines),
+                     reply_markup=telebot.types.ReplyKeyboardRemove(),
+                     parse_mode="Markdown")
+
+
+# ==========================================================
+# /status
+# ==========================================================
+@bot.message_handler(commands=['status'])
+def cmd_status(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    if not p or not p.get("secured"):
+        bot.reply_to(message, "Not activated.")
+        return
+    lines = ["📊 Your Status", "",
+             "👤 " + str(p.get("name", "—")),
+             "🏫 " + str(p.get("institute", "—")),
+             "🎓 " + str(p.get("level", "—")),
+             "🆔 " + str(p.get("hku_id", "—")), ""]
+    if p.get("exams"):
+        lines.append("📚 Exams: " + ", ".join(EXAM_NAMES.get(e, e) for e in p["exams"]))
+    if p.get("target_year"):
+        lines.append("📅 Year: " + str(p["target_year"]))
+    if p.get("target_marks"):
+        lines.append("🎯 Targets:")
+        for e, m in p["target_marks"].items():
+            lines.append("   " + EXAM_NAMES.get(e, e) + ": " + str(m))
+    if p.get("selected_chapters"):
+        lines.append("")
+        lines.append("📖 Selected chapters:")
+        for s, chs in p["selected_chapters"].items():
+            lines.append("   " + s + ": " + str(len(chs)) + " chapters")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+
+print("bot.py Block 1 loaded: setup, onboarding, mode, status ready.")
+# ==========================================================
+# bot.py — Block 2: rich math + select + health + exam + practice
+# ==========================================================
+
+# ==========================================================
+# RICH MATH HELPER — sends math with real fractions/matrices
+# ==========================================================
+def send_math(uid, text, parse_mode="Markdown", reply_markup=None):
+    """
+    Try Telegram Rich Message (renders LaTeX natively).
+    Fallback to plain send if rich not supported.
+    """
+    try:
+        rich = telebot.types.InputRichMessage(html=text)
+        bot.send_rich_message(chat_id=uid, rich_message=rich,
+                              reply_markup=reply_markup)
+        return True
+    except Exception:
+        pass
+    try:
+        bot.send_message(uid, text, parse_mode=parse_mode,
+                         reply_markup=reply_markup)
+        return True
+    except Exception:
+        safe_send(uid, text, parse_mode=parse_mode,
+                  reply_markup=reply_markup)
+        return False
+
+
+# ==========================================================
+# /select — chapter picker
+# ==========================================================
+@bot.message_handler(commands=['select'])
+def cmd_select(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    subjects = health.available_subjects()
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "🎯 Which subject to pick chapters for?",
+                           reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, select_subject)
+
+
+def select_subject(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    subj = (message.text or "").strip().capitalize()
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "Not available. Try: " + ", ".join(health.available_subjects()))
+        return
+    exam = health.exam_of(p)
+    data = health.load_subject_data(subj, exam)
+    if not data:
+        bot.reply_to(message, "No data for " + subj)
+        return
+    chapter_list = list(data.keys())
+    numbered = "\n".join(str(i + 1) + ". " + c for i, c in enumerate(chapter_list))
+    header = "📚 " + subj + " — " + str(len(chapter_list)) + " chapters\n\n"
+    footer = "\n\nReply numbers like 1,4,7 or ALL"
+    full = header + numbered + footer
+    if len(full) > 4000:
+        safe_send(uid, header + "(list below)", parse_mode="Markdown")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, footer.strip())
+        bot.register_next_step_handler(msg, select_chapters, subj, chapter_list)
+    else:
+        msg = bot.send_message(uid, full,
+                               reply_markup=telebot.types.ReplyKeyboardRemove(),
+                               parse_mode="Markdown")
+        bot.register_next_step_handler(msg, select_chapters, subj, chapter_list)
+
+
+def select_chapters(message, subj, chapter_list):
+    uid = message.chat.id
+    p = load_profile(uid)
+    txt = (message.text or "").strip()
+    if txt.upper() == "ALL":
+        chosen = chapter_list
+    else:
+        try:
+            idxs = [int(x.strip()) - 1 for x in txt.split(",") if x.strip()]
+            chosen = [chapter_list[i] for i in idxs if 0 <= i < len(chapter_list)]
+        except Exception:
+            bot.reply_to(message, "Invalid. Try /select again.")
+            return
+    if not chosen:
+        bot.reply_to(message, "No valid chapters.")
+        return
+    p.setdefault("selected_chapters", {})
+    p["selected_chapters"][subj] = chosen
+    save_profile(uid, p)
+    safe_send(uid, "✅ " + subj + ": " + str(len(chosen)) + " chapters selected.",
+              parse_mode="Markdown")
+
+
+# ==========================================================
+# /health
+# ==========================================================
+@bot.message_handler(commands=['health'])
+def cmd_health(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    parts = message.text.strip().split(maxsplit=1)
+    if len(parts) > 1:
+        subj = parts[1].strip().capitalize()
+        if subj not in health.available_subjects():
+            bot.reply_to(message, "Not available.")
+            return
+        exam = health.exam_of(p)
+        ch_map = health.chapter_health_map(p, subj, exam, only_selected=False)
+        lines = ["📗 " + subj + " — Chapter Health", ""]
+        items = sorted(ch_map.items(),
+                       key=lambda x: (x[1]["health"] is None,
+                                      x[1]["health"] if x[1]["health"] is not None else 0))
+        for ch, d in items:
+            h = d["health"]
+            hstr = str(h) if h is not None else "—"
+            lines.append("• " + ch[:38] + ": " + hstr)
+        safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+        return
+    r = health.overall_health(p)
+    days_left = None
+    if p.get("priority") and p.get("target_year"):
+        days_left = days_until_exam(p["priority"], p["target_year"])
+    txt = health_text(r, days_left)
+    safe_send(uid, txt, parse_mode="Markdown")
+    if SVG_ENABLED and r.get("overall") is not None:
+        subj_data = {s: d["health"] for s, d in r["subjects"].items()}
+        svg = svg_templates.combined_progress(r["overall"], subj_data)
+        path = svg_renderer.render_svg(svg, name="health_" + str(uid))
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+
+def health_text(r, days_left=None):
+    if r.get("overall") is None:
+        return "📭 No practice data yet. /exam to start."
+    lines = ["❤️ Overall: " + str(r["overall"]) + " / 100"]
+    if days_left is not None:
+        lines.append("⏳ " + str(days_left) + " days left")
+    lines.append("")
+    for subj, d in r["subjects"].items():
+        h = d["health"]
+        hstr = str(h) + "/100" if h is not None else "Not started"
+        lines.append("📘 " + subj + ": " + hstr)
+    return "\n".join(lines)
+
+
+# ==========================================================
+# /graph
+# ==========================================================
+@bot.message_handler(commands=['graph'])
+def cmd_graph(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    r = health.overall_health(p)
+    if r["overall"] is None:
+        bot.reply_to(message, "No data yet. /exam first.")
+        return
+    subj_data = {s: d["health"] for s, d in r["subjects"].items()}
+    svg = svg_templates.combined_progress(r["overall"], subj_data)
+    path = svg_renderer.render_svg(svg, name="graph_" + str(uid))
+    if path:
+        safe_send_photo(uid, path, caption="Overall: " + str(r["overall"]) + "/100")
+        svg_renderer.cleanup_file(path)
+
+
+# ==========================================================
+# /plan
+# ==========================================================
+@bot.message_handler(commands=['plan'])
+def cmd_plan(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    r = health.overall_health(p)
+    if r["overall"] is None:
+        bot.reply_to(message, "No data yet. /exam first.")
+        return
+    primary = p.get("priority") or p["exams"][0]
+    lines = ["📋 YOUR STUDY PLAN", "",
+             "🎯 Primary: " + EXAM_NAMES[primary] + " " + str(p.get("target_year", ""))]
+    targets = p.get("target_marks", {})
+    if isinstance(targets, dict) and primary in targets:
+        max_m = MAX_MARKS.get(primary, 100)
+        lines.append("Target: " + str(targets[primary]) + " / " + str(max_m) + " marks")
+    lines.append("Current health: " + str(r["overall"]) + "/100")
+    lines.append("")
+    lines.append("📘 Subject health:")
+    for s, d in r["subjects"].items():
+        if d["health"] is not None:
+            lines.append("   " + s + ": " + str(d["health"]) + "/100")
+    lines.append("")
+    lines.append("Next: /health /exam /target")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+
+# ==========================================================
+# /target
+# ==========================================================
+@bot.message_handler(commands=['target'])
+def cmd_target(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    p["_marks_queue"] = list(p["exams"])
+    save_profile(uid, p)
+    mode_ask_next_mark(uid)
+
+
+# ==========================================================
+# /exam — mode picker
+# ==========================================================
+@bot.message_handler(commands=['exam'])
+def cmd_exam(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    if not p.get("selected_chapters"):
+        bot.reply_to(message, "⚠️ No chapters selected. Use /select first.")
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("Practice", "Test", "Conceptual")
+    msg = bot.send_message(uid,
+        "🎯 Choose mode:\n\n"
+        "📚 Practice — one at a time, instant feedback\n"
+        "📝 Test — full paper with timer\n"
+        "🧠 Conceptual — chapter coverage",
+        reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, exam_mode)
+
+
+def exam_mode(message):
+    uid = message.chat.id
+    t = (message.text or "").strip().lower()
+    if t == "practice":
+        pick_exam_for_mode(uid, "practice")
+    elif t == "test":
+        pick_exam_for_mode(uid, "test")
+    elif t == "conceptual":
+        pick_exam_for_mode(uid, "conceptual")
+    else:
+        bot.reply_to(message, "Tap Practice / Test / Conceptual.")
+
+
+def pick_exam_for_mode(uid, mode):
+    p = load_profile(uid)
+    p["_exam_mode_chosen"] = mode
+    p["_exam_chosen"] = None
+    save_profile(uid, p)
+    if len(p["exams"]) == 1:
+        p["_exam_chosen"] = p["exams"][0]
+        save_profile(uid, p)
+        exam_after_pick(uid)
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for e in p["exams"]:
+        markup.add(EXAM_NAMES[e])
+    msg = bot.send_message(uid, "📚 Which exam?", reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, exam_pick_exam)
+
+
+def exam_pick_exam(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip()
+    chosen = None
+    for e in p["exams"]:
+        if EXAM_NAMES[e].lower() == t.lower():
+            chosen = e
+            break
+    if not chosen:
+        bot.reply_to(message, "Pick one shown.")
+        return
+    p["_exam_chosen"] = chosen
+    save_profile(uid, p)
+    exam_after_pick(uid)
+
+
+def exam_after_pick(uid):
+    p = load_profile(uid)
+    mode = p.get("_exam_mode_chosen")
+    if mode == "practice":
+        practice_ask_chapter_mode(uid)
+    elif mode == "test":
+        test_ask_chapters(uid)
+    elif mode == "conceptual":
+        concept_pick_type(uid)
+
+
+# ==========================================================
+# PRACTICE — chapter mode
+# ==========================================================
+def practice_ask_chapter_mode(uid):
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("My selected chapters", "Pick from full syllabus")
+    msg = bot.send_message(uid,
+        "📖 Chapters to practice from?",
+        reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, practice_capture_chapter_mode)
+
+
+def practice_capture_chapter_mode(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip().lower()
+    if "full" in t:
+        p["_practice_chapter_mode"] = "custom"
+        p["_practice_custom_chapters"] = {}
+        save_profile(uid, p)
+        practice_pick_subject(uid)
+    elif "select" in t:
+        p["_practice_chapter_mode"] = "selected"
+        p["_practice_custom_chapters"] = None
+        save_profile(uid, p)
+        practice_ask_difficulty(uid)
+    else:
+        bot.reply_to(message, "Tap one option.")
+
+
+def practice_pick_subject(uid):
+    subjects = health.available_subjects()
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "Which subject?", reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, practice_capture_subject)
+
+
+def practice_capture_subject(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    subj = (message.text or "").strip().capitalize()
+    exam = p.get("_exam_chosen") or p.get("priority") or health.exam_of(p)
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "Invalid.")
+        return
+    data = health.load_subject_data(subj, exam)
+    if not data:
+        bot.reply_to(message, "No data.")
+        return
+    chapter_list = list(data.keys())
+    numbered = "\n".join(str(i + 1) + ". " + c for i, c in enumerate(chapter_list))
+    header = "📚 " + subj + " — " + str(len(chapter_list)) + " chapters\n\n"
+    footer = "\n\nReply numbers or ALL"
+    full = header + numbered + footer
+    if len(full) > 4000:
+        safe_send(uid, header + "(list below)")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, footer.strip())
+        bot.register_next_step_handler(msg, practice_capture_chapters, subj, chapter_list)
+    else:
+        msg = bot.send_message(uid, full,
+                               reply_markup=telebot.types.ReplyKeyboardRemove(),
+                               parse_mode="Markdown")
+        bot.register_next_step_handler(msg, practice_capture_chapters, subj, chapter_list)
+
+
+def practice_capture_chapters(message, subj, chapter_list):
+    uid = message.chat.id
+    p = load_profile(uid)
+    txt = (message.text or "").strip()
+    if txt.upper() == "ALL":
+        chosen = chapter_list
+    else:
+        try:
+            idxs = [int(x.strip()) - 1 for x in txt.split(",") if x.strip()]
+            chosen = [chapter_list[i] for i in idxs if 0 <= i < len(chapter_list)]
+        except Exception:
+            bot.reply_to(message, "Invalid.")
+            return
+    if not chosen:
+        bot.reply_to(message, "No valid chapters.")
+        return
+    p["_practice_custom_chapters"] = {subj: chosen}
+    save_profile(uid, p)
+    safe_send(uid, "✅ " + subj + ": " + str(len(chosen)) + " chapters.")
+    practice_ask_difficulty(uid)
+
+
+# ==========================================================
+# PRACTICE — difficulty
+# ==========================================================
+def practice_ask_difficulty(uid):
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("Level 1", "Level 2", "Level 3")
+    msg = bot.send_message(uid,
+        "🎯 Difficulty:\n\n"
+        "Level 1 — Basic\nLevel 2 — Standard\nLevel 3 — IIT depth",
+        reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, practice_capture_difficulty)
+
+
+def practice_capture_difficulty(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip().lower()
+    if "1" in t:
+        p["_practice_level"] = "easy"
+    elif "2" in t:
+        p["_practice_level"] = "medium"
+    elif "3" in t:
+        p["_practice_level"] = "hard"
+    else:
+        bot.reply_to(message, "Tap Level 1 / 2 / 3.")
+        return
+    save_profile(uid, p)
+    start_practice(uid)
+
+
+# ==========================================================
+# PRACTICE — start
+# ==========================================================
+def pick_subject_for_practice(profile):
+    custom = profile.get("_practice_custom_chapters")
+    if custom:
+        for s, chs in custom.items():
+            if chs and s in health.available_subjects():
+                return s
+    selected = profile.get("selected_chapters", {})
+    for s, chs in selected.items():
+        if chs and s in health.available_subjects():
+            return s
+    subjects = health.available_subjects()
+    return subjects[0] if subjects else None
+
+
+def start_practice(uid):
+    p = load_profile(uid)
+    exam = p.get("_exam_chosen") or p.get("priority") or health.exam_of(p)
+    p["_practice_active"] = True
+    p["_practice_exam"] = exam
+    save_profile(uid, p)
+    exam_engine.new_practice_session(uid, exam=exam)
+    PRELOAD_QUEUE[uid] = []
+    bot.send_message(uid,
+        "🚀 Practice started (" + EXAM_NAMES.get(exam, exam) + ")\n\n"
+        "Type /next /bookmark /stop anytime. Ask doubts freely — "
+        "I'll answer, then you can Continue.",
+        reply_markup=telebot.types.ReplyKeyboardRemove(),
+        parse_mode="Markdown")
+    send_next_practice(uid)
+
+
+def send_next_practice(uid):
+    p = load_profile(uid)
+    exam = p.get("_practice_exam") or health.exam_of(p)
+    level = p.get("_practice_level", "medium")
+    if not exam:
+        safe_send(uid, "Exam not set.")
+        return
+    queue = PRELOAD_QUEUE.get(uid, [])
+    q = queue.pop(0) if queue else None
+
+    if not q:
+        timer_manager.start_generating_timer(bot, uid, "question")
+        subj = pick_subject_for_practice(p)
+        if not subj:
+            timer_manager.stop_generating_timer(bot, uid)
+            safe_send(uid, "No chapters. /select first.")
+            return
+        custom = p.get("_practice_custom_chapters")
+        allowed = custom.get(subj) if custom else None
+        pick = exam_engine.pick_next_subtopic(p, subj, exam, allowed_chapters=allowed)
+        timer_manager.stop_generating_timer(bot, uid)
+        if not pick:
+            safe_send(uid, "No subtopics found.")
+            return
+        _, ch, sub = pick
+        q_type = "mcq"
+        if exam in ("JEE_MAIN", "JEE_ADV") and random.random() < 0.25:
+            q_type = "numerical"
+        q = exam_engine.generate_question(exam, subj, ch, sub,
+                                           q_type=q_type, difficulty=level)
+        if not q:
+            safe_send(uid, "Could not generate question. Try /exam again.")
+            return
+        q["_meta"] = {"subject": subj, "chapter": ch, "subtopic": sub}
+
+    meta = q["_meta"]
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        return
+    sess["current_q"] = q
+    sess["current_started"] = time.time()
+    sess["current_meta"] = meta
+
+    st = q.get("source_type", "AI-Generated")
+    sd = q.get("source_detail", "")
+    diff = q.get("difficulty", level)
+    ideal = q.get("ideal_time_sec", 60)
+    q_num = sess.get("questions_done", 0) + 1
+
+    avg_time = None
+    key = meta["subject"] + "::" + meta["chapter"] + "::" + meta["subtopic"]
+    stat = p.get("subtopic_stats", {}).get(key)
+    if stat and stat.get("attempts", 0) > 0:
+        avg_time = stat.get("avg_time", 0)
+
+    header_lines = [
+        "[" + EXAM_NAMES.get(exam, exam) + " | " + meta["subject"] + " | Practice | Q" + str(q_num) + "]",
+        "📌 Source: " + st + (" · " + sd if sd else ""),
+        "⚡ Difficulty: " + difficulty_str(diff) + " | ⏱️ Ideal: " + str(ideal) + "s",
+    ]
+    if avg_time:
+        header_lines.append("📈 Your avg: " + str(int(avg_time)) + "s")
+    header_lines.append("📖 " + meta["chapter"] + " → " + meta["subtopic"])
+    header = "\n".join(header_lines)
+    full_q = header + "\n\n" + q["question"]
+
+    svg_code = q.get("svg")
+    if svg_code and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg_code, name="q_" + str(uid))
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+    # Numerical → save pending and ask for typed answer
+    if q.get("correct_value") is not None:
+        PENDING_NUMERICAL[uid] = {
+            "q": q, "meta": meta, "started": time.time(), "is_test": False
+        }
+        safe_send(uid,
+            "📝 *Numerical Question*\n\n" + full_q +
+            "\n\n👉 *Just type the number* (e.g. `42` or `3.14`) and send.\n"
+            "Type /skip to skip this question.",
+            parse_mode="Markdown")
+        timer_manager.start_question_timer(bot, uid)
+        return
+
+    options = q.get("options", [])[:4]
+    if len(options) < 2:
+        safe_send(uid, "Bad format. Regenerating...")
+        time.sleep(1)
+        send_next_practice(uid)
+        return
+    options_skip = options + ["🚪 Skip"]
+    try:
+        if len(full_q) <= 290:
+            bot.send_poll(chat_id=uid, question=full_q[:300],
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=int(q.get("correct_index", 0)),
+                          explanation="See solution below.",
+                          is_anonymous=False)
+        else:
+            safe_send(uid, "📝 *Question*\n\n" + full_q, parse_mode="Markdown")
+            time.sleep(0.4)
+            bot.send_poll(chat_id=uid, question="👆 Tap your answer:",
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=int(q.get("correct_index", 0)),
+                          explanation="See below.",
+                          is_anonymous=False)
+        timer_manager.start_question_timer(bot, uid)
+    except Exception as e:
+        safe_send(uid, "Retry... " + str(e))
+        time.sleep(1)
+        send_next_practice(uid)
+
+
+print("bot.py Block 2 loaded: select/health/exam/practice ready.")
+# ==========================================================
+# bot.py — Block 3: test, conceptual, notes, free-text, admin, boot
+# ==========================================================
+
+# ==========================================================
+# TEST MODE
+# ==========================================================
+def test_ask_chapters(uid):
+    p = load_profile(uid)
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("My selected chapters", "Pick from full syllabus")
+    msg = bot.send_message(uid, "📖 Chapters for this Test?",
+                           reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, test_capture_mode)
+
+
+def test_capture_mode(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip().lower()
+    if "full" in t:
+        p["_test_mode"] = "custom"
+        p["_test_custom"] = {}
+        p["_test_queue"] = ["Maths", "Physics", "Chemistry"]
+        save_profile(uid, p)
+        test_ask_next_subject(uid)
+    elif "select" in t:
+        p["_test_mode"] = "selected"
+        p["_test_custom"] = None
+        save_profile(uid, p)
+        test_ask_papers(uid)
+    else:
+        bot.reply_to(message, "Tap one option.")
+
+
+def test_ask_next_subject(uid):
+    p = load_profile(uid)
+    queue = p.get("_test_queue", [])
+    if not queue:
+        test_ask_papers(uid)
+        return
+    subj = queue[0]
+    exam = p.get("_exam_chosen") or p.get("priority") or health.exam_of(p)
+    data = health.load_subject_data(subj, exam)
+    if not data:
+        p["_test_queue"] = queue[1:]
+        save_profile(uid, p)
+        test_ask_next_subject(uid)
+        return
+    chapter_list = list(data.keys())
+    numbered = "\n".join(str(i + 1) + ". " + c for i, c in enumerate(chapter_list))
+    header = "📚 " + subj + " — " + str(len(chapter_list)) + " chapters\n\n"
+    footer = "\n\nReply numbers or ALL. (" + str(len(queue)) + " subjects left)"
+    full = header + numbered + footer
+    if len(full) > 4000:
+        safe_send(uid, header + "(list below)")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, footer.strip())
+        bot.register_next_step_handler(msg, test_capture_subject_chapters, subj, chapter_list)
+    else:
+        msg = bot.send_message(uid, full,
+                               reply_markup=telebot.types.ReplyKeyboardRemove(),
+                               parse_mode="Markdown")
+        bot.register_next_step_handler(msg, test_capture_subject_chapters, subj, chapter_list)
+
+
+def test_capture_subject_chapters(message, subj, chapter_list):
+    uid = message.chat.id
+    p = load_profile(uid)
+    txt = (message.text or "").strip()
+    if txt.upper() == "ALL":
+        chosen = chapter_list
+    else:
+        try:
+            idxs = [int(x.strip()) - 1 for x in txt.split(",") if x.strip()]
+            chosen = [chapter_list[i] for i in idxs if 0 <= i < len(chapter_list)]
+        except Exception:
+            bot.reply_to(message, "Invalid.")
+            return
+    if not chosen:
+        bot.reply_to(message, "No chapters.")
+        return
+    p.setdefault("_test_custom", {})
+    p["_test_custom"][subj] = chosen
+    p["_test_queue"] = p.get("_test_queue", [])[1:]
+    save_profile(uid, p)
+    safe_send(uid, subj + ": " + str(len(chosen)) + " chapters.")
+    time.sleep(0.3)
+    test_ask_next_subject(uid)
+
+
+def test_ask_papers(uid):
+    p = load_profile(uid)
+    exam = p.get("_exam_chosen") or p.get("priority") or health.exam_of(p)
+    if exam == "JEE_ADV":
+        markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        markup.add("One Paper", "Both Papers")
+        msg = bot.send_message(uid,
+            "📄 JEE Advanced — One Paper or Both Papers?",
+            reply_markup=markup, parse_mode="Markdown")
+        bot.register_next_step_handler(msg, test_capture_papers)
+        return
+    p["_test_papers"] = 1
+    save_profile(uid, p)
+    test_prestart(uid)
+
+
+def test_capture_papers(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip().lower()
+    if "both" in t:
+        p["_test_papers"] = 2
+    elif "one" in t:
+        p["_test_papers"] = 1
+    else:
+        bot.reply_to(message, "Tap one.")
+        return
+    save_profile(uid, p)
+    test_prestart(uid)
+
+
+def test_prestart(uid):
+    p = load_profile(uid)
+    exam = p.get("_exam_chosen") or p.get("priority") or health.exam_of(p)
+    mode = p.get("_test_mode", "selected")
+    custom = p.get("_test_custom")
+    papers = p.get("_test_papers", 1)
+    if mode == "custom" and custom:
+        allowed = custom
+        subjects = [s for s in custom.keys() if custom[s]]
+    else:
+        sel = p.get("selected_chapters", {})
+        allowed = {s: list(chs) for s, chs in sel.items() if chs}
+        subjects = list(allowed.keys())
+    for s in ["Maths", "Physics", "Chemistry"]:
+        if s not in subjects:
+            data = health.load_subject_data(s, exam)
+            if data:
+                allowed[s] = list(data.keys())
+                subjects.append(s)
+    if not subjects:
+        bot.send_message(uid, "No subjects.")
+        return
+    p["_test_exam"] = exam
+    p["_test_allowed"] = allowed
+    p["_test_subject_list"] = subjects
+    save_profile(uid, p)
+    papers_txt = "1 paper" if papers == 1 else "2 papers"
+    safe_send(uid,
+        "📝 Test starting\n\nExam: " + EXAM_NAMES.get(exam, exam) +
+        "\nSubjects: " + ", ".join(subjects) +
+        "\nPapers: " + papers_txt +
+        "\n\n⚠️ Timer runs silently. No feedback during test.\n"
+        "⚠️ Use /stop to submit early.\n\nStarting in 5...",
+        parse_mode="Markdown")
+    for i in [5, 4, 3, 2, 1]:
+        try:
+            m = bot.send_message(uid, str(i))
+            time.sleep(1)
+            try:
+                bot.delete_message(uid, m.message_id)
+            except Exception:
+                pass
+        except Exception:
+            break
+    bot.send_message(uid, "🚀 Go!")
+    test_start_paper(uid)
+
+
+def test_start_paper(uid):
+    p = load_profile(uid)
+    exam = p.get("_test_exam")
+    subjects = p.get("_test_subject_list", [])
+    allowed = p.get("_test_allowed", {})
+    papers = p.get("_test_papers", 1)
+    paper_num = 1
+    sess = exam_engine.get_session(uid)
+    if sess and sess.get("mode") == "test":
+        paper_num = sess.get("current_paper", 1)
+    plan = exam_engine.build_test_plan(exam, subjects, allowed)
+    if uid not in exam_engine.SESSIONS:
+        exam_engine.new_test_session(uid, exam, subjects, allowed, papers=papers)
+    sess = exam_engine.get_session(uid)
+    sess["mode"] = "test"
+    sess["exam"] = exam
+    sess["subjects"] = subjects
+    sess["allowed_chapters"] = allowed
+    sess["papers"] = papers
+    sess["current_paper"] = paper_num
+    sess["plan"] = plan
+    sess["plan_index"] = 0
+    sess["questions_done"] = 0
+    sess["correct"] = 0
+    sess["wrong"] = 0
+    sess["skipped"] = 0
+    sess["total_time"] = 0
+    sess["current_q"] = None
+    sess["current_meta"] = None
+    sess["current_started"] = None
+    sess["answers_log"] = []
+    sess["paper_scores"] = sess.get("paper_scores", [])
+    PRELOAD_QUEUE[uid] = []
+    dur = 180
+    safe_send(uid,
+        "📝 Paper " + str(paper_num) + " started\n"
+        "Duration: " + str(dur) + " min\nQuestions: " + str(len(plan)),
+        parse_mode="Markdown")
+    timer_manager.start_test_timer(bot, uid, dur, on_time_up=test_paper_time_up)
+    test_send_next(uid)
+
+
+def test_paper_time_up(uid):
+    safe_send(uid, "⏰ Time up. Submitting paper.")
+    test_paper_finish(uid)
+
+
+def test_send_next(uid):
+    p = load_profile(uid)
+    sess = exam_engine.get_session(uid)
+    if not sess or sess.get("mode") != "test":
+        return
+    plan = sess.get("plan", [])
+    idx = sess.get("plan_index", 0)
+    if idx >= len(plan):
+        test_paper_finish(uid)
+        return
+    exam = sess.get("exam")
+    subj, ch, sub, q_type, diff = plan[idx]
+    queue = PRELOAD_QUEUE.get(uid, [])
+    q = queue.pop(0) if queue else None
+    if not q:
+        timer_manager.start_generating_timer(bot, uid, "question")
+        q = exam_engine.generate_question(exam, subj, ch, sub,
+                                           q_type=q_type.lower() if isinstance(q_type, str) else "mcq",
+                                           difficulty=diff)
+        timer_manager.stop_generating_timer(bot, uid)
+        if not q:
+            sess["plan_index"] = idx + 1
+            test_send_next(uid)
+            return
+        q["_meta"] = {"subject": subj, "chapter": ch, "subtopic": sub}
+        q["_plan_type"] = q_type
+    sess["current_q"] = q
+    sess["current_started"] = time.time()
+    sess["current_meta"] = q["_meta"]
+    sess["current_plan_type"] = q_type
+    n_done = sess.get("questions_done", 0)
+    n_total = len(plan)
+    st = q.get("source_type", "AI-Generated")
+    sd = q.get("source_detail", "")
+    ideal = q.get("ideal_time_sec", 60)
+    header = ("[" + EXAM_NAMES.get(exam, exam) + " | " + subj + " | Q" +
+              str(n_done + 1) + "/" + str(n_total) + "]\n"
+              "📌 " + st + (" · " + sd if sd else "") + "\n"
+              "⚡ " + difficulty_str(diff) + " | ⏱️ " + str(ideal) + "s")
+    full_q = header + "\n\n" + q["question"]
+    svg_code = q.get("svg")
+    if svg_code and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg_code, name="tq_" + str(uid))
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+    if q_type.lower() == "numerical" or q.get("correct_value") is not None:
+        PENDING_NUMERICAL[uid] = {"q": q, "meta": q["_meta"],
+                                   "started": time.time(), "is_test": True}
+        safe_send(uid, "📝 *Numerical*\n\n" + full_q + "\n\n👉 Type the number and send.",
+                  parse_mode="Markdown")
+        return
+    options = q.get("options", [])[:4]
+    if len(options) < 2:
+        sess["plan_index"] = idx + 1
+        test_send_next(uid)
+        return
+    options_skip = options + ["🚪 Skip"]
+    correct_idx = int(q.get("correct_index", 0))
+    try:
+        if len(full_q) <= 290:
+            bot.send_poll(chat_id=uid, question=full_q[:300],
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=correct_idx,
+                          explanation="Result in report.",
+                          is_anonymous=False)
+        else:
+            safe_send(uid, "📝 " + full_q)
+            time.sleep(0.3)
+            bot.send_poll(chat_id=uid, question="👆 Tap your answer:",
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=correct_idx,
+                          explanation="Result in report.",
+                          is_anonymous=False)
+    except Exception as e:
+        safe_send(uid, "Retry... " + str(e))
+        time.sleep(1)
+        test_send_next(uid)
+
+
+def test_paper_finish(uid):
+    sess = exam_engine.get_session(uid)
+    if not sess or sess.get("mode") != "test":
+        return
+    timer_manager.stop_test_timer(uid)
+    paper = sess.get("current_paper", 1)
+    papers = sess.get("papers", 1)
+    p_correct = sess.get("correct", 0)
+    p_wrong = sess.get("wrong", 0)
+    p_skipped = sess.get("skipped", 0)
+    p_log = sess.get("answers_log", [])
+    score, max_score = exam_engine.test_paper_score(
+        sess.get("exam"), p_correct, p_wrong, p_skipped)
+    sess.setdefault("paper_scores", []).append({
+        "paper": paper, "correct": p_correct, "wrong": p_wrong,
+        "skipped": p_skipped, "score": score, "max": max_score,
+        "log": list(p_log),
+    })
+    if paper < papers:
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton(
+            "▶️ Continue to Paper 2", callback_data="test_paper2"))
+        markup.add(telebot.types.InlineKeyboardButton(
+            "⏹ End & Show Results", callback_data="test_end"))
+        safe_send(uid,
+            "🏁 Paper " + str(paper) + " submitted.\n"
+            "Score: " + str(score) + " / " + str(max_score) + "\n"
+            "✅ " + str(p_correct) + "  ❌ " + str(p_wrong) + "  🚪 " + str(p_skipped) +
+            "\n\nTap Continue for Paper 2, or End.",
+            parse_mode="Markdown", reply_markup=markup)
+        return
+    test_finish(uid)
+
+
+def test_finish(uid):
+    sess = exam_engine.get_session(uid)
+    if not sess or sess.get("mode") != "test":
+        return
+    timer_manager.stop_test_timer(uid)
+    exam = sess.get("exam", "JEE_MAIN")
+    papers_data = sess.get("paper_scores", [])
+    if not papers_data:
+        p_correct = sess.get("correct", 0)
+        p_wrong = sess.get("wrong", 0)
+        p_skipped = sess.get("skipped", 0)
+        log = sess.get("answers_log", [])
+        score, max_score = exam_engine.test_paper_score(exam, p_correct, p_wrong, p_skipped)
+        papers_data = [{"paper": 1, "correct": p_correct, "wrong": p_wrong,
+                        "skipped": p_skipped, "score": score, "max": max_score, "log": log}]
+    total_correct = sum(p["correct"] for p in papers_data)
+    total_wrong = sum(p["wrong"] for p in papers_data)
+    total_skipped = sum(p["skipped"] for p in papers_data)
+    total_score = sum(p["score"] for p in papers_data)
+    total_max = sum(p["max"] for p in papers_data)
+    total_time_min = sess.get("total_time", 0) / 60
+    lines = ["━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+             "   🏁 TEST COMPLETE",
+             "━━━━━━━━━━━━━━━━━━━━━━━━━━━", "",
+             "📘 " + EXAM_NAMES.get(exam, exam),
+             "📝 Attempted: " + str(total_correct + total_wrong),
+             "🚪 Skipped: " + str(total_skipped),
+             "⏱️ Time: " + str(round(total_time_min, 1)) + " min", ""]
+    for p in papers_data:
+        lines.append("📄 Paper " + str(p["paper"]) + ": " + str(p["score"]) + " / " + str(p["max"]))
+    lines.append("")
+    lines.append("🏆 Overall: " + str(total_score) + " / " + str(total_max))
+    lines.append("✅ " + str(total_correct) + "  ❌ " + str(total_wrong))
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+    exam_engine.end_session(uid)
+    PRELOAD_QUEUE.pop(uid, None)
+    PENDING_NUMERICAL.pop(uid, None)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "test_paper2")
+def cb_test_paper2(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        return
+    sess["current_paper"] = 2
+    sess["correct"] = 0
+    sess["wrong"] = 0
+    sess["skipped"] = 0
+    sess["questions_done"] = 0
+    sess["total_time"] = 0
+    sess["plan_index"] = 0
+    sess["answers_log"] = []
+    p = load_profile(uid)
+    exam = sess.get("exam")
+    plan = exam_engine.build_test_plan(exam, sess.get("subjects", []),
+                                        sess.get("allowed_chapters", {}))
+    sess["plan"] = plan
+    PRELOAD_QUEUE[uid] = []
+    safe_send(uid, "📄 Paper 2 started.")
+    timer_manager.start_test_timer(bot, uid, 180, on_time_up=test_paper_time_up)
+    test_send_next(uid)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "test_end")
+def cb_test_end(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    test_finish(uid)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "test_stop")
+def cb_test_stop(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    test_finish(uid)
+
+
+# ==========================================================
+# TEST POLL HANDLER (silent)
+# ==========================================================
+def test_handle_poll(uid, sess, ans):
+    q = sess.get("current_q")
+    if not q:
+        return
+    selected = ans.option_ids[0] if ans.option_ids else -1
+    options = q.get("options", [])
+    time_taken = time.time() - sess.get("current_started", time.time())
+    meta = sess.get("current_meta", {})
+    q_type = sess.get("current_plan_type", "mcq")
+    if selected == len(options):
+        sess["skipped"] = sess.get("skipped", 0) + 1
+        correct = False
+        user_repr = "SKIP"
+    else:
+        correct_idx = int(q.get("correct_index", 0))
+        correct = (int(selected) == correct_idx)
+        user_repr = chr(65 + int(selected)) if 0 <= selected <= 25 else "?"
+        if correct:
+            sess["correct"] = sess.get("correct", 0) + 1
+        else:
+            sess["wrong"] = sess.get("wrong", 0) + 1
+    sess.setdefault("answers_log", []).append({
+        "q": q, "meta": meta, "q_type": q_type,
+        "user_answer": user_repr, "correct": correct,
+        "time_taken": time_taken,
+    })
+    sess["questions_done"] = sess.get("questions_done", 0) + 1
+    sess["total_time"] = sess.get("total_time", 0) + time_taken
+    sess["plan_index"] = sess.get("plan_index", 0) + 1
+    try:
+        health.record_attempt(uid, meta.get("subject", ""), meta.get("chapter", ""),
+                              meta.get("subtopic", ""), "", correct,
+                              int(time_taken), int(q.get("ideal_time_sec", 60)),
+                              difficulty=q.get("difficulty", "medium"))
+    except Exception:
+        pass
+    sess["current_q"] = None
+    test_send_next(uid)
+
+
+# ==========================================================
+# NUMERICAL HANDLER (used for both practice and test)
+# ==========================================================
+def handle_numerical(uid, text):
+    pending = PENDING_NUMERICAL.pop(uid, None)
+    if not pending:
+        return
+    timer_manager.stop_question_timer(bot, uid)
+    q = pending["q"]
+    meta = pending["meta"]
+    time_taken = time.time() - pending["started"]
+    is_test = pending.get("is_test", False)
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        return
+    sess["total_time"] = sess.get("total_time", 0) + time_taken
+    sess["questions_done"] = sess.get("questions_done", 0) + 1
+    try:
+        val = float(text.replace(",", "").replace(" ", "").strip())
+    except Exception:
+        PENDING_NUMERICAL[uid] = pending
+        safe_send(uid, "Please send a valid number (e.g. 42 or 3.14).")
+        return
+    try:
+        correct_val = float(q.get("correct_value", 0))
+        correct = abs(val - correct_val) < 1e-6
+    except Exception:
+        correct = False
+        correct_val = q.get("correct_value", "?")
+    if correct:
+        sess["correct"] = sess.get("correct", 0) + 1
+    else:
+        sess["wrong"] = sess.get("wrong", 0) + 1
+    sess.setdefault("answers_log", []).append({
+        "q": q, "meta": meta, "q_type": "numerical",
+        "user_answer": text.strip(), "correct": correct,
+        "time_taken": time_taken,
+    })
+    sess["plan_index"] = sess.get("plan_index", 0) + 1
+    try:
+        health.record_attempt(uid, meta.get("subject", ""), meta.get("chapter", ""),
+                              meta.get("subtopic", ""), "", correct,
+                              int(time_taken), int(q.get("ideal_time_sec", 90)),
+                              difficulty=q.get("difficulty", "medium"))
+    except Exception:
+        pass
+    if is_test:
+        sess["current_q"] = None
+        test_send_next(uid)
+        return
+    # Practice
+    head = "✅ Correct!" if correct else "❌ Wrong — correct: " + str(correct_val)
+    msg = (head + "\n\n⏱️ " + str(int(time_taken)) + "s\n\n"
+           "📖 *Solution:*\n" + q.get("explanation", "") + "\n\n"
+           "⚠️ *Traps:*\n" + "\n".join("• " + t for t in (q.get("traps") or ["(none)"])))
+    safe_send(uid, msg + "\n\n/next /bookmark /stop",
+              parse_mode="Markdown", reply_markup=practice_buttons())
+    sess["last_q"] = q
+    sess["last_meta"] = meta
+    sess["current_q"] = None
+
+
+def handle_test_numerical(uid, text):
+    handle_numerical(uid, text)
+
+
+# ==========================================================
+# PRACTICE POLL HANDLER
+# ==========================================================
+def practice_handle_poll(uid, sess, ans):
+    q = sess.get("current_q")
+    if not q:
+        return
+    timer_manager.stop_question_timer(bot, uid)
+    selected = ans.option_ids[0] if ans.option_ids else -1
+    options = q.get("options", [])
+    time_taken = time.time() - sess.get("current_started", time.time())
+    sess["total_time"] = sess.get("total_time", 0) + time_taken
+    sess["questions_done"] = sess.get("questions_done", 0) + 1
+    meta = sess.get("current_meta", {})
+    subj = meta.get("subject", "")
+    chapter = meta.get("chapter", "")
+    subtopic = meta.get("subtopic", "")
+    if selected == len(options):
+        sess["skipped"] = sess.get("skipped", 0) + 1
+        try:
+            before, after = rec_attempt(uid, subj, chapter, subtopic, False,
+                                         time_taken, int(q.get("ideal_time_sec", 60)),
+                                         q.get("difficulty", "medium"))
+            dstr = delta_text(before, after)
+        except Exception:
+            dstr = ""
+        msg = ("🚪 Skipped\n\n⏱️ " + str(int(time_taken)) + "s\n\n"
+               "📖 " + q.get("explanation", "") + "\n" + dstr)
+        safe_send(uid, msg + "\n\n/next /bookmark /stop",
+                  parse_mode="Markdown", reply_markup=practice_buttons())
+        sess["last_q"] = q
+        sess["last_meta"] = meta
+        sess["current_q"] = None
+        return
+    correct = (int(selected) == int(q.get("correct_index", -1)))
+    if correct:
+        sess["correct"] = sess.get("correct", 0) + 1
+    else:
+        sess["wrong"] = sess.get("wrong", 0) + 1
+    try:
+        before, after = rec_attempt(uid, subj, chapter, subtopic, correct,
+                                     time_taken, int(q.get("ideal_time_sec", 60)),
+                                     q.get("difficulty", "medium"))
+        dstr = delta_text(before, after)
+    except Exception:
+        dstr = ""
+    if correct:
+        head = "✅ Correct!"
+    else:
+        ul = chr(65 + int(selected)) if 0 <= selected <= 25 else "?"
+        cl = chr(65 + int(q.get("correct_index", 0)))
+        head = "❌ Wrong — you chose " + ul + ", correct is " + cl
+    msg = (head + "\n\n⏱️ " + str(int(time_taken)) + "s\n\n"
+           "📖 *Solution:*\n" + q.get("explanation", "") + "\n\n"
+           "⚠️ *Traps:*\n" + "\n".join("• " + t for t in (q.get("traps") or ["(none)"])) + "\n"
+           + dstr)
+    safe_send(uid, msg + "\n\n/next /bookmark /stop",
+              parse_mode="Markdown", reply_markup=practice_buttons())
+    sess["last_q"] = q
+    sess["last_meta"] = meta
+    sess["current_q"] = None
+
+
+def rec_attempt(uid, subj, ch, sub, correct, time_taken, ideal, diff):
+    p = load_profile(uid) or {}
+    key = subj + "::" + ch + "::" + sub
+    before = p.get("subtopic_stats", {}).get(key, {}).get("health")
+    _, after = health.record_attempt(uid, subj, ch, sub, "", correct,
+                                      int(time_taken), ideal, difficulty=diff)
+    return before, after
+
+
+def delta_text(before, after):
+    if after is None:
+        return ""
+    if before is None:
+        return "\n📊 Health: " + str(after) + "/100"
+    d = round(after - before, 1)
+    sign = "+" if d >= 0 else ""
+    return "\n📊 Health: " + str(before) + " → " + str(after) + " (" + sign + str(d) + ")"
+
+
+def practice_buttons():
+    m = telebot.types.InlineKeyboardMarkup()
+    m.add(telebot.types.InlineKeyboardButton("▶️ Continue", callback_data="prac_cont"),
+          telebot.types.InlineKeyboardButton("🔖 Bookmark", callback_data="prac_bm"))
+    m.add(telebot.types.InlineKeyboardButton("⏹ Stop", callback_data="prac_stop"))
+    return m
+
+
+def doubt_buttons():
+    m = telebot.types.InlineKeyboardMarkup()
+    m.add(telebot.types.InlineKeyboardButton("▶️ Continue", callback_data="prac_cont"),
+          telebot.types.InlineKeyboardButton("⏹ Stop", callback_data="prac_stop"))
+    return m
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "prac_cont")
+def cb_prac_cont(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    if exam_engine.get_session(uid):
+        send_next_practice(uid)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "prac_bm")
+def cb_prac_bm(call):
+    uid = call.message.chat.id
+    sess = exam_engine.get_session(uid)
+    if not sess or not sess.get("last_q"):
+        bot.answer_callback_query(call.id, "No question.")
+        return
+    bpath = os.path.join(BOOKMARK_DIR, str(uid) + ".json")
+    bm = []
+    if os.path.exists(bpath):
+        try:
+            with open(bpath) as f:
+                bm = json.load(f)
+        except Exception:
+            bm = []
+    q = sess["last_q"]
+    bm.append({"question": q.get("question", ""), "meta": sess.get("last_meta", {})})
+    with open(bpath, "w") as f:
+        json.dump(bm, f, indent=2)
+    bot.answer_callback_query(call.id, "Bookmarked! " + str(len(bm)) + " total.")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "prac_stop")
+def cb_prac_stop(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    do_stop(uid)
+
+
+def do_stop(uid):
+    p = load_profile(uid)
+    timer_manager.stop_all_timers(bot, uid)
+    PENDING_NUMERICAL.pop(uid, None)
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        if p and p.get("_practice_active"):
+            p["_practice_active"] = False
+            save_profile(uid, p)
+        safe_send(uid, "No active session.")
+        return
+    if p:
+        p["_practice_active"] = False
+        save_profile(uid, p)
+    mode = sess.get("mode", "practice")
+    if mode == "conceptual":
+        safe_send(uid, exam_engine.conceptual_report(uid), parse_mode="Markdown")
+    elif mode == "test":
+        test_finish(uid)
+        return
+    else:
+        safe_send(uid, exam_engine.session_report(uid), parse_mode="Markdown")
+    exam_engine.end_session(uid)
+    PRELOAD_QUEUE.pop(uid, None)
+
+
+# ==========================================================
+# /next /bookmark /bookmarks /stop
+# ==========================================================
+@bot.message_handler(commands=['next'])
+def cmd_next(message):
+    uid = message.chat.id
+    PENDING_NUMERICAL.pop(uid, None)
+    timer_manager.stop_question_timer(bot, uid)
+    if not exam_engine.get_session(uid):
+        bot.reply_to(message, "Start /exam first.")
+        return
+    send_next_practice(uid)
+
+
+@bot.message_handler(commands=['bookmark'])
+def cmd_bookmark(message):
+    uid = message.chat.id
+    sess = exam_engine.get_session(uid)
+    if not sess or not sess.get("last_q"):
+        bot.reply_to(message, "No question to bookmark.")
+        return
+    bpath = os.path.join(BOOKMARK_DIR, str(uid) + ".json")
+    bm = []
+    if os.path.exists(bpath):
+        try:
+            with open(bpath) as f:
+                bm = json.load(f)
+        except Exception:
+            bm = []
+    bm.append({"question": sess["last_q"].get("question", ""),
+               "meta": sess.get("last_meta", {})})
+    with open(bpath, "w") as f:
+        json.dump(bm, f, indent=2)
+    bot.reply_to(message, "Bookmarked! " + str(len(bm)) + " total.")
+
+
+@bot.message_handler(commands=['bookmarks'])
+def cmd_bookmarks(message):
+    uid = message.chat.id
+    bpath = os.path.join(BOOKMARK_DIR, str(uid) + ".json")
+    if not os.path.exists(bpath):
+        bot.reply_to(message, "No bookmarks yet.")
+        return
+    with open(bpath) as f:
+        bm = json.load(f)
+    if not bm:
+        bot.reply_to(message, "No bookmarks yet.")
+        return
+    lines = ["🔖 Bookmarks (" + str(len(bm)) + ")"]
+    for i, b in enumerate(bm[:15], 1):
+        lines.append(str(i) + ". " + b.get("question", "")[:60])
+    safe_send(uid, "\n".join(lines))
+
+
+@bot.message_handler(commands=['stop'])
+def cmd_stop(message):
+    do_stop(message.chat.id)
+
+
+# ==========================================================
+# CONCEPTUAL MODE
+# ==========================================================
+def concept_pick_type(uid):
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("General Conceptual", "Exception Test")
+    msg = bot.send_message(uid, "🧠 Which type?", reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, concept_capture_type)
+
+
+def concept_capture_type(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    t = (message.text or "").strip().lower()
+    p["_concept_type"] = "exception" if "except" in t else "general"
+    save_profile(uid, p)
+    sel = p.get("selected_chapters", {})
+    subjects = [s for s in ["Maths", "Physics", "Chemistry"] if sel.get(s)]
+    if not subjects:
+        subjects = health.available_subjects()
+    if not subjects:
+        bot.send_message(uid, "No subjects.")
+        return
+    if len(subjects) == 1:
+        concept_ask_chapter(uid, subjects[0])
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "Which subject?", reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, concept_capture_subject)
+
+
+def concept_capture_subject(message):
+    uid = message.chat.id
+    subj = (message.text or "").strip().capitalize()
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "Invalid.")
+        return
+    concept_ask_chapter(uid, subj)
+
+
+def concept_ask_chapter(uid, subj):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    sel_ch = p.get("selected_chapters", {}).get(subj, [])
+    if sel_ch:
+        chapter_list = sel_ch
+    else:
+        data = health.load_subject_data(subj, exam)
+        if not data:
+            bot.send_message(uid, "No data.")
+            return
+        chapter_list = list(data.keys())
+    numbered = "\n".join(str(i + 1) + ". " + c for i, c in enumerate(chapter_list))
+    header = "🧠 " + subj + " — pick chapter:\n\n" + numbered + "\n\nReply number."
+    if len(header) > 4000:
+        safe_send(uid, "🧠 " + subj + " chapters:")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, "Reply number.")
+    else:
+        msg = bot.send_message(uid, header, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, concept_capture_chapter, subj, chapter_list)
+
+
+def concept_capture_chapter(message, subj, chapter_list):
+    uid = message.chat.id
+    try:
+        idx = int((message.text or "").strip()) - 1
+        if idx < 0 or idx >= len(chapter_list):
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "Invalid.")
+        return
+    chapter = chapter_list[idx]
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add("40", "60", "80", "100")
+    msg = bot.send_message(uid, "How many questions? (min 40)",
+                           reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, concept_capture_count, subj, chapter)
+
+
+def concept_capture_count(message, subj, chapter):
+    uid = message.chat.id
+    try:
+        n = int((message.text or "").strip())
+        if n < 40 or n > 100:
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "Send 40-100.")
+        return
+    p = load_profile(uid)
+    ttype = p.get("_concept_type", "general")
+    sess = exam_engine.start_conceptual_test(uid, subj, chapter, n, test_type=ttype)
+    if not sess:
+        bot.reply_to(message, "Could not start.")
+        return
+    sess["exam"] = p.get("priority") or health.exam_of(p) or "JEE_MAIN"
+    PRELOAD_QUEUE[uid] = []
+    safe_send(uid, "🧠 Conceptual Test (" + ttype + ") started\n"
+              "Subject: " + subj + "\nChapter: " + chapter + "\nQuestions: " + str(n),
+              parse_mode="Markdown")
+    time.sleep(0.5)
+    bot.send_message(uid, "🚀 Go!")
+    concept_send_next(uid)
+
+
+def concept_send_next(uid):
+    sess = exam_engine.get_session(uid)
+    if not sess or sess.get("mode") != "conceptual":
+        return
+    plan = sess.get("plan", [])
+    idx = sess.get("index", 0)
+    if idx >= len(plan):
+        concept_finish(uid)
+        return
+    exam = sess.get("exam")
+    subj = sess.get("subject")
+    chapter = sess.get("chapter")
+    sub = plan[idx]
+    ttype = sess.get("test_type", "general")
+    queue = PRELOAD_QUEUE.get(uid, [])
+    q = queue.pop(0) if queue else None
+    if not q:
+        timer_manager.start_generating_timer(bot, uid, "question")
+        diff = "hard" if ttype == "exception" else "medium"
+        q = exam_engine.generate_question(exam, subj, chapter, sub,
+                                           q_type="mcq", difficulty=diff)
+        timer_manager.stop_generating_timer(bot, uid)
+        if not q:
+            sess["index"] = idx + 1
+            concept_send_next(uid)
+            return
+        q["_meta"] = {"subject": subj, "chapter": chapter, "subtopic": sub}
+    sess["current_q"] = q
+    sess["current_started"] = time.time()
+    sess["current_meta"] = q["_meta"]
+    options = q.get("options", [])[:4]
+    if len(options) < 2:
+        sess["index"] = idx + 1
+        concept_send_next(uid)
+        return
+    options_skip = options + ["🚪 Skip"]
+    total = len(plan)
+    header = ("[Conceptual | " + ttype + " | Q" + str(idx + 1) + "/" + str(total) + "]\n"
+              "📖 " + subj + " → " + chapter)
+    full_q = header + "\n\n" + q["question"]
+    try:
+        if len(full_q) <= 290:
+            bot.send_poll(chat_id=uid, question=full_q[:300],
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=int(q.get("correct_index", 0)),
+                          explanation="Result in report.",
+                          is_anonymous=False)
+        else:
+            safe_send(uid, "📝 " + full_q)
+            time.sleep(0.3)
+            bot.send_poll(chat_id=uid, question="👆 Tap your answer:",
+                          options=options_skip[:10], type="quiz",
+                          correct_option_id=int(q.get("correct_index", 0)),
+                          explanation="Result in report.",
+                          is_anonymous=False)
+    except Exception as e:
+        safe_send(uid, "Retry... " + str(e))
+        time.sleep(1)
+        concept_send_next(uid)
+
+
+def concept_handle_poll(uid, sess, ans):
+    q = sess.get("current_q")
+    if not q:
+        return
+    selected = ans.option_ids[0] if ans.option_ids else -1
+    options = q.get("options", [])
+    time_taken = time.time() - sess.get("current_started", time.time())
+    meta = sess.get("current_meta", {})
+    subtopic = meta.get("subtopic", "Unknown")
+    if selected == len(options):
+        correct = False
+        sess["skipped"] = sess.get("skipped", 0) + 1
+    else:
+        correct = (int(selected) == int(q.get("correct_index", -1)))
+        if correct:
+            sess["correct"] = sess.get("correct", 0) + 1
+        else:
+            sess["wrong"] = sess.get("wrong", 0) + 1
+    sess["questions_done"] = sess.get("questions_done", 0) + 1
+    sess["total_time"] = sess.get("total_time", 0) + time_taken
+    sess["index"] = sess.get("index", 0) + 1
+    try:
+        exam_engine.record_conceptual_attempt(uid, subtopic, correct)
+    except Exception:
+        pass
+    try:
+        health.record_attempt(uid, meta.get("subject", ""), meta.get("chapter", ""),
+                              subtopic, "", correct, int(time_taken),
+                              int(q.get("ideal_time_sec", 60)),
+                              difficulty=q.get("difficulty", "medium"))
+    except Exception:
+        pass
+    sess["current_q"] = None
+    concept_send_next(uid)
+
+
+def concept_finish(uid):
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        return
+    safe_send(uid, exam_engine.conceptual_report(uid), parse_mode="Markdown")
+    exam_engine.end_session(uid)
+    PRELOAD_QUEUE.pop(uid, None)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "concept_stop")
+def cb_concept_stop(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    concept_finish(uid)
+
+
+# ==========================================================
+# /notes — 1 call → returns a ChatGPT prompt
+# ==========================================================
+@bot.message_handler(commands=['notes'])
+def cmd_notes(message):
+    uid = message.chat.id
+    ready, reason = profile_ready(uid)
+    if not ready:
+        send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    sel = p.get("selected_chapters", {})
+    subjects = [s for s in ["Maths", "Physics", "Chemistry"] if sel.get(s)]
+    if not subjects:
+        subjects = health.available_subjects()
+    if len(subjects) == 1:
+        notes_ask_chapter(uid, subjects[0])
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "📝 Which subject?", reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, notes_pick_subject)
+
+
+def notes_pick_subject(message):
+    uid = message.chat.id
+    subj = (message.text or "").strip().capitalize()
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "Invalid.")
+        return
+    notes_ask_chapter(uid, subj)
+
+
+def notes_ask_chapter(uid, subj):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    sel_ch = p.get("selected_chapters", {}).get(subj, [])
+    if sel_ch:
+        ch_list = sel_ch
+    else:
+        data = health.load_subject_data(subj, exam)
+        if not data:
+            bot.send_message(uid, "No data.")
+            return
+        ch_list = list(data.keys())
+    numbered = "\n".join(str(i + 1) + ". " + c for i, c in enumerate(ch_list))
+    header = "📝 " + subj + " — pick chapter:\n\n" + numbered + "\n\nReply number."
+    if len(header) > 4000:
+        safe_send(uid, "📝 " + subj + " chapters:")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, "Reply number.")
+    else:
+        msg = bot.send_message(uid, header, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, notes_capture_chapter, subj, ch_list)
+
+
+def notes_capture_chapter(message, subj, ch_list):
+    uid = message.chat.id
+    try:
+        idx = int((message.text or "").strip()) - 1
+        if idx < 0 or idx >= len(ch_list):
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "Invalid.")
+        return
+    chapter = ch_list[idx]
+    generate_notes_prompt(uid, subj, chapter)
+
+
+def generate_notes_prompt(uid, subject, chapter):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    data = health.load_subject_data(subject, exam)
+    if not data or chapter not in data:
+        safe_send(uid, "No data.")
+        return
+
+    subs = data[chapter]
+    concepts = []
+    for sub, val in subs.items():
+        cl = val.get("adv", []) if isinstance(val, dict) else val
+        for c in cl:
+            concepts.append(c)
+
+    safe_send(uid, "📝 Building a complete notes prompt for *" + chapter + "*...",
+              parse_mode="Markdown")
+
+    timer_manager.start_generating_timer(bot, uid, "notes prompt")
+
+    concepts_str = "\n".join("- " + c for c in concepts)
+
+    ai_prompt = (
+        "You are a master teacher. Write COMPLETE, DEEP, EXAM-READY short notes "
+        "for the JEE Advanced / JEE Mains chapter '" + chapter + "' in " + subject + ".\n\n"
+        "Cover EVERY one of these concepts (do not skip):\n"
+        + concepts_str + "\n\n"
+        "═══════════════════════════════════════\n"
+        "STRICT FORMAT RULES\n"
+        "═══════════════════════════════════════\n"
+        "1. Use ONLY real Unicode math symbols. Never LaTeX.\n"
+        "   Write θ τ π α β Δ Σ Ω ω φ λ μ ν as actual symbols\n"
+        "   Write √ × · ÷ ± ∓ ≈ ≠ ≤ ≥ → ⇒ ∞ ∫ ∑ ∏ ∂ ∇ directly\n"
+        "   Powers: x², x³, aᵢⱼ, H₂O, C₆H₁₂O₆\n"
+        "   Fractions: write as (a/b)\n"
+        "   Matrices: use ⎡a b⎤ ⎣c d⎦\n"
+        "   Determinants: use |a b; c d|\n"
+        "   NEVER write backslash commands, never write $ signs\n\n"
+        "2. For EVERY concept include:\n"
+        "   • Definition (3-4 lines, clear)\n"
+        "   • EVERY formula with all variables defined\n"
+        "   • 2-3 common traps students fall into\n"
+        "   • Shortcut or trick when one exists\n"
+        "   • Typical JEE question pattern\n\n"
+        "3. Do NOT summarise. Do NOT compress. Cover every case, every exception.\n"
+        "4. Write like a friendly senior — warm, encouraging, not textbook.\n"
+        "5. Split the answer into pages. Output each page separated by:\n"
+        "   ---PAGE---\n"
+        "   on its own line.\n"
+        "6. Each page should be a standalone chunk that fits one Telegram message.\n"
+        "7. Aim for 10-15 pages total.\n"
+    )
+
+    raw = ai_client.ask_hamilton(exam, ai_prompt)
+    timer_manager.stop_generating_timer(bot, uid)
+
+    if not raw:
+        safe_send(uid, "Could not generate. Try again in a moment.")
+        return
+
+    raw = ai_client.clean_latex(raw)
+
+    parts = [p.strip() for p in re.split(r"---PAGE---", raw) if p.strip()]
+    if not parts:
+        parts = [raw.strip()]
+
+    total = len(parts)
+    for i, part in enumerate(parts, 1):
+        header = "📝 *" + chapter + " — Page " + str(i) + "/" + str(total) + "*\n\n"
+        footer = countdown_footer(uid) if i == total else ""
+        svg, clean = svg_renderer.detect_svg_in_text(part)
+        send_math(uid, header + clean + footer, parse_mode="Markdown")
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name="notes_" + str(uid) + "_" + str(i))
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        time.sleep(0.4)
+
+    safe_send(uid,
+        "✅ *" + chapter + " notes delivered!*\n"
+        "Pages: *" + str(total) + "*\n"
+        "Concepts: *" + str(len(concepts)) + "*",
+        parse_mode="Markdown")
+
+
+# ==========================================================
+# FREE-TEXT HANDLER (with correct border ordering)
+# ==========================================================
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def free_text_handler(message):
+    uid = message.chat.id
+    text = (message.text or "").strip()
+    if not text:
+        return
+
+    p = get_or_create_profile(uid)
+
+    # Admin unblock
+    if text.strip() == ADMIN_UNBLOCK_CODE:
+        p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+        p["behavior"]["strikes"] = 0
+        p["behavior"]["blocked_until"] = None
+        save_profile(uid, p)
+        bot.reply_to(message, "🔓 Admin unblock successful.")
+        return
+
+    # Blocked
+    blocked, time_left = check_blocked(uid)
+    if blocked:
+        safe_send(uid,
+            "⛔ *Blocked*\n\nTry again in: *" + str(time_left) + "*\n\n"
+            "WhatsApp " + WHATSAPP_CONTACT + " for help." + countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # Activation
+    if not p.get("secured"):
+        if is_valid_key(text):
+            allowed, reason = check_key_binding(uid, text.strip())
+            if not allowed:
+                safe_send(uid, "This key is already active on another device.")
+                return
+            p["secured"] = True
+            p["activation_key"] = text.strip()
+            p["key_expired"] = False
+            p["onboarding_step"] = "name"
+            if not p.get("hku_id"):
+                p["hku_id"] = allocate_user_id(uid)
+            save_profile(uid, p)
+            if not p.get("story_shown"):
+                safe_send(uid, hamilton_story(), parse_mode="Markdown")
+                p["story_shown"] = True
+                save_profile(uid, p)
+                time.sleep(1)
+            bot.reply_to(message, "✅ Key confirmed. Let us set up.")
+            run_onboarding(uid)
+        else:
+            p.setdefault("no_key_attempts", 0)
+            p["no_key_attempts"] += 1
+            save_profile(uid, p)
+            if p["no_key_attempts"] <= 2:
+                safe_send(uid, no_key_message(short=False), parse_mode="Markdown")
+            else:
+                safe_send(uid, no_key_message(short=True), parse_mode="Markdown")
+        return
+
+    if check_key_expired(uid, p):
+        return
+
+    if not p.get("hku_id"):
+        p["hku_id"] = allocate_user_id(uid)
+        save_profile(uid, p)
+
+    if p.get("onboarding_step") and p["onboarding_step"] != "done":
+        run_onboarding(uid)
+        return
+
+    if not p.get("exams"):
+        bot.reply_to(message, "Set exams with /mode first.")
+        return
+
+    sess = exam_engine.get_session(uid)
+
+    # 1. PENDING NUMERICAL — highest priority
+    if uid in PENDING_NUMERICAL:
+        pending = PENDING_NUMERICAL.get(uid)
+        if pending and pending.get("is_test"):
+            handle_test_numerical(uid, text)
+        else:
+            handle_numerical(uid, text)
+        return
+
+    # 2. TEST hard border
+    if sess and sess.get("mode") == "test":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        paper = sess.get("current_paper", 1)
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("Stop Test", callback_data="test_stop"))
+        safe_send(uid,
+            "📝 *Test in progress* — Paper " + str(paper) + ", Q" + str(q_done) + "/" + str(len(plan)) + "\n\n"
+            "I cannot answer during the test. Finish first.",
+            parse_mode="Markdown", reply_markup=markup)
+        return
+
+    # 3. CONCEPTUAL hard border
+    if sess and sess.get("mode") == "conceptual":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("Stop Test", callback_data="concept_stop"))
+        safe_send(uid,
+            "🧠 *Conceptual test in progress* — Q" + str(q_done) + "/" + str(len(plan)) + "\n\n"
+            "I cannot answer during the test.",
+            parse_mode="Markdown", reply_markup=markup)
+        return
+
+    # 4. PRACTICE soft border (allow doubts)
+    if p.get("_practice_active") and sess and sess.get("mode") == "practice":
+        exam = sess.get("exam") or health.exam_of(p) or "JEE_MAIN"
+        timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+        intent, answer = ai_client.classify_and_answer(exam, text)
+        timer_manager.stop_thinking_timer(uid)
+        if not answer:
+            safe_send(uid, "Retry or Continue.")
+            return
+        svg, clean = svg_renderer.detect_svg_in_text(answer)
+        final = "💬 *Your doubt answered:*\n\n" + clean + countdown_footer(uid)
+        mid = timer_manager.get_thinking_msg_id(uid)
+        if mid:
+            safe_edit(uid, mid, final, parse_mode="Markdown", reply_markup=doubt_buttons())
+        else:
+            safe_send(uid, final, parse_mode="Markdown", reply_markup=doubt_buttons())
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name="doubt_" + str(uid))
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        return
+
+    if p.get("_practice_active") and not sess:
+        p["_practice_active"] = False
+        save_profile(uid, p)
+
+    # 5. Normal free-text
+    exam = health.exam_of(p) or "JEE_MAIN"
+    timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+    intent, answer = ai_client.classify_and_answer(exam, text)
+    timer_manager.stop_thinking_timer(uid)
+
+    if not answer:
+        mid = timer_manager.get_thinking_msg_id(uid)
+        err = "Hamilton is momentarily overloaded. Please try again."
+        if mid:
+            safe_edit(uid, mid, err)
+        else:
+            safe_send(uid, err)
+        return
+
+    if intent == "OFF_TOPIC":
+        blocked_now, mins = register_strike(uid)
+        if blocked_now:
+            safe_send(uid,
+                "⛔ Block mode activated for " + str(mins) + " minutes."
+                + countdown_footer(uid), parse_mode="Markdown")
+            return
+
+    svg, clean = svg_renderer.detect_svg_in_text(answer)
+    final = clean + countdown_footer(uid)
+    mid = timer_manager.get_thinking_msg_id(uid)
+    if mid:
+        safe_edit(uid, mid, final, parse_mode="Markdown")
+    else:
+        safe_send(uid, final, parse_mode="Markdown")
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name="ai_" + str(uid))
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+
+# ==========================================================
+# /find /leaderboard /help /clear_data /genkey /shutdown
+# ==========================================================
+@bot.message_handler(commands=['find'])
+def cmd_find(message):
+    uid = message.chat.id
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /find HKU-000001")
+        return
+    hku = parts[1].strip().upper()
+    found_uid = find_user_by_hku_id(hku)
+    if not found_uid:
+        bot.reply_to(message, "No user with that ID.")
+        return
+    try:
+        target = load_profile(int(found_uid))
+    except Exception:
+        target = load_profile(found_uid)
+    if not target:
+        bot.reply_to(message, "Not found.")
+        return
+    r = health.overall_health(target)
+    summary = health.attempts_summary(target)
+    pct = health.predict_percentile(r.get("overall"))
+    _, tier = health.estimate_rank(target)
+    lines = ["🔍 Search Result", "",
+             "👤 " + str(target.get("name", "—")),
+             "🆔 " + hku,
+             "🏫 " + str(target.get("institute", "—")),
+             "🎓 " + str(target.get("level", "—")),
+             "📚 " + ", ".join(EXAM_NAMES.get(e, e) for e in target.get("exams", [])), "",
+             "Total attempted: " + str(summary["attempted"]),
+             "✅ " + str(summary["correct"]) + "  ❌ " + str(summary["wrong"]),
+             "🎯 Accuracy: " + str(summary["accuracy"]) + "%", "",
+             "📊 Overall Health: " + str(r.get("overall") or 0) + "/100",
+             "🎯 Predicted %ile: " + str(pct),
+             "🏆 " + tier]
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+
+def compute_leaderboard(filt=None):
+    entries = []
+    if not os.path.exists(PROFILE_DIR):
+        return entries
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        uid_str = fname.replace(".json", "")
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured") or not p.get("name"):
+            continue
+        if not p.get("exams"):
+            continue
+        lvl = (p.get("level") or "").lower()
+        if filt == "junior" and lvl != "junior":
+            continue
+        if filt == "senior" and lvl not in ("senior", "dropper"):
+            continue
+        summary = health.attempts_summary(p)
+        if summary["attempted"] < 20:
+            continue
+        r = health.overall_health(p)
+        h = r.get("overall") or 0
+        pct = health.predict_percentile(h)
+        entries.append({"name": p.get("name"), "hku": p.get("hku_id", "—"),
+                        "health": round(h, 1), "pct": pct,
+                        "attempted": summary["attempted"]})
+    entries.sort(key=lambda x: x["health"], reverse=True)
+    return entries
+
+
+@bot.message_handler(commands=['leaderboard'])
+def cmd_leaderboard(message):
+    uid = message.chat.id
+    parts = message.text.split()
+    filt = None
+    if len(parts) > 1:
+        a = parts[1].lower()
+        if "jun" in a:
+            filt = "junior"
+        elif "sen" in a or "drop" in a:
+            filt = "senior"
+    entries = compute_leaderboard(filt)
+    if not entries:
+        bot.reply_to(message, "No qualifying users yet (need 20+ attempts).")
+        return
+    title = "🏆 Leaderboard"
+    if filt:
+        title += " — " + filt
+    lines = [title, ""]
+    for i, e in enumerate(entries[:20], 1):
+        m = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else str(i) + "."
+        lines.append(m + " " + e["name"] + " (" + e["hku"] + ") — " + str(e["health"]))
+    safe_send(uid, "\n".join(lines))
+
+
+@bot.message_handler(commands=['help'])
+def cmd_help(message):
+    text = (
+        "📖 *Hamilton Help*\n\n"
+        "*Setup:*\n"
+        "/start · /mode · /select · /status\n\n"
+        "*Study:*\n"
+        "/exam — Practice / Test / Conceptual\n"
+        "/notes — full chapter notes (multi-page)\n"
+        "/next · /bookmark · /bookmarks · /stop\n\n"
+        "*Progress:*\n"
+        "/health · /graph · /plan · /target\n\n"
+        "*Social:*\n"
+        "/leaderboard [junior|senior] · /find HKU-XXXXXX\n\n"
+        "*Account:*\n"
+        "/clear_data · /help"
+    )
+    safe_send(message.chat.id, text, parse_mode="Markdown")
+
+
+@bot.message_handler(commands=['clear_data'])
+def cmd_clear_data(message):
+    uid = message.chat.id
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(
+        telebot.types.InlineKeyboardButton("Yes, delete all", callback_data="clr_yes"),
+        telebot.types.InlineKeyboardButton("Cancel", callback_data="clr_no"))
+    bot.reply_to(message, "⚠️ Delete ALL your data? This cannot be undone.",
+                 reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "clr_yes")
+def cb_clr_yes(call):
+    uid = call.message.chat.id
+    p = load_profile(uid) or {}
+    fresh = new_profile()
+    fresh["secured"] = True
+    fresh["activation_key"] = p.get("activation_key")
+    fresh["hku_id"] = p.get("hku_id")
+    fresh["story_shown"] = True
+    fresh["onboarding_step"] = "name"
+    save_profile(uid, fresh)
+    try:
+        bot.edit_message_text(chat_id=uid, message_id=call.message.message_id,
+                              text="✅ Data cleared. Type /start to set up again.")
+    except Exception:
+        safe_send(uid, "✅ Data cleared. /start to set up again.")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "clr_no")
+def cb_clr_no(call):
+    try:
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                              message_id=call.message.message_id,
+                              text="Cancelled.")
+    except Exception:
+        pass
+
+
+@bot.message_handler(commands=['genkey'])
+def cmd_genkey(message):
+    if message.chat.id != ADMIN_CHAT_ID:
+        return
+    parts = message.text.strip().split()
+    if len(parts) < 3:
+        bot.reply_to(message, "Usage: /genkey YY COUNT")
+        return
+    try:
+        yy = parts[1].zfill(2)
+        count = int(parts[2])
+    except Exception:
+        bot.reply_to(message, "Invalid.")
+        return
+    import string
+    keys = load_keys()
+    new = []
+    for _ in range(count):
+        b1 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        b2 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        k = "HK-" + yy + "-" + b1 + "-" + b2
+        keys[k] = {"year": 2000 + int(yy), "bound_to": None}
+        new.append(k)
+    with open(KEYS_FILE, "w") as f:
+        json.dump(keys, f, indent=2)
+    safe_send(message.chat.id, "Generated:\n\n" + "\n".join(new))
+
+
+@bot.message_handler(commands=['shutdown'])
+def cmd_shutdown(message):
+    if message.chat.id != ADMIN_CHAT_ID:
+        return
+    text = message.text.replace("/shutdown", "").strip()
+    if not text:
+        text = ("⚠️ Server maintenance in progress. Hamilton will be back soon.\n"
+                "Until then — revise a concept, practice PYQs.")
+    count = 0
+    if os.path.exists(PROFILE_DIR):
+        for fname in os.listdir(PROFILE_DIR):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                cid = int(fname.replace(".json", ""))
+            except Exception:
+                continue
+            try:
+                safe_send(cid, text, parse_mode="Markdown")
+                count += 1
+            except Exception:
+                pass
+    bot.reply_to(message, "Sent to " + str(count) + " users. Shutting down...")
+    time.sleep(3)
+    os._exit(0)
+
+
+# ==========================================================
+# MASTER POLL HANDLER (routes to practice/test/concept)
+# ==========================================================
+@bot.poll_answer_handler()
+def master_poll(ans):
+    uid = ans.user.id
+    sess = exam_engine.get_session(uid)
+    if not sess:
+        return
+    mode = sess.get("mode", "practice")
+    if mode == "practice":
+        practice_handle_poll(uid, sess, ans)
+    elif mode == "test":
+        test_handle_poll(uid, sess, ans)
+    elif mode == "conceptual":
+        concept_handle_poll(uid, sess, ans)
+
+
+# ==========================================================
+# BOOT
+# ==========================================================
+print("🚀 Hamilton Study AI is live.")
+
+while True:
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except KeyboardInterrupt:
+        print("\nStopped.")
+        break
+    except Exception as e:
+        print("Polling crashed: " + str(e))
+        time.sleep(3)
+        continue

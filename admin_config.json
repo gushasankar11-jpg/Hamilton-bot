@@ -1,0 +1,29 @@
+{
+  "primary": {
+    "chat_id": null,
+    "name": "Gokarnam Muni Krishna Vamsi",
+    "privacy_hash": "6ea338e158a7115c2ed3325b74e431a384dd422012140c60f8c93d6dcf16b135",
+    "privacy_salt": "f1aa323a0c2ee1ed44c7a4000ac15f29930edac1a9cca8bbdf9df6143a5b6240",
+    "reset_hash": "4c9758d03f846a12c7dd8204129d870c7957eff2d878812f10cc0479415896b6",
+    "reset_salt": "38c936a7f33484f7fc2a949223d4a582696a09949ec7742a10895069e7e41dcb",
+    "created_at": "2026-10-16T17:44:14.235335",
+    "failed_attempts": 0,
+    "locked_until": null
+  },
+  "sub_admins": {
+    "8857708587": {
+      "name": "Hemanth Kumar",
+      "privacy_hash": "941e41dffa51521d2a6b5fb033752e717fbb9726f87adbda300e67631e57156f",
+      "privacy_salt": "93e7ad2f6e899be0",
+      "registered_at": "2026-10-19T22:50:37.006344",
+      "first_seen": "2026-10-19T22:50:37.006381",
+      "last_seen": "2026-10-21T06:48:30.719986",
+      "failed_attempts": 0,
+      "locked_until": null,
+      "reset_hash": "a684aec1daaa1c28ee190bd7afe6058f29dd96269dfeeb034203bfa4f52c8ea0",
+      "reset_salt": "7b3c4b0a21b922e0",
+      "privacy_plain": "Goku9121504170hk",
+      "reset_plain": "9121504170 Goku the God"
+    }
+  }
+}

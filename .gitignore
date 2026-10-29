@@ -1,0 +1,11 @@
+__pycache__/
+bot.log
+bot.py
+pdf_out/
+pdf_tmp/
+pdf_builder_tmp/
+pyq_pdfs/
+*.bak
+*.bak*
+*.pyc
+.env

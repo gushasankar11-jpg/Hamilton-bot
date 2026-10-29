@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="260" viewBox="0 0 700 260">
+  <rect width="700" height="260" fill="#0a0a1a" rx="15"/>
+  <text x="30" y="40" font-size="18" font-weight="bold" fill="#ffffff" font-family="Arial">
+    Health Update — Inconsistency in Ampere's Circuital Law
+  </text>
+
+  <text x="30" y="90" font-size="14" fill="#cccccc" font-family="Arial">Before</text>
+  <rect x="120" y="75" width="500" height="24" fill="#222" rx="12"/>
+  <rect x="120" y="75" width="27" height="24" fill="#dc3545" rx="12"/>
+  <text x="640" y="93" font-size="15" fill="#dc3545" font-family="Arial" font-weight="bold">5.5</text>
+
+  <text x="30" y="150" font-size="14" fill="#cccccc" font-family="Arial">After</text>
+  <rect x="120" y="135" width="500" height="24" fill="#222" rx="12"/>
+  <rect x="120" y="135" width="25" height="24" fill="#dc3545" rx="12"/>
+  <text x="640" y="153" font-size="15" fill="#dc3545" font-family="Arial" font-weight="bold">5.0</text>
+
+  <text x="350" y="215" font-size="26" font-weight="bold" fill="#dc3545" font-family="Arial" text-anchor="middle">
+    -0.5
+  </text>
+  <text x="350" y="240" font-size="12" fill="#888888" font-family="Arial" text-anchor="middle">
+    Change in health
+  </text>
+<g transform="translate(620,10) scale(0.35)" opacity="0.9">
+  <defs>
+    <style>
+      .g { fill: #c9a961; }
+      .g-line { stroke: #c9a961; fill: none; }
+    </style>
+  </defs>
+
+  <g class="g">
+    <ellipse cx="30" cy="70" rx="7" ry="3" transform="rotate(-45 30 70)"/>
+    <ellipse cx="26" cy="82" rx="8" ry="3" transform="rotate(-30 26 82)"/>
+    <ellipse cx="24" cy="96" rx="9" ry="3.2" transform="rotate(-15 24 96)"/>
+    <ellipse cx="24" cy="110" rx="9" ry="3.2"/>
+    <ellipse cx="26" cy="124" rx="9" ry="3.2" transform="rotate(15 26 124)"/>
+    <ellipse cx="32" cy="138" rx="8" ry="3" transform="rotate(30 32 138)"/>
+    <ellipse cx="40" cy="150" rx="7" ry="3" transform="rotate(45 40 150)"/>
+    <ellipse cx="52" cy="160" rx="6" ry="2.8" transform="rotate(60 52 160)"/>
+
+    <ellipse cx="170" cy="70" rx="7" ry="3" transform="rotate(45 170 70)"/>
+    <ellipse cx="174" cy="82" rx="8" ry="3" transform="rotate(30 174 82)"/>
+    <ellipse cx="176" cy="96" rx="9" ry="3.2" transform="rotate(15 176 96)"/>
+    <ellipse cx="176" cy="110" rx="9" ry="3.2"/>
+    <ellipse cx="174" cy="124" rx="9" ry="3.2" transform="rotate(-15 174 124)"/>
+    <ellipse cx="168" cy="138" rx="8" ry="3" transform="rotate(-30 168 138)"/>
+    <ellipse cx="160" cy="150" rx="7" ry="3" transform="rotate(-45 160 150)"/>
+    <ellipse cx="148" cy="160" rx="6" ry="2.8" transform="rotate(-60 148 160)"/>
+  </g>
+
+  <path d="M 100,40 L 145,55 L 145,110 Q 145,140 100,160 Q 55,140 55,110 L 55,55 Z"
+        class="g-line" stroke-width="3"/>
+
+  <text x="72" y="105" font-family="Georgia, serif" font-weight="bold"
+        font-size="34" class="g">H</text>
+  <text x="112" y="105" font-family="Georgia, serif" font-weight="bold"
+        font-size="34" class="g">K</text>
+
+  <g transform="translate(68, 115)">
+    <path d="M 0,0 Q 8,-3 16,0 L 16,14 Q 8,11 0,14 Z" class="g-line" stroke-width="2"/>
+    <line x1="8" y1="0" x2="8" y2="14" class="g-line" stroke-width="1.5"/>
+  </g>
+
+  <g transform="translate(118, 60)">
+    <path d="M 0,20 Q 5,5 18,0 Q 20,15 8,22 Z" class="g"/>
+    <line x1="0" y1="20" x2="8" y2="18" class="g-line" stroke-width="1.5"/>
+  </g>
+</g></svg>

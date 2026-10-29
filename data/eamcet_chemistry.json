@@ -1,0 +1,3515 @@
+{
+  "Some Basic Concepts and Mole Concept": {
+    "Properties of Matter and Their Measurements": {
+      "adv": [
+        "Properties of Matter and Their Measurements",
+        "The International System of Units (SI)",
+        "Derived Units",
+        "Subsidiary Units",
+        "Mass and Weight"
+      ]
+    },
+    "Uncertainty in Measurement": {
+      "adv": [
+        "Accuracy and Precision",
+        "Significant Figures"
+      ]
+    },
+    "Laws of Chemical Combination": {
+      "adv": [
+        "Law of Conservation of Mass",
+        "Law of Constant or Definite Composition or Proportions",
+        "Law of Multiple Proportions"
+      ]
+    },
+    "Atomic Mass": {
+      "adv": [
+        "Average Atomic Mass",
+        "Gram Atomic Mass",
+        "Molecular Mass",
+        "Gram Molecular Mass",
+        "Formula Mass and Gram Formula Mass"
+      ]
+    },
+    "Mole Concept": {
+      "adv": [
+        "Molar Mass",
+        "Molar Volume"
+      ]
+    },
+    "Percentage Composition": {
+      "adv": [
+        "Percentage Composition"
+      ]
+    },
+    "Empirical and Molecular Formulae": {
+      "adv": [
+        "Relation Between Empirical and Molecular Formulae",
+        "Calculation of the Empirical and Molecular Formulae"
+      ]
+    },
+    "Stoichiometry and Stoichiometric Calculations": {
+      "adv": [
+        "Balancing of a Chemical Equation"
+      ]
+    },
+    "Application of Mole Concept in a Balanced Chemical Equation": {
+      "adv": [
+        "Problem-solving Technique Using Mole Concept"
+      ]
+    },
+    "Limiting Reagent": {
+      "adv": [
+        "Limiting Reagent"
+      ]
+    },
+    "Mole Concept in Solutions": {
+      "adv": [
+        "Molarity",
+        "Molality",
+        "Normality",
+        "Percent Concentrations"
+      ]
+    }
+  },
+  "Redox Reactions": {
+    "Oxidation and Reduction": {
+      "adv": [
+        "Oxidation",
+        "Reduction",
+        "Electronic Concept of Oxidation and Reduction",
+        "Oxidising Agent or Oxidant",
+        "Reducing Agent or Reductant"
+      ]
+    },
+    "Oxidation Number and State": {
+      "adv": [
+        "Rules for Assigning Oxidation Number and State"
+      ]
+    },
+    "Oxidation State of Oxygen": {
+      "adv": [
+        "Oxidation State of Oxygen in Peroxides and Peracides"
+      ]
+    },
+    "Other Oxidation Number Concepts": {
+      "adv": [
+        "Highest Oxidation State of the Group Element",
+        "Stock Notation"
+      ]
+    },
+    "Types of Redox Reactions": {
+      "adv": [
+        "Combination Reactions",
+        "Decomposition Reactions",
+        "Displacement Reactions"
+      ]
+    },
+    "Balancing of Redox Reactions": {
+      "adv": [
+        "Oxidation Number Method"
+      ]
+    }
+  },
+  "Stoichiometry and The Concept of Equivalents": {
+    "Gram Equivalent": {
+      "adv": [
+        "Mixing of Strong Acids and Strong Bases"
+      ]
+    },
+    "Redox Reactions as the Basis for Titrations": {
+      "adv": [
+        "Titration of Mixture of Compounds with Acid/Base or Oxidising/Reducing Agent"
+      ]
+    },
+    "Use of Indicators": {
+      "adv": [
+        "Selection of Indicators",
+        "Use of Double Indicators in Neutralisation"
+      ]
+    },
+    "Hard and Soft Water": {
+      "adv": [
+        "Types of Hardness",
+        "Removal of Hardness of Water",
+        "Removal of Temporary Hardness"
+      ]
+    }
+  },
+  "Atomic Structure": {
+    "Subatomic Particles": {
+      "adv": [
+        "Discovery of Electron—Cathode Rays",
+        "Properties of Cathode Rays"
+      ]
+    },
+    "Radioactivity": {
+      "adv": [
+        "Radioactivity"
+      ]
+    },
+    "Atomic Models": {
+      "adv": [
+        "Rutherford's Nuclear Model"
+      ]
+    },
+    "Atomic Number and Mass Number": {
+      "adv": [
+        "Mass Number",
+        "Isotopes, Isobars, Isotones, Isoelectronic Ions"
+      ]
+    },
+    "Nature of Electromagnetic Radiations": {
+      "adv": [
+        "Nature of Electromagnetic Radiations"
+      ]
+    },
+    "Particle Nature of Electromagnetic Radiations": {
+      "adv": [
+        "Planck's Quantum Theory"
+      ]
+    },
+    "Dual Nature of Electromagnetic Radiations": {
+      "adv": [
+        "Dual Nature of Electromagnetic Radiations"
+      ]
+    },
+    "Evidence for Quantised Electronic Energy Levels": {
+      "adv": [
+        "Hydrogen Spectrum"
+      ]
+    },
+    "Bohr's Model for Hydrogen Atom": {
+      "adv": [
+        "Explanation of Line Spectrum of Hydrogen",
+        "Successes of Bohr's Model",
+        "Limitations of Bohr's Model"
+      ]
+    },
+    "Dual Behaviour of Matter": {
+      "adv": [
+        "Relation of de Broglie Wavelength (λ) with Kinetic Energy (E) of the Particle",
+        "Difference Between Electromagnetic Waves and Matter Waves",
+        "Significance of de Broglie Waves"
+      ]
+    },
+    "Heisenberg's Uncertainty Principle": {
+      "adv": [
+        "Explanation of Heisenberg's Uncertainty Principle",
+        "Significance of Uncertainty Principle"
+      ]
+    },
+    "Concept of Orbitals": {
+      "adv": [
+        "Concept of Orbitals",
+        "Quantum Numbers"
+      ]
+    },
+    "Energies of Orbitals and Energy Level Diagram": {
+      "adv": [
+        "Energy Level Diagram of Hydrogen Atom"
+      ]
+    },
+    "Rules for Filling of Orbitals in an Atom": {
+      "adv": [
+        "Aufbau Principle",
+        "Pauli Exclusion Principle",
+        "Hund's Rule of Maximum Multiplicity"
+      ]
+    },
+    "Electronic Configuration of Atoms": {
+      "adv": [
+        "Electronic Configuration of Atoms",
+        "Stability of Completely Filled and Half-Filled Sub-Shells"
+      ]
+    }
+  },
+  "States of Matter": {
+    "Three States of Matter and Conditions of Temperature and Pressure": {
+      "adv": [
+        "Three States of Matter and Conditions of Temperature and Pressure"
+      ]
+    },
+    "Intermolecular Forces": {
+      "adv": [
+        "Dispersion Forces or London Forces",
+        "Dipole-dipole Forces",
+        "Hydrogen Bonds",
+        "Thermal Energy",
+        "Intermolecular Forces and Thermal Energy"
+      ]
+    },
+    "Gaseous State": {
+      "adv": [
+        "Measurable Properties of Gases"
+      ]
+    },
+    "Gas Laws": {
+      "adv": [
+        "Boyle's Law (Pressure-Volume Relationship)",
+        "Charles' Law (Temperature-Volume Relationship)",
+        "Gay-Lussac's Law (Pressure-Temperature Relationship)",
+        "Avogadro's Law (Volume-Amount Relationship)"
+      ]
+    },
+    "Ideal Gas": {
+      "adv": [
+        "Density and Molar Mass of a Gaseous Substance"
+      ]
+    },
+    "Dalton's Law of Partial Pressures": {
+      "adv": [
+        "Dalton's Law of Partial Pressures"
+      ]
+    },
+    "Diffusion of Gases": {
+      "adv": [
+        "Graham's Law of Diffusion/Effusion"
+      ]
+    },
+    "Kinetic Molecular Theory of Gases": {
+      "adv": [
+        "Kinetic Molecular Theory of Gases"
+      ]
+    },
+    "Different Types of Molecular Speeds": {
+      "adv": [
+        "Average Kinetic Energy of Gas Molecules"
+      ]
+    },
+    "Behaviour of Real Gases": {
+      "adv": [
+        "Deviation from Ideal Gas Behaviour",
+        "Differences Between Ideal and Real Gases"
+      ]
+    },
+    "Liquefaction of Gases": {
+      "adv": [
+        "Liquefaction of Gases"
+      ]
+    },
+    "Critical Constants": {
+      "adv": [
+        "Concept of Critical Constants (Andrew Isotherm)"
+      ]
+    },
+    "Liquid State": {
+      "adv": [
+        "Properties of Liquids"
+      ]
+    }
+  },
+  "Thermodynamics": {
+    "Thermodynamic Terms": {
+      "adv": [
+        "The System and the Surroundings",
+        "State of System and State Variables",
+        "State Function and Path Function",
+        "Thermodynamic Process",
+        "Internal Energy as a State Function",
+        "Heat (q)",
+        "Work (w)"
+      ]
+    },
+    "First Law of Thermodynamics": {
+      "adv": [
+        "Mathematical Expression of the First Law of Thermodynamics"
+      ]
+    },
+    "Heat Capacity": {
+      "adv": [
+        "Heat Capacity"
+      ]
+    },
+    "Calculations of Thermodynamic Changes in Expansion or Compression of an Ideal Gas": {
+      "adv": [
+        "Isothermal Expansion or Compression Process"
+      ]
+    },
+    "Thermochemistry": {
+      "adv": [
+        "Thermochemistry"
+      ]
+    },
+    "Heat of Reaction or Enthalpy of Reaction": {
+      "adv": [
+        "Factors that Influence the Enthalpy of Reaction"
+      ]
+    },
+    "Types of Enthalpies of Reaction": {
+      "adv": [
+        "Standard Enthalpy of Formation (ΔfH°)",
+        "Enthalpy Changes During Phase Transformations",
+        "Enthalpy of Combustion or Heat of Combustion (ΔcombH°)",
+        "Enthalpy of Solution (ΔsolH°)",
+        "Enthalpy of Neutralisation (ΔnH°)",
+        "Hess's Law of Constant Heat Summation"
+      ]
+    },
+    "Limitations of the First Law of Thermodynamics": {
+      "adv": [
+        "Limitations of the First Law of Thermodynamics"
+      ]
+    },
+    "Spontaneous Process or Spontaneity": {
+      "adv": [
+        "Spontaneity of a Process and Enthalpy Change",
+        "Limitations of Criterion of Decrease in Enthalpy",
+        "Randomness or Disorder and Spontaneity"
+      ]
+    },
+    "Entropy": {
+      "adv": [
+        "Entropy Change and Spontaneity",
+        "Characteristics of Entropy"
+      ]
+    },
+    "Second Law of Thermodynamics": {
+      "adv": [
+        "Entropy and Equilibrium State",
+        "Calculation of Changes in Entropy",
+        "Entropy Change During Phase Transitions"
+      ]
+    },
+    "Gibbs Energy and Gibbs Energy Change": {
+      "adv": [
+        "Free Energy Change and Spontaneity",
+        "Standard Gibbs Free Energy (ΔG°)"
+      ]
+    }
+  },
+  "Chemical Equilibrium": {
+    "Equilibrium in Physical Processes": {
+      "adv": [
+        "Solid-Liquid Equilibrium",
+        "Liquid-Vapour Equilibrium",
+        "Solid-Vapour Equilibrium",
+        "Equilibrium Involving Dissolution of Solid or Gases in Liquids",
+        "Gases in Liquids",
+        "General Characteristics of Equilibria Involving Physical Processes"
+      ]
+    },
+    "Equilibrium in Chemical Processes": {
+      "adv": [
+        "Irreversible Reactions",
+        "Concept of Chemical Equilibrium",
+        "Dynamic Nature of Chemical Equilibrium"
+      ]
+    },
+    "Law of Mass Action and Equilibrium Constant": {
+      "adv": [
+        "Application of the Law of Mass Action to Chemical Equilibrium",
+        "Characteristics of Equilibrium Constant",
+        "Equilibrium Constant in Gaseous Systems",
+        "Degree of Dissociation"
+      ]
+    },
+    "Types of Chemical Equilibria": {
+      "adv": [
+        "Homogeneous Equilibria",
+        "Heterogeneous Equilibria"
+      ]
+    },
+    "Effect of Temperature on the Equilibrium Constant": {
+      "adv": [
+        "Effect of Temperature on the Equilibrium Constant"
+      ]
+    },
+    "Factors Affecting Equilibria: Le Chatelier's Principle": {
+      "adv": [
+        "Effect of Concentration Change",
+        "Effect of Pressure Change",
+        "Effect of Temperature Change",
+        "Effect of a Catalyst"
+      ]
+    }
+  },
+  "Ionic Equilibrium": {
+    "Acids, Bases, and Salts": {
+      "adv": [
+        "Arrhenius Concepts of Acids and Bases"
+      ]
+    },
+    "Salts": {
+      "adv": [
+        "Salts"
+      ]
+    },
+    "Ionisation of Acids and Bases": {
+      "adv": [
+        "Ionisation of Acids and Bases"
+      ]
+    },
+    "The pH Scale": {
+      "adv": [
+        "pH of Strong Acids or Strong Bases",
+        "Calculation of pH and Concentration of [H+] or [OH-] (When Equal Volumes of Two or Three Solutions of Known pH are Mixed)",
+        "Calculation of pH of Extremely Dilute (< 10^-6 M) Solution of Strong Acids and Strong Bases"
+      ]
+    },
+    "Ionisation Constants of Weak Acids": {
+      "adv": [
+        "Ionisation Constants of Weak Bases",
+        "pH of a Mixture of Two Weak Acid or a Mixture of Two Weak Bases"
+      ]
+    },
+    "Buffer Solution": {
+      "adv": [
+        "Buffer Action",
+        "Applications of Buffer Solutions"
+      ]
+    },
+    "Hydrolysis of Salts and the pH of their Solutions": {
+      "adv": [
+        "Salts of Strong Acids and Strong Bases (Sa/Sb)",
+        "Salts of Weak Acids and Strong Bases (Wa/Sb)"
+      ]
+    },
+    "Indicators": {
+      "adv": [
+        "Selection of Indicators (Sa and Sb)"
+      ]
+    },
+    "Solubility Equilibria of Sparingly Soluble Salts": {
+      "adv": [
+        "Solubility Product Constant"
+      ]
+    },
+    "Common Ion Effect on Solubility of Ionic Salts": {
+      "adv": [
+        "Common Ion Effect on Solubility of Ionic Salts"
+      ]
+    }
+  },
+  "Solid State": {
+    "General Characteristics of Solid": {
+      "adv": [
+        "General Characteristics of Solid",
+        "Classification of Solids",
+        "Crystalline Solids",
+        "Amorphous Solids"
+      ]
+    },
+    "Classification of Crystalline Solids": {
+      "adv": [
+        "Molecular Solids",
+        "Metallic Solids",
+        "Covalent or Network Solids",
+        "Ionic Solids"
+      ]
+    },
+    "Lattice": {
+      "adv": [
+        "Lattice",
+        "Classification of Two-Dimensional Lattices"
+      ]
+    },
+    "Crystal Lattices and Unit Cells (3D)": {
+      "adv": [
+        "Primitive and Centred Unit Cells",
+        "Seven Crystal System"
+      ]
+    },
+    "Effective Number of Atoms (Zeff) in a Unit Cell": {
+      "adv": [
+        "Effective Number of Atoms (Zeff) in a Unit Cell"
+      ]
+    },
+    "Calculation of Effective Atoms in an hcp Unit Cell": {
+      "adv": [
+        "Calculation of Effective Atoms in an hcp Unit Cell"
+      ]
+    },
+    "Atomic Radius and Shortest Distances in Cubic System": {
+      "adv": [
+        "Atomic Radius and Shortest Distances in Cubic System"
+      ]
+    },
+    "Coordination Number (CN)": {
+      "adv": [
+        "Coordination Number (CN)"
+      ]
+    },
+    "Packing Fraction (PF) or Space Occupied by Atoms in A Cubic System": {
+      "adv": [
+        "Packing Fraction (PF) or Space Occupied by Atoms in A Cubic System"
+      ]
+    },
+    "Calculation of the Density of a Metal by Using Unit Cell Dimensions": {
+      "adv": [
+        "Calculation of the Density of a Metal by Using Unit Cell Dimensions"
+      ]
+    },
+    "Close-Packed Structures": {
+      "adv": [
+        "Coordination Number (CN) of hcp and ccp Structures"
+      ]
+    },
+    "Structures of Simple Ionic Compounds": {
+      "adv": [
+        "Simple Ionic Compounds of Type AB"
+      ]
+    },
+    "Effect of Temperature and Pressure on a Crystal Structure": {
+      "adv": [
+        "Effect of Temperature and Pressure on a Crystal Structure"
+      ]
+    },
+    "Imperfections in Solids": {
+      "adv": [
+        "Atomic or Point Defects"
+      ]
+    },
+    "Electrical Properties of Solids": {
+      "adv": [
+        "Conduction of Electricity in Metals",
+        "Conduction of Electricity in Semiconductors"
+      ]
+    },
+    "Magnetic Properties of Solids": {
+      "adv": [
+        "Paramagnetism",
+        "Diamagnetism",
+        "Ferromagnetism"
+      ]
+    }
+  },
+  "Solutions": {
+    "Types of Solution": {
+      "adv": [
+        "Liquid Solution"
+      ]
+    },
+    "Solubility of a Gas in a Liquid": {
+      "adv": [
+        "Solubility of a Gas in a Liquid"
+      ]
+    },
+    "Solubility of a Solid in a Liquid": {
+      "adv": [
+        "Solubility of a Solid in a Liquid"
+      ]
+    },
+    "Vapour Pressure of Liquid Solution": {
+      "adv": [
+        "Vapour Pressure of a Volatile Liquid"
+      ]
+    },
+    "Raoult's Law": {
+      "adv": [
+        "Raoult's Law for a Solution Containing Volatile Components"
+      ]
+    },
+    "Ideal and Non-ideal Solutions": {
+      "adv": [
+        "Ideal Solutions"
+      ]
+    },
+    "Colligative Properties": {
+      "adv": [
+        "Relative Lowering of Vapour Pressure",
+        "Elevation in Boiling Point",
+        "Depression in Freezing Point",
+        "Osmosis and Osmotic Pressure"
+      ]
+    },
+    "Van't Hoff Factor": {
+      "adv": [
+        "Van't Hoff Factor",
+        "Calculation of the Extent of Dissociation or Association in an Electrolytic Solution"
+      ]
+    }
+  },
+  "Electrochemistry": {
+    "Electrochemical Series": {
+      "adv": [
+        "Electrochemical Series"
+      ]
+    },
+    "Nernst Equation": {
+      "adv": [
+        "Effect of Concentration on EMF of Cells and Half Cells (for an Electrode Mn+ | M)",
+        "EMF of Hydrogen Electrode in Different Concentrations of H+ Ions",
+        "Equilibrium Constant from Nernst Equation (Ecell = 0.0 V)"
+      ]
+    },
+    "Conductance of Electrolytic Solution": {
+      "adv": [
+        "Factors Affecting Electrolytic Conductance",
+        "Factors Affecting Metallic or Electronic Conductance",
+        "Resistance and Conductance of Solutions",
+        "Resistivity and Conductivity of Solutions",
+        "Equivalent Conductivity, Molar Conductivity, and Cell Constant"
+      ]
+    },
+    "Kohlrausch Law of Independent Migration of Ions": {
+      "adv": [
+        "Applications of Kohlrausch Law",
+        "Determination of Ionic Product of Water from Conductance Measurement"
+      ]
+    },
+    "Electrolysis": {
+      "adv": [
+        "Qualitative Electrolysis",
+        "Quantitative Electrolysis: Faraday's Laws"
+      ]
+    },
+    "Some Commercial Cells (Batteries)": {
+      "adv": [
+        "Primary Cells",
+        "Secondary Cells"
+      ]
+    },
+    "Corrosion": {
+      "adv": [
+        "Mechanism or Theory of Corrosion",
+        "Prevention of Corrosion"
+      ]
+    }
+  },
+  "Chemical Kinetics": {
+    "Rate of a Chemical Reaction": {
+      "adv": [
+        "Rate Expression and Rate Constant"
+      ]
+    },
+    "Types of Chemical Reactions": {
+      "adv": [
+        "Types of Chemical Reactions"
+      ]
+    },
+    "Order of Reaction": {
+      "adv": [
+        "Order of Reaction"
+      ]
+    },
+    "Molecularity of Reaction": {
+      "adv": [
+        "Molecularity of Reaction"
+      ]
+    },
+    "Integrated Rate Equation of Different Order Reactions": {
+      "adv": [
+        "Zero Order Reactions",
+        "First Order Reactions",
+        "Second Order Reactions"
+      ]
+    },
+    "Experimental Determination of Order of Reaction": {
+      "adv": [
+        "Initial Rate Method",
+        "Graphical Method",
+        "Half Life Method or Fractional Change Method"
+      ]
+    },
+    "Pseudo Order Reactions": {
+      "adv": [
+        "Pseudo Order Reactions"
+      ]
+    },
+    "Typical First Order Gas Phase Reactions": {
+      "adv": [
+        "Typical First Order Gas Phase Reactions"
+      ]
+    },
+    "Theories of Chemical Kinetics": {
+      "adv": [
+        "Temperature Dependence of the Rate of a Reaction",
+        "Differential form of Arrhenius Equation",
+        "Effect of Catalyst",
+        "Classification of Catalysts",
+        "Van't Hoff Equation from Arrhenius Equation"
+      ]
+    }
+  },
+  "Surface Chemistry": {
+    "Adsorption": {
+      "adv": [
+        "Distinction Between Adsorption and Absorption",
+        "Types of Adsorption",
+        "Factors Affecting Adsorption of Gases on Solids"
+      ]
+    },
+    "Catalysis": {
+      "adv": [
+        "Promoters and Poisons",
+        "Types of Catalysis",
+        "Important Features of Solid Catalysts (Heterogeneous Catalyst)"
+      ]
+    },
+    "Enzyme Catalysis": {
+      "adv": [
+        "Characteristics of Enzyme Catalysis",
+        "Catalysts in Industry"
+      ]
+    },
+    "Colloids": {
+      "adv": [
+        "Classification of Colloids",
+        "Properties of Colloidal Solutions",
+        "Colloids Around Us",
+        "Applications of Colloids"
+      ]
+    },
+    "Emulsions": {
+      "adv": [
+        "Types of Emulsions"
+      ]
+    }
+  },
+  "Periodic Classification of Elements and General Inorganic Chemistry": {
+    "Genesis of Periodic Classification": {
+      "adv": [
+        "Newlands' Octaves Law (1865)",
+        "Mendeleev's Periodic Law",
+        "Mendeleev's Periodic Table"
+      ]
+    },
+    "Modern Periodic Law and the Present Long Form of the Periodic Table or Moseley's Periodic Table": {
+      "adv": [
+        "Magic Numbers",
+        "Merits of Long Form of Periodic Table Over Mendeleev's Periodic Table"
+      ]
+    },
+    "Electronic Configurations of Elements and the Periodic Table": {
+      "adv": [
+        "Electronic Configuration in Periodic Table",
+        "Electronic Configurations Across Periods",
+        "Groupwise Electronic Configurations"
+      ]
+    },
+    "Electronic Configurations and Type of Elements: s-, p-, d-, and f-Blocks": {
+      "adv": [
+        "The s-Block Elements",
+        "The p-Block Elements",
+        "The d-Block Elements (Transition Elements)",
+        "The f-Block Elements (Inner-Transition Elements)",
+        "Inert Gases"
+      ]
+    },
+    "Metals, Non-Metals and Metalloids": {
+      "adv": [
+        "Metals",
+        "Non-metals",
+        "Metalloids or Semi-metals",
+        "Nature of Bonding in Metals",
+        "Comparison of Covalent Bond and Metallic Bond"
+      ]
+    },
+    "Prediction of Group, Period and Block of a Given Element": {
+      "adv": [
+        "Prediction of Group, Period and Block of a Given Element"
+      ]
+    },
+    "General Inorganic Chemistry or Periodic Trends in Properties of Elements": {
+      "adv": [
+        "Explanation of Periodicity",
+        "Trends in Physical Properties",
+        "Atomic Radius",
+        "Types of Atomic Radii",
+        "Periodicity in Atomic Radius and Ionic Radius"
+      ]
+    },
+    "Screening or Shielding Effect of Inner Shell Electrons on the Valence Shell Electron": {
+      "adv": [
+        "Factors Affecting the Magnitude of Screening Effect"
+      ]
+    },
+    "Ionisation Energy/Enthalpy (IE or Ei) and Ionisation Potential (IP)": {
+      "adv": [
+        "Successive Ionisation Enthalpies (ΔiH or IE)",
+        "Factors Affecting the Magnitude of Ionisation Enthalpy",
+        "Variation of IE or ΔiH in the Periodic Table",
+        "Variation of IE Across the Periods and Down the Group",
+        "Importance of Ionisation Potential"
+      ]
+    },
+    "Electron Gain Enthalpy (ΔegH) and Electron Affinity (EA)": {
+      "adv": [
+        "Successive Electron Gain Enthalpies",
+        "Units of ΔegH/EA",
+        "Variations of ΔegH in the Periodic Table",
+        "Factors on which ΔegH Depends",
+        "ΔegH of Noble Gases",
+        "Importance of Electron Gain Enthalpy"
+      ]
+    },
+    "Electronegativity and Electropositivity": {
+      "adv": [
+        "Variation of EN in the Periodic Table",
+        "Group Electronegativity",
+        "Factors Affecting the Magnitude of Electronegativity",
+        "Applications of EN",
+        "Acidic and Basic Nature of Oxides of Normal Elements in a Period",
+        "Differences Between ΔegH and EN"
+      ]
+    },
+    "Some Important Bond Characteristics": {
+      "adv": [
+        "Some Important Bond Characteristics"
+      ]
+    },
+    "Periodic Trends in Chemical Properties": {
+      "adv": [
+        "Periodicity of Valence or Oxidation States"
+      ]
+    },
+    "Typical Elements": {
+      "adv": [
+        "Typical Elements"
+      ]
+    },
+    "Bridge Elements": {
+      "adv": [
+        "Bridge Elements"
+      ]
+    },
+    "Anomalous Properties of the Second Period Elements (Diagonal relationship)": {
+      "adv": [
+        "Diagonal Relationship Between Lithium and Magnesium (Chemical Properties)",
+        "Similarities Between Lithium and Magnesium"
+      ]
+    },
+    "Periodic Trends and Chemical reactivity": {
+      "adv": [
+        "Periodic Trends and Chemical reactivity"
+      ]
+    },
+    "Fajans' Rule and Change of Ionic Character to Covalent Character": {
+      "adv": [
+        "Fajans' Rules"
+      ]
+    },
+    "Factors that Determine the Formation (or Stability) Of Compounds": {
+      "adv": [
+        "Factors that Determine the Formation (or Stability) Of Compounds"
+      ]
+    },
+    "Oxides": {
+      "adv": [
+        "Properties of Oxides",
+        "Classification of Oxides Based on their Chemical Behaviour",
+        "Trends of Oxides",
+        "Classification of Oxides Based on their Oxygen Content"
+      ]
+    }
+  },
+  "Chemical Bonding and Molecular Structure": {
+    "Types of Chemical Bonds": {
+      "adv": [
+        "Types of Chemical Bonds"
+      ]
+    },
+    "Octet Rule": {
+      "adv": [
+        "Octet Rule"
+      ]
+    },
+    "Kössel-Lewis Approach to Chemical Bonding": {
+      "adv": [
+        "Lewis Symbols",
+        "Significance of Lewis Symbols",
+        "Variable Covalency"
+      ]
+    },
+    "Ionic or electrovalent Bond": {
+      "adv": [
+        "Favourable Conditions for the Formation of Ionic Bonds",
+        "Characteristics of Ionic Compounds"
+      ]
+    },
+    "Covalent bond: Langmuir and Lewis Concept": {
+      "adv": [
+        "Classification of Covalent Bonds",
+        "Representation of Lewis Symbols",
+        "Multiple Covalent Bond",
+        "Lone Pairs and Bond Pairs",
+        "Characteristics of Covalent Compounds",
+        "Comparison Between Ionic and Covalent Compounds",
+        "Comparison Between Ionic and Covalent Bonds",
+        "Limitations of Lewis-Langmuir Concept of Covalent Bond"
+      ]
+    },
+    "Coordinate (or) Dative (or) Semipolar (or) Co-ionic (or) Donor Acceptor Bond": {
+      "adv": [
+        "Some More Examples of Coordinate Bond",
+        "Characteristics of Coordinate Compounds"
+      ]
+    },
+    "Limitations of the Octet Rule": {
+      "adv": [
+        "Incomplete Octet of the Central Atom",
+        "Odd Electron Molecules",
+        "Expanded Octet",
+        "Other Drawbacks of the Octet Theory"
+      ]
+    },
+    "Lewis Representation of Simple Molecules (The Lewis structures)": {
+      "adv": [
+        "Rules for Writing the Lewis Dot Structures"
+      ]
+    },
+    "Formal charge": {
+      "adv": [
+        "Applications of FC's to Resonance Structures"
+      ]
+    },
+    "Isosteres": {
+      "adv": [
+        "Isosteres"
+      ]
+    },
+    "Resonance structures": {
+      "adv": [
+        "Conditions of Resonating Structures",
+        "Possibility of Resonance",
+        "Resonance Energy"
+      ]
+    },
+    "Polarity of Covalent Bond, Polarisability and Fajans' Rule": {
+      "adv": [
+        "Polarity of Covalent Bond, Polarisability and Fajans' Rule"
+      ]
+    },
+    "Dipole Moments (μ)": {
+      "adv": [
+        "Bond moments",
+        "Application of Dipole Moments"
+      ]
+    },
+    "The Valence Shell Electron Pair Repulsion Theory": {
+      "adv": [
+        "Main Postulates of VSEPR Theory",
+        "Applications of VSEPR Theory",
+        "Limitations of VSEPR Theory"
+      ]
+    },
+    "Valence Bond Theory": {
+      "adv": [
+        "VBT in Terms of Energy Consideration",
+        "Formation of H2 Molecule",
+        "Why Helium Molecule (He2) is not Formed",
+        "Orbital Overlap Concept of Covalent Bond",
+        "Existence of Only H2 and Non-existence of Species Like H3 and H4",
+        "Directional Properties of Covalent Bonds",
+        "Overlapping of Atomic Orbitals",
+        "Main Points of VBT",
+        "Types of Overlapping and Nature of Covalent Bonds",
+        "Strength of Sigma and Pi Bonds",
+        "Examples of Formation of Compounds by Orbital Overlap Concepts and the Failure of Orbital Overlap Concept"
+      ]
+    },
+    "Hybridisation": {
+      "adv": [
+        "Salient Features of Hybridisation",
+        "Important Conditions for Hybridisation",
+        "Types of Hybridisation",
+        "Examples for sp, sp2 and sp3 Hybridisation",
+        "Hybridisation Involving d-Orbitals",
+        "Some Rules for Predicting Hybridisation and Shapes of Molecules/Ions",
+        "Hybridisation of Elements Involving π Bonds, Determination of Number of (pπ-pπ) and (pπ - dπ) Multiple Bonds",
+        "Summary of Hybridisation, Geometry and Shapes of Various Molecules/Ions",
+        "Summary of the Component Atomic Orbitals Involved in Hybrid Orbital Formation"
+      ]
+    },
+    "Bond Parameters": {
+      "adv": [
+        "Bond Order",
+        "Bond Length",
+        "Hydrogen Bonding",
+        "Types of H-Bonding",
+        "Some Examples of Intermolecular H-Bonding",
+        "Strength of Hydrogen Bond",
+        "Difference Between H-Bond and Covalent Bond"
+      ]
+    },
+    "Valence Bond Theory And Molecular orbital theory": {
+      "adv": [
+        "Types of Molecular Orbitals",
+        "Comparison Between Bonding and Antibonding MO's",
+        "Energy Level Diagram for MO's",
+        "Electronic Configuration and Molecular Behaviour",
+        "Bonding in Some Homonuclear Diatomic Molecules/Ions of Periods 1 and 2",
+        "Examples of Bonding in Some Heteronuclear Diatomic Molecules/Ions"
+      ]
+    }
+  },
+  "Hydrogen, Water and Hydrogen Peroxide": {
+    "Electronic Configuration of Hydrogen": {
+      "adv": [
+        "Electronic Configuration",
+        "Position of Hydrogen in the Periodic Table",
+        "Comparison with Alkali Metals",
+        "Comparison with Halogens",
+        "Unique Position of Hydrogen"
+      ]
+    },
+    "Dihydrogen (H2)": {
+      "adv": [
+        "Occurrence",
+        "Isotopes of Hydrogen",
+        "Preparation of Dihydrogen (H2)",
+        "Properties of Dihydrogen (H2)",
+        "Uses of Dihydrogen"
+      ]
+    },
+    "Various Forms of Hydrogen": {
+      "adv": [
+        "Nascent Hydrogen"
+      ]
+    },
+    "Hydrides": {
+      "adv": [
+        "Ionic or Salt-like or Saline Hydrides",
+        "Covalent or Molecular Hydrides"
+      ]
+    },
+    "Water": {
+      "adv": [
+        "Properties of Water",
+        "Hard and Soft Water"
+      ]
+    },
+    "Heavy Water (D2O)": {
+      "adv": [
+        "Properties of Heavy Water"
+      ]
+    },
+    "Hydrogen Peroxide (H2O2)": {
+      "adv": [
+        "Preparation",
+        "Structure of H2O2",
+        "Physical Properties of H2O2",
+        "Chemical Properties of H2O2",
+        "Uses of H2O2",
+        "Strength of H2O2 Solution"
+      ]
+    }
+  },
+  "s-Block Group 1 Elements: Alkali Metals": {
+    "Group 1 Elements: Alkali Metals": {
+      "adv": [
+        "Anomalous Behaviour of 1st Member",
+        "Diagonal Relationship",
+        "Group 1 Elements: Alkali Metals",
+        "Abundance and Occurrence"
+      ]
+    },
+    "General Trends in Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Energy or Enthalpy",
+        "Electropositive Character",
+        "Metallic Character",
+        "Oxidation State",
+        "Physical Properties",
+        "Melting and Boiling Points",
+        "Density",
+        "Electrical Conductivity in Aqueous Solution",
+        "Reducing Property",
+        "Thermal Stability",
+        "Solubility of Group 1 Compounds"
+      ]
+    },
+    "Chemical Properties of alkali Metals": {
+      "adv": [
+        "Reactivity Towards Air",
+        "Reactivity Towards Water",
+        "Reactivity Towards Dihydrogen",
+        "Reactivity Towards Halogens",
+        "Reactivity of Alkali Metals Towards Acids",
+        "Solubility in Liquid Ammonia"
+      ]
+    },
+    "General Characteristics of Compounds of Alkali Metal": {
+      "adv": [
+        "Oxides",
+        "Hydroxides",
+        "Halides",
+        "Carbides",
+        "Sulphides",
+        "Oxocompounds or Salts of Oxoacids"
+      ]
+    },
+    "Anomalous behaviour of Lithium": {
+      "adv": [
+        "Anomalous behaviour of Lithium",
+        "Diagonal Relationship of Lithium with Magnesium"
+      ]
+    },
+    "Uses of Alkali Metals and their Compounds": {
+      "adv": [
+        "Uses of Alkali Metals and their Compounds"
+      ]
+    },
+    "Some important compounds of sodium (Na)": {
+      "adv": [
+        "Sodium Hydroxide (NaOH)",
+        "Sodium Chloride (NaCl)",
+        "Sodium Hydrogen Carbonate (NaHCO3)",
+        "Sodium Carbonate (Na2CO3·10H2O)"
+      ]
+    },
+    "Some important compounds of potassium (K)": {
+      "adv": [
+        "Potassium Hydroxide (KOH)",
+        "Potassium Carbonate (K2CO3)",
+        "Potassium Chloride (KCl)",
+        "Potassium Sulphate [K2SO4]",
+        "Potassium Bicarbonate (KHCO3)"
+      ]
+    }
+  },
+  "s-Block Group 2 Elements: Alkaline Earth Metals": {
+    "Abundance and Occurrence": {
+      "adv": [
+        "Abundance and Occurrence"
+      ]
+    },
+    "General Trends in Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Enthalpies",
+        "Oxidation States",
+        "Electropositive Character or Metallic Character",
+        "Physical Properties",
+        "Flame Colouration",
+        "Hydration Enthalpy",
+        "Nature of Compound Formed",
+        "Reducing Property"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "Reactivity Towards Air",
+        "Reactivity Towards Water",
+        "Reactivity Towards Hydrogen",
+        "Reactivity Towards Halogens",
+        "Reactivity Towards Acids and Bases",
+        "Solution in Liquid Ammonia"
+      ]
+    },
+    "General Characteristics of Compounds of the Alkaline Earth Metals": {
+      "adv": [
+        "Oxides",
+        "Hydroxides",
+        "Halides",
+        "Salts of Oxoacids",
+        "Carbides"
+      ]
+    },
+    "Anomalous Behaviour of Beryllium": {
+      "adv": [
+        "Anomalous Behaviour of Beryllium",
+        "Diagonal Relationship Between Beryllium and Aluminium"
+      ]
+    },
+    "Some Important Compounds of Calcium": {
+      "adv": [
+        "Magnesium Carbonate (MgCO3)",
+        "Magnesium Sulphate (MgSO4·7H2O)",
+        "Calcium Oxide (CaO)",
+        "Calcium Hydroxide (Ca(OH)2)",
+        "Calcium Carbonate (CaCO3)",
+        "Calcium Sulphate"
+      ]
+    }
+  },
+  "p-Block Group 13 Elements: The Boron Family": {
+    "General Characteristics of the p-Block Elements": {
+      "adv": [
+        "Electronic Configuration and Oxidation States",
+        "General Chemical Behaviour",
+        "Difference Between First Member and the Remaining Members of the Same Group"
+      ]
+    },
+    "Group 13 Elements—The Boron Family": {
+      "adv": [
+        "Abundance and Occurrence",
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Enthalpy",
+        "Electronegativity",
+        "Electropositive or Metallic Character",
+        "Density",
+        "Melting Points and Boiling Points"
+      ]
+    },
+    "General Trends in Atomic and Physical Properties": {
+      "adv": [
+        "General Trends in Atomic and Physical Properties"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "Oxidation States and Trends in Chemical Reactivity",
+        "Reactivity Towards Air",
+        "Reactivity Towards Acids and Alkalis",
+        "Reactivity Towards Halogens",
+        "Reactivity Towards Water",
+        "Reactivity Towards Metals"
+      ]
+    },
+    "General Characteristics of the Compounds of Group 13 Elements": {
+      "adv": [
+        "Oxides and Hydroxides",
+        "Acid-Base Behaviour",
+        "Hydrides",
+        "Halides",
+        "Relative Strengths of Trihalides of Boron as Lewis Acids"
+      ]
+    },
+    "Boron": {
+      "adv": [
+        "Physical Properties of Boron",
+        "Chemical Properties of Boron"
+      ]
+    },
+    "Anomalous Properties of Boron": {
+      "adv": [
+        "Anomalous Properties of Boron"
+      ]
+    },
+    "Some Important Compounds of Boron and Aluminium": {
+      "adv": [
+        "Borax",
+        "Orthoboric Acid (H3BO3) or B(OH)3",
+        "Structure and Bonding of Orthoboric Acid",
+        "Diborane (B2H6)",
+        "Boron Nitride (BN)x",
+        "Structure and Bonding of Boron Nitride",
+        "Aluminium Chloride (AlCl3 or Al2Cl6)",
+        "Alums"
+      ]
+    },
+    "Uses of Boron and Aluminium and their compounds": {
+      "adv": [
+        "Uses of Boron and Aluminium and their compounds"
+      ]
+    }
+  },
+  "p-Block Group 14 Elements: The Carbon Family": {
+    "General Trends in Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Covalent Radii",
+        "Ionisation Enthalpy",
+        "Electronegativity",
+        "Physical Properties"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "Oxidation States and Chemical Reactivity"
+      ]
+    },
+    "General Characteristics of the Compounds of Group 14 Elements": {
+      "adv": [
+        "Oxides",
+        "Halides"
+      ]
+    },
+    "Important Trends and Anomalous Behaviour of Carbon": {
+      "adv": [
+        "Allotropes of Carbon",
+        "Uses of Carbon"
+      ]
+    },
+    "Silicon": {
+      "adv": [
+        "Amorphous Silicon",
+        "Crystalline Silicon"
+      ]
+    },
+    "Lead": {
+      "adv": [
+        "Lead"
+      ]
+    },
+    "Some Important Compounds of Group 14 Elements": {
+      "adv": [
+        "Oxides of Carbon",
+        "Carbonic Acid (H2CO3)",
+        "Silicon Tetrachloride (SiCl4)",
+        "Carborundum (SiC)",
+        "Silicon Dioxide (SiO2)",
+        "Silicates",
+        "Stannic Chloride (SnCl4)",
+        "Lead Monoxide (PbO)"
+      ]
+    }
+  },
+  "p-Block Group 15 Elements: The Nitrogen Family": {
+    "Occurrence": {
+      "adv": [
+        "Occurrence"
+      ]
+    },
+    "Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Enthalpy (IE or ΔiH°)",
+        "Electronegativity (EN)",
+        "Melting and Boiling Points",
+        "Density",
+        "Metallic Character",
+        "Atomic and Physical State",
+        "pπ–pπ Multiple Bond",
+        "Catenation"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "Oxidation States",
+        "Maximum Covalency",
+        "Nature of Bonding"
+      ]
+    },
+    "Chemical Reactivity": {
+      "adv": [
+        "Reactivity Towards Hydrogen – Formation of Hydride",
+        "Characteristics of Hydrides",
+        "Reactivity Towards Oxygen (Oxide Formation)",
+        "Properties of Oxides"
+      ]
+    },
+    "Dinitrogen (N2)": {
+      "adv": [
+        "Preparation",
+        "Properties",
+        "Uses"
+      ]
+    },
+    "Ammonia (NH3)": {
+      "adv": [
+        "Preparation",
+        "Properties",
+        "Uses"
+      ]
+    },
+    "Oxides of Nitrogen": {
+      "adv": [
+        "Dinitrogen Monoxide or Nitrogen (I) Oxide (N2O)",
+        "Dinitrogen Oxide or Nitric Oxide (NO)",
+        "Dinitrogen Tetroxide (N2O4)"
+      ]
+    },
+    "Nitric Acid (HNO3)": {
+      "adv": [
+        "Preparation",
+        "Structure",
+        "Physical Properties",
+        "Chemical Properties",
+        "Reactions of Different Elements with HNO3",
+        "Uses of Nitric Acid",
+        "Test of Nitrate Ion (Brown Ring Test)"
+      ]
+    },
+    "Allotropy": {
+      "adv": [
+        "Allotropic Forms of Phosphorous"
+      ]
+    },
+    "Phosphine (PH3)": {
+      "adv": [
+        "Phosphine (PH3)"
+      ]
+    },
+    "Phosphorous Halides": {
+      "adv": [
+        "Phosphorous Trichloride (PCl3)",
+        "Phosphorous Pentachloride (PCl5)"
+      ]
+    },
+    "Oxoacids of Phosphorous": {
+      "adv": [
+        "Oxoacids of Phosphorous"
+      ]
+    }
+  },
+  "p-Block Group 16 Elements: The Oxygen Family": {
+    "Abundance and Occurrence": {
+      "adv": [
+        "Abundance and Occurrence"
+      ]
+    },
+    "Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Enthalpy (IE) or (ΔiH°)",
+        "Electronegativity (EN)",
+        "Electron Gain Enthalpy (ΔegH°)",
+        "Non-Metallic and Metallic Character",
+        "Melting and Boiling Points",
+        "Elemental State",
+        "Multiple Bonding",
+        "Catenation",
+        "Allotropy"
+      ]
+    },
+    "Oxidation States": {
+      "adv": [
+        "Oxidation States"
+      ]
+    },
+    "Chemical Reactivity": {
+      "adv": [
+        "Reactivity Towards Hydrogen–Formation of Hydrides",
+        "Structure",
+        "Physical State",
+        "Melting and Boiling Points",
+        "Volatility",
+        "Covalent Character",
+        "Thermal Stability",
+        "Acidic Character",
+        "Reducing Nature",
+        "Burning",
+        "Reactivity with Oxygen",
+        "Reactivity Towards Halogens–Formation of Halides",
+        "Hexahalides",
+        "Tetrahalides",
+        "Dihalides"
+      ]
+    },
+    "Anomalous Behaviour of Oxygen": {
+      "adv": [
+        "Anomalous Behaviour of Oxygen"
+      ]
+    },
+    "Dioxygen": {
+      "adv": [
+        "Laboratory Preparation",
+        "Commercial Methods"
+      ]
+    },
+    "Physical and Chemical Properties of Oxygen": {
+      "adv": [
+        "Physical Properties",
+        "Chemical Properties",
+        "Uses"
+      ]
+    },
+    "Ozone or Trioxygen (O3)": {
+      "adv": [
+        "Introduction",
+        "Preparation",
+        "Structure of Ozone",
+        "Physical Properties",
+        "Chemical Properties",
+        "Oxidation Reactions of Metals, Metalloids and Non Metals",
+        "Uses of Ozone"
+      ]
+    },
+    "Allotropic Forms of Sulphur": {
+      "adv": [
+        "Allotropic Forms of Sulphur"
+      ]
+    },
+    "Sulphur Dioxide (SO2)": {
+      "adv": [
+        "Sulphur Dioxide (SO2)"
+      ]
+    },
+    "Sulphur Trioxide (SO3)": {
+      "adv": [
+        "Sulphur Trioxide (SO3)"
+      ]
+    },
+    "Oxoacids of Sulphur": {
+      "adv": [
+        "Oxoacids of Sulphur"
+      ]
+    },
+    "Sulphuric Acid (H2SO4)": {
+      "adv": [
+        "Manufacture of H2SO4 by Contact Process",
+        "Structures",
+        "Properties",
+        "Uses"
+      ]
+    }
+  },
+  "p-Block Group 17 Elements: The Halogen Family": {
+    "Occurrence and Abundance": {
+      "adv": [
+        "Occurrence and Abundance"
+      ]
+    },
+    "Atomic and Physical Properties": {
+      "adv": [
+        "Electronic Configuration",
+        "Atomic and Ionic Radii",
+        "Ionisation Enthalpy",
+        "Electron Gain Enthalpy",
+        "Electronegativity",
+        "Atomicity",
+        "Physical State",
+        "Melting Points and Boiling Points",
+        "Enthalpy of Fusion and Vapourisation",
+        "Non-Metallic Character",
+        "Colour"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "Oxidation States",
+        "Oxidising Power"
+      ]
+    },
+    "Chemical Characteristics": {
+      "adv": [
+        "Reactivity Towards Hydrogen",
+        "Reactivity Towards Oxygen",
+        "Reactivity Towards Halogens",
+        "Reactivity Towards Water"
+      ]
+    },
+    "Anomalous Behaviour of Fluorine": {
+      "adv": [
+        "Anomalous Behaviour of Fluorine"
+      ]
+    },
+    "Chlorine": {
+      "adv": [
+        "Chlorine"
+      ]
+    },
+    "Hydrogen Chloride (HCl)": {
+      "adv": [
+        "Hydrogen Chloride (HCl)"
+      ]
+    },
+    "Oxoacids of halogens": {
+      "adv": [
+        "Oxoacids of Chlorine"
+      ]
+    },
+    "Interhalogen Compounds": {
+      "adv": [
+        "Interhalogen Compounds"
+      ]
+    },
+    "Bleaching Powder, CaOCl2·H2O": {
+      "adv": [
+        "Bleaching Powder, CaOCl2·H2O"
+      ]
+    }
+  },
+  "p-Block Group 18 Elements: The Inert Family": {
+    "General Introduction": {
+      "adv": [
+        "General Introduction",
+        "Occurrence and Abundance"
+      ]
+    },
+    "Atomic and Physical Properties": {
+      "adv": [
+        "Monoatomic Nature",
+        "Atomic Radii",
+        "Ionisation Enthalpy",
+        "Electron Gain Enthalpy",
+        "Melting and Boiling Points",
+        "Solubility in Water"
+      ]
+    },
+    "Chemistry of Noble Gas Compounds": {
+      "adv": [
+        "Fluorides of Xenon",
+        "Xenon Oxides",
+        "Valence Bond Approach for Xenon Compounds"
+      ]
+    },
+    "Uses of Noble Gases": {
+      "adv": [
+        "Uses of Helium (He)",
+        "Uses of Neon (Ne)",
+        "Uses of Argon (Ar)",
+        "Uses of Krypton (Kr)",
+        "Uses of Xenon (Xe)",
+        "Uses of Radon (Rn)"
+      ]
+    }
+  },
+  "d- and f-Block Elements": {
+    "Classification of d-Block Elements": {
+      "adv": [
+        "Classification of d-Block Elements"
+      ]
+    },
+    "Electronic Configuration of d-Block Elements": {
+      "adv": [
+        "Exceptional Electronic Configuration in 3d Series",
+        "Zn, Cd and Hg Not Regarded as Transition Elements",
+        "Cu, Ag and Au Regarded as Transition Elements"
+      ]
+    },
+    "General Characteristics of Transition Elements": {
+      "adv": [
+        "Metallic Character",
+        "Melting and Boiling Points",
+        "Atomic and Ionic Radii",
+        "Density",
+        "Oxidation State",
+        "Ionisation Enthalpies (IE) or (ΔiH°)",
+        "Chemical Reactivity and E° Values"
+      ]
+    },
+    "Trends in Stability of Higher Oxidation States of Transition Metal Halides": {
+      "adv": [
+        "Oxides of 3d Elements and Their Stability"
+      ]
+    },
+    "Magnetic Properties": {
+      "adv": [
+        "Magnetic Properties"
+      ]
+    },
+    "Formation of Coloured Ions": {
+      "adv": [
+        "Formation of Coloured Ions"
+      ]
+    },
+    "Formation of Complex Compounds": {
+      "adv": [
+        "Formation of Complex Compounds"
+      ]
+    },
+    "Catalytic Properties": {
+      "adv": [
+        "Catalysis in Industry"
+      ]
+    },
+    "Alloy Formation": {
+      "adv": [
+        "Alloy Formation"
+      ]
+    },
+    "Oxides and Oxoanions of Transition Metals": {
+      "adv": [
+        "Oxides and Oxoanions of Transition Metals"
+      ]
+    },
+    "General Group Trends in the Chemistry of d-Block Metals": {
+      "adv": [
+        "General Group Trends in the Chemistry of d-Block Metals"
+      ]
+    },
+    "Some Important Compounds of Transition Elements Containing Oxoanions": {
+      "adv": [
+        "Potassium Dichromate (K2Cr2O7)",
+        "Potassium Permanganate (KMnO4)"
+      ]
+    },
+    "The Inner Transition Elements (f-Block) (OR) Rare Earth Elements": {
+      "adv": [
+        "General Characteristics",
+        "Classification of f-Block Elements",
+        "Lanthanoid Contraction",
+        "Oxidation State",
+        "Physical Properties",
+        "Chemical Properties"
+      ]
+    },
+    "Actinoids": {
+      "adv": [
+        "General Electronic Configuration 5f1-14 6d0-1 7s2",
+        "Ionic Sizes",
+        "Oxidation States of Actinoids",
+        "Physical Properties",
+        "Chemical Properties",
+        "Uses of Actinoids"
+      ]
+    }
+  },
+  "Coordination Compounds": {
+    "Complex Ions": {
+      "adv": [
+        "Types of Complex"
+      ]
+    },
+    "Some Important Terms Used in Coordination Compounds": {
+      "adv": [
+        "Coordination Entity and Counter Ion",
+        "Central Atom/Ion",
+        "Ligands",
+        "Coordination Number",
+        "Oxidation Number of Central Atom"
+      ]
+    },
+    "IUPAC Nomenclature of Coordination Compounds": {
+      "adv": [
+        "Naming of the Counter Ion",
+        "Naming of the Central Metal Atom/Ion",
+        "Naming of Ligands",
+        "Naming of Bridging Ligands"
+      ]
+    },
+    "Werner's Coordination Theory": {
+      "adv": [
+        "Main Postulates of Werner's Theory"
+      ]
+    },
+    "Sidgwick's Electronic Concept of Coordinate Bond": {
+      "adv": [
+        "Sidgwick's Effective Atomic Number (EAN) Rule"
+      ]
+    },
+    "Isomerism in Coordination Compounds": {
+      "adv": [
+        "Stereoisomerism"
+      ]
+    },
+    "Bonding in Coordination Compounds: Valence Bond Theory (VBT)": {
+      "adv": [
+        "Assumptions of VBT",
+        "Applications of VBT",
+        "Geometry of Complexes with C.N. = 4",
+        "Geometry of Complexes with C.N. = 6",
+        "Limitations of VBT"
+      ]
+    },
+    "Magnetic Properties of Coordination Compounds": {
+      "adv": [
+        "Magnetic Properties of Coordination Compounds"
+      ]
+    },
+    "Crystal Field Theory (CFT)": {
+      "adv": [
+        "Crystal Field Splitting of d-Orbitals in Octahedral Complexes",
+        "Significance of Δo",
+        "Effect of Crystal Field Splitting",
+        "Factors Affecting the Magnitude of Crystal Field Splitting Energy",
+        "CFSE and Electronic Configuration in Octahedral Complex",
+        "CFSE of d-Orbitals in Tetrahedral Complexes",
+        "CFSE in Both Octahedral and Tetrahedral Complexes",
+        "Limitations of CFT"
+      ]
+    },
+    "Colour of Coordination Compounds": {
+      "adv": [
+        "Colour of Coordination Compounds"
+      ]
+    },
+    "Organometallic Compounds": {
+      "adv": [
+        "Classification of Organometallic Compounds",
+        "Bonding of Alkenes to a Transition Metal"
+      ]
+    },
+    "Importance and Applications of Coordination Compounds": {
+      "adv": [
+        "Importance and Applications of Coordination Compounds"
+      ]
+    }
+  },
+  "Qualitative Inorganic Salt Analysis": {
+    "Systematic Qualitative Analysis": {
+      "adv": [
+        "Analysis of Acid Radicals (Anions)"
+      ]
+    },
+    "Physical Characteristics": {
+      "adv": [
+        "Colour Change on Heating",
+        "Colour of the Solution",
+        "Odour of the Solution"
+      ]
+    },
+    "Analysis of Anions": {
+      "adv": [
+        "Test for Bicarbonate Ion (HCO3-)",
+        "Confirmatory Tests for Acid Radicals or Anions",
+        "Water Extracted (W.E.) or Sodium Carbonate Extract",
+        "Confirmatory Tests for Carbonate (CO3^2-) Ion",
+        "Tests for Nitrite (NO2-) Ion",
+        "Tests for Sulphite (SO3^2-) Ion",
+        "Tests for Sulphide (S^2-) Ion",
+        "Tests for Acetate (CH3COO-) Ion"
+      ]
+    },
+    "Analysis of Second Category Anions": {
+      "adv": [
+        "Tests for Chloride (Cl-) Ion",
+        "Tests for Bromide (Br-) Ion",
+        "Tests for Iodide (I-) Ion",
+        "Tests for Nitrate (NO3-) Ion",
+        "Tests for Oxalate (C2O4^2-) Ion"
+      ]
+    },
+    "Analysis of Third Category Anions": {
+      "adv": [
+        "Tests for Sulphate (SO4^2-) Ion",
+        "Tests for Phosphate (PO4^3-) Ion"
+      ]
+    },
+    "Specific Tests for Combinations of Acid Radicals": {
+      "adv": [
+        "Nitrite (NO2-) and Nitrate (NO3-)",
+        "Chloride (Cl-), Bromide (Br-) and Iodide (I-)",
+        "Sulphide (S^2-), Sulphite (SO3^2-), Thiosulphate (S2O3^2-) and Sulphate (SO4^2-)"
+      ]
+    },
+    "Identification of Basic Radicals (Cations)": {
+      "adv": [
+        "Preliminary Dry Test"
+      ]
+    },
+    "Wet Tests for Identification of Cations": {
+      "adv": [
+        "Preparation of Original Solution (O.S.)"
+      ]
+    },
+    "Analysis of Group-I Cation (Pb^2+)": {
+      "adv": [
+        "Procedure",
+        "Confirmatory Tests for Pb^2+"
+      ]
+    },
+    "Analysis of Group-II Cations": {
+      "adv": [
+        "Procedure",
+        "Separation of Group-II A and Group-II B Cations",
+        "Confirmatory Tests for Group-II A Cations (Pb^2+, Cu^2+)",
+        "Confirmatory Tests for Group-II B Cations (As^3+)"
+      ]
+    },
+    "Analysis of Group-III Cations (Al^3+, Fe^3+, Cr^3+)": {
+      "adv": [
+        "Procedure",
+        "Confirmatory Tests"
+      ]
+    },
+    "Analysis of Group-IV Cations": {
+      "adv": [
+        "Procedure",
+        "Confirmatory Tests"
+      ]
+    },
+    "Analysis of Group-V Cations": {
+      "adv": [
+        "Procedure",
+        "Confirmatory Tests"
+      ]
+    },
+    "Analysis of Zero Group Cation (NH4+ ion)": {
+      "adv": [
+        "Analysis of Zero Group Cation (NH4+ ion)"
+      ]
+    }
+  },
+  "Classification and Nomenclature of Organic Compounds": {
+    "Properties of Organic Compounds": {
+      "adv": [
+        "Properties of Organic Compounds",
+        "Classification of Organic Compounds",
+        "Homologous Series",
+        "Nomenclature of Organic Compounds"
+      ]
+    },
+    "IUPAC Rules For Naming Organic Compounds": {
+      "adv": [
+        "IUPAC Rules for Saturated Hydrocarbons (Alkanes)",
+        "IUPAC Rules for Unsaturated Hydrocarbons (Alkenes and Alkynes)",
+        "IUPAC Rules for Haloalkanes",
+        "IUPAC Rules for Functional Compounds",
+        "IUPAC Rules For Chain Terminating Functional Groups (-CHO, -COOH, -CONH2, -COCl, -C≡N)",
+        "IUPAC Rules for Polyfunctional Compounds",
+        "When the Names of Two or More Substituents are Composed of Identical Words",
+        "When Both Double and Triple Bonds are Present in the Compound",
+        "When the Organic Molecule Contains More Than One Similar Complex Substituents",
+        "Poly-Functional Compounds Containing More than Two Like-Functional Groups",
+        "When All the Three Like Groups are not Directly Linked to the Unbranched Carbon Chain"
+      ]
+    },
+    "Naming of Alicyclic Compounds": {
+      "adv": [
+        "Naming of Alicyclic Compounds",
+        "Naming of Bicyclo Compounds",
+        "Naming of Spiranes",
+        "Nomenclature of Aromatic Compounds",
+        "Nomenclature of Substituted Benzene Compounds",
+        "Writing the Structural Formula from the given IUPAC name"
+      ]
+    }
+  },
+  "Purification of Organic Compounds and Qualitative and Quantitative Analysis": {
+    "Extraction of Organic Compounds": {
+      "adv": [
+        "Extraction of Organic Compounds"
+      ]
+    },
+    "Methods for Purification of Solids": {
+      "adv": [
+        "Sublimation",
+        "Crystallisation"
+      ]
+    },
+    "Methods for Purification of Liquids": {
+      "adv": [
+        "Simple Distillation",
+        "Fractional Distillation",
+        "Distillation Under Reduced Pressure",
+        "Steam Distillation",
+        "Differential Extraction",
+        "Chromatography",
+        "Adsorption Chromatography",
+        "Partition Chromatography"
+      ]
+    },
+    "Qualitative Analysis of Organic Compounds": {
+      "adv": [
+        "Detection of C and H",
+        "Detection of Other Elements"
+      ]
+    },
+    "Quantitative Analysis of Organic Compounds": {
+      "adv": [
+        "Quantitative Analysis of Organic Compounds"
+      ]
+    },
+    "Determination of Molecular Mass": {
+      "adv": [
+        "Determination of Molecular Mass"
+      ]
+    },
+    "Eudiometry or Gas Analysis": {
+      "adv": [
+        "Eudiometry or Gas Analysis"
+      ]
+    },
+    "Detection and Identification of Functional Group": {
+      "adv": [
+        "Detection and Identification of Functional Group"
+      ]
+    },
+    "Empirical and Molecular Formulae": {
+      "adv": [
+        "Relation Between Empirical and Molecular Formulae",
+        "Molar Mass of a Volatile Compound",
+        "Calculation of the Empirical and Molecular Formulae"
+      ]
+    }
+  },
+  "Isomerism": {
+    "Structural Isomerism": {
+      "adv": [
+        "Chain or Nuclear Isomerism",
+        "Positional Isomerism",
+        "Functional Isomerism",
+        "Metamerism",
+        "Tautomerism",
+        "Ring-Chain Isomerism"
+      ]
+    },
+    "Stereoisomerism": {
+      "adv": [
+        "Geometrical Isomerism in Alkenes (Rigidity of Double Bond)",
+        "E and Z Nomenclature of Geometrical Isomers",
+        "Syn and Anti",
+        "Exo and Endo in Bicyclic Compounds",
+        "Geometrical Isomerism in Cyclic Compounds"
+      ]
+    },
+    "Absolute configuration": {
+      "adv": [
+        "R and S Configuration Descriptors",
+        "Assignment of R, S Configuration in Fischer Projection"
+      ]
+    },
+    "Optical Isomerism": {
+      "adv": [
+        "d, l Configuration Descriptors (Relative Configuration)",
+        "Properties of Optical Isomers (Enantiomers)"
+      ]
+    },
+    "Stereochemistry of C-Compounds not Containing an Asymmetric C-Atom (Allenes)": {
+      "adv": [
+        "Stereochemistry of C-Compounds not Containing an Asymmetric C-Atom (Allenes)"
+      ]
+    },
+    "Optical Activity of Biphenyl Compounds": {
+      "adv": [
+        "Optical Activity of Biphenyl Compounds",
+        "Optical Activity of t-amines and t-carbanion of the type (R1R2R3N:+) and (R1R2R3C^-)"
+      ]
+    },
+    "Racemic Mixture": {
+      "adv": [
+        "Racemic Mixture"
+      ]
+    },
+    "Stereospecific Reactions": {
+      "adv": [
+        "Stereospecific Reactions"
+      ]
+    },
+    "Asymmetric Synthesis or Asymmetric Induction": {
+      "adv": [
+        "Asymmetric Synthesis or Asymmetric Induction"
+      ]
+    },
+    "Importance of Stereochemistry": {
+      "adv": [
+        "Importance of Stereochemistry"
+      ]
+    },
+    "Projection Formulae": {
+      "adv": [
+        "Projection Formulae"
+      ]
+    },
+    "Conformational Isomerism": {
+      "adv": [
+        "Conformational Isomerism"
+      ]
+    },
+    "Isomerism in Cyclic Compounds": {
+      "adv": [
+        "Isomerism in Cyclic Compounds"
+      ]
+    },
+    "Ring Strain and Stability": {
+      "adv": [
+        "Ring Strain and Stability"
+      ]
+    },
+    "Substituted Cyclohexane": {
+      "adv": [
+        "Substituted Cyclohexane"
+      ]
+    }
+  },
+  "General Organic Chemistry": {
+    "Reactive Intermediates": {
+      "adv": [
+        "Carbenes (H2C:)",
+        "Nitrenes or Imidogenes, Azene, or Imine (H - N: or R - N:)",
+        "Benzyne"
+      ]
+    },
+    "Classification of Reagents": {
+      "adv": [
+        "Classification of Reagents"
+      ]
+    },
+    "Factors Influencing Reactivity": {
+      "adv": [
+        "Factors Influencing Reactivity"
+      ]
+    },
+    "Inductive Effect": {
+      "adv": [
+        "Inductive Effect"
+      ]
+    },
+    "Electromeric Effect": {
+      "adv": [
+        "Electromeric Effect"
+      ]
+    },
+    "Mesomeric Effect": {
+      "adv": [
+        "Mesomeric Effect"
+      ]
+    },
+    "Resonance": {
+      "adv": [
+        "Condition of Resonating Structures",
+        "Characteristics of Resonance"
+      ]
+    },
+    "Steric Hindrance": {
+      "adv": [
+        "Steric Hindrance"
+      ]
+    },
+    "Hyperconjugation": {
+      "adv": [
+        "Hyperconjugation in Ethyl Carbocation (C2H5+)",
+        "Applications of Hyperconjugation"
+      ]
+    },
+    "Hydrogen Bonding": {
+      "adv": [
+        "Hydrogen Bonding"
+      ]
+    },
+    "Effect of Intermolecular Forces on Physical Properties": {
+      "adv": [
+        "Effect of Intermolecular Forces on Physical Properties"
+      ]
+    },
+    "Application of Inductive, Electromeric, Mesomeric, Resonance, Steric Effects, Hyperconjugation, and H-bonding in Acidic and Basic Characters of Organic Compounds": {
+      "adv": [
+        "Application of Inductive, Electromeric, Mesomeric, Resonance, Steric Effects, Hyperconjugation, and H-bonding in Acidic and Basic Characters of Organic Compounds"
+      ]
+    },
+    "Reason for the Acidic Character of the Monoanion of the Some Dibasic Acids": {
+      "adv": [
+        "Reason for the Acidic Character of the Monoanion of the Some Dibasic Acids"
+      ]
+    },
+    "Basic Character": {
+      "adv": [
+        "Basic Character"
+      ]
+    },
+    "Soft and Hard Acids and Bases": {
+      "adv": [
+        "Soft and Hard Acids and Bases"
+      ]
+    },
+    "Aromatic, Anti-aromatic, and Non-aromatic Compounds": {
+      "adv": [
+        "Aromatic, Anti-aromatic, and Non-aromatic Compounds"
+      ]
+    }
+  },
+  "Organic Reaction Mechanism": {
+    "Reaction Energetics": {
+      "adv": [
+        "Reaction Energetics"
+      ]
+    },
+    "Types of Reactions": {
+      "adv": [
+        "Substitution Reactions",
+        "SE Reaction"
+      ]
+    },
+    "SN Reaction": {
+      "adv": [
+        "SN Reaction"
+      ]
+    },
+    "Nucleophilicity": {
+      "adv": [
+        "Leaving Group or Fugacity Order",
+        "Attachment of Bond to Asymmetric C-Atom"
+      ]
+    },
+    "Substitution Nucleophilic Internal (SNi) Reaction": {
+      "adv": [
+        "Substitution Nucleophilic Internal (SNi) Reaction"
+      ]
+    },
+    "Elimination Reactions": {
+      "adv": [
+        "E1 Mechanism",
+        "E2 Mechanism"
+      ]
+    },
+    "E1cB Reaction": {
+      "adv": [
+        "E1cB Reaction"
+      ]
+    },
+    "Substitution Versus Elimination": {
+      "adv": [
+        "Summary of Substitution vs. Elimination"
+      ]
+    },
+    "Summary of Basicity, Nucleophilicity, and Fugacity": {
+      "adv": [
+        "Summary of Basicity, Nucleophilicity, and Fugacity"
+      ]
+    },
+    "Addition Reactions": {
+      "adv": [
+        "EA (Electrophilic Addition) Reaction",
+        "Mechanism"
+      ]
+    },
+    "Carbocation Rearrangement": {
+      "adv": [
+        "Carbocation Rearrangement"
+      ]
+    },
+    "Rearrangement of the Alicyclic Ring System (Demjanov Rearrangement)": {
+      "adv": [
+        "Rearrangement of the Alicyclic Ring System (Demjanov Rearrangement)"
+      ]
+    },
+    "Stereochemical Reactions": {
+      "adv": [
+        "Addition Reaction",
+        "Hydroxylation",
+        "Debromination and Dehydrohalogenation Reaction"
+      ]
+    }
+  },
+  "Alkanes and Cycloalkanes": {
+    "Alkanes": {
+      "adv": [
+        "Alkanes"
+      ]
+    },
+    "Preparation of Alkanes": {
+      "adv": [
+        "Reduction of Alkyl Halides",
+        "Reduction of Carbonyl Compounds",
+        "Using Unsaturated Hydrocarbons",
+        "From Grignard Reagent",
+        "Preparation of CH4",
+        "Decarboxylation",
+        "Free Radical Mechanism",
+        "Wurtz Reaction",
+        "Wurtz-Fittig Reaction",
+        "Frankland Reaction",
+        "Kolbe's Electrolytic Reaction",
+        "Corey-House Synthesis",
+        "Hydroboration Reaction"
+      ]
+    },
+    "Physical Properties of Hydrocarbons": {
+      "adv": [
+        "Physical Properties of Hydrocarbons"
+      ]
+    },
+    "Reactions of Alkanes": {
+      "adv": [
+        "Halogenation in Aliphatic Compounds",
+        "Nitration",
+        "Sulphonation",
+        "Combustion",
+        "Catalytic Oxidation",
+        "Isomerisation",
+        "Aromatisation",
+        "Cracking (Pyrolysis or Thermal Decomposition)",
+        "Singlet Methylene Insertion Between (C—H) Bonds"
+      ]
+    },
+    "Petroleum": {
+      "adv": [
+        "Refining of Petroleum",
+        "Knocking",
+        "Anti-knocking Agents or Gasoline Additives",
+        "Cetane Number"
+      ]
+    },
+    "Cycloalkanes": {
+      "adv": [
+        "Nomenclature of Cycloalkanes",
+        "Bicyclo, Spiro, and Polycyclic Compounds"
+      ]
+    },
+    "Preparation of Cycloalkanes": {
+      "adv": [
+        "Preparation of Cycloalkanes"
+      ]
+    },
+    "Reactions of Cycloalkanes": {
+      "adv": [
+        "Hydrogenation Reactions",
+        "Free Radical Substitution"
+      ]
+    }
+  },
+  "Alkenes and Alkadienes": {
+    "Degree of Unsaturation (D.U.) or Index of Hydrogen Deficiency (I.H.D.) or Double Bond Equivalent (D.B.E.)": {
+      "adv": [
+        "Degree of Unsaturation (D.U.) or Index of Hydrogen Deficiency (I.H.D.) or Double Bond Equivalent (D.B.E.)"
+      ]
+    },
+    "Preparation of Alkenes": {
+      "adv": [
+        "Dehydration of Alcohols",
+        "Dehydrohalogenation of Alkyl Halide",
+        "Dehalogenation",
+        "Hydroboration of Alkynes (Predominantly to cis-Alkene)",
+        "Reduction of Alkynes to Alkenes"
+      ]
+    },
+    "Physical Properties": {
+      "adv": [
+        "Boiling Point (B.P.)",
+        "Melting Point (M.P.)",
+        "Solubilities"
+      ]
+    },
+    "Chemical Reactions": {
+      "adv": [
+        "Hydrogenation",
+        "Addition Reactions"
+      ]
+    },
+    "Allylic Substitution": {
+      "adv": [
+        "Allylic Substitution"
+      ]
+    },
+    "Diels-Alder Reaction": {
+      "adv": [
+        "Diels-Alder Reaction"
+      ]
+    },
+    "Polar Addition of Halogens, Their Derivatives, and Halogen Acids (Anti-addition)": {
+      "adv": [
+        "Markovnikov's Rule",
+        "Peroxide Effect or Kharasch Effect"
+      ]
+    },
+    "Halohydrin Formation": {
+      "adv": [
+        "Halohydrin Formation"
+      ]
+    },
+    "Rearrangement During Electrophilic Addition": {
+      "adv": [
+        "Rearrangement During Electrophilic Addition"
+      ]
+    },
+    "Dimerisation": {
+      "adv": [
+        "Dimerisation"
+      ]
+    },
+    "Hydration of Alkenes to Alcohols": {
+      "adv": [
+        "Acid-Catalysed Reaction with Water",
+        "Oxymercuration–Demercuration and Solvomercuration Reaction",
+        "Hydroboration Oxidation of Alkenes to Alcohols",
+        "Treating Haloalkene with Moist Ag2O or (AgCl + H2O) to Give Alcohol"
+      ]
+    },
+    "Hydroxylation": {
+      "adv": [
+        "Anti-hydroxylation",
+        "Mechanism of Syn-hydroxylation of Alkene"
+      ]
+    },
+    "Oxidative Cleavage": {
+      "adv": [
+        "Oxidative Cleavage"
+      ]
+    },
+    "Ozonolysis of Alkenes": {
+      "adv": [
+        "Ozonolysis of Alkenes"
+      ]
+    },
+    "Conversion of Alkane to Alkene and Alkyne": {
+      "adv": [
+        "Conversion of Alkane to Alkene and Alkyne"
+      ]
+    },
+    "Ascent and Descent of Series in Alkenes": {
+      "adv": [
+        "Ascent and Descent of Series in Alkenes"
+      ]
+    },
+    "Alkadienes": {
+      "adv": [
+        "Nomenclature of Dienes",
+        "Stability of Conjugated Diene",
+        "Conformations and Electrophilic Addition Reaction of Buta-1,3-Diene",
+        "Electrophilic Addition Reaction in Dienes"
+      ]
+    }
+  },
+  "Alkynes": {
+    "Isomerism in Alkynes": {
+      "adv": [
+        "Isomerism in Alkynes"
+      ]
+    },
+    "Preparation of Alkynes": {
+      "adv": [
+        "Industrial Method",
+        "Berthelot Synthesis",
+        "From Lime (CaO), Coke (C), and H2O",
+        "Double Dehydrohalogenation",
+        "Kolbe's Electrolysis",
+        "Fritsch Reaction"
+      ]
+    },
+    "Physical Properties of Alkynes": {
+      "adv": [
+        "Physical Properties of Alkynes"
+      ]
+    },
+    "Chemical Properties of Alkynes": {
+      "adv": [
+        "Chemical Properties of Alkynes"
+      ]
+    },
+    "Important Reactions of Alkynes": {
+      "adv": [
+        "Reduction",
+        "Addition of Halogens",
+        "Addition of H2O (Kucherov's Reaction)",
+        "Addition of Halogen Acid and Other Compounds"
+      ]
+    },
+    "Reaction of Ethyne with Methanal (Formaldehyde) (Or) Addition of Terminal Alkyne to Carbonyl Compounds": {
+      "adv": [
+        "Reaction of Ethyne with Methanal (Formaldehyde) (Or) Addition of Terminal Alkyne to Carbonyl Compounds"
+      ]
+    },
+    "Propargylic Halogenation": {
+      "adv": [
+        "Propargylic Halogenation"
+      ]
+    },
+    "Hydroxylation of Alkyne with Aqueous or Neutral KMnO4 Solution (Baeyer's Reagent) (Test for Unsaturation)": {
+      "adv": [
+        "Hydroxylation of Alkyne with Aqueous or Neutral KMnO4 Solution (Baeyer's Reagent) (Test for Unsaturation)"
+      ]
+    },
+    "Oxidative Cleavage": {
+      "adv": [
+        "Oxidative Cleavage"
+      ]
+    },
+    "Ozonolysis of Alkynes": {
+      "adv": [
+        "Ozonolysis of Alkynes"
+      ]
+    },
+    "Hydroboration Oxidation (HBO) of Alkyne": {
+      "adv": [
+        "Hydroboration Oxidation (HBO) of Alkyne"
+      ]
+    },
+    "Reaction of Si2BH on Alkyne": {
+      "adv": [
+        "Reaction of Si2BH on Alkyne"
+      ]
+    },
+    "Synthesis of Compounds by the Use of Alkynes": {
+      "adv": [
+        "Synthesis of Compounds by the Use of Alkynes"
+      ]
+    },
+    "Conversion of One Diastereomer to Another": {
+      "adv": [
+        "Conversion of One Diastereomer to Another"
+      ]
+    },
+    "Polymerisation and Isomerisation of Alkynes": {
+      "adv": [
+        "Linear Polymerisation of Ethyne",
+        "Cyclic Polymerisation of Ethyne",
+        "Polymerisation of Propyne",
+        "Isomerisation"
+      ]
+    },
+    "Distinction Between Alkene and Alkyne": {
+      "adv": [
+        "Distinction Between Alkene and Alkyne"
+      ]
+    },
+    "Ascent and Descent Series in Alkynes": {
+      "adv": [
+        "Ascent and Descent Series in Alkynes"
+      ]
+    }
+  },
+  "Aromatic Hydrocarbons": {
+    "Nomenclature of Aromatic Compounds": {
+      "adv": [
+        "Nomenclature of Aromatic Compounds"
+      ]
+    },
+    "Benzene (Phene), C6H6 or [6] Annulene": {
+      "adv": [
+        "Benzene (Phene), C6H6 or [6] Annulene"
+      ]
+    },
+    "Preparation of Benzene and Its Homologues from Petroleum": {
+      "adv": [
+        "Preparation of Benzene and Its Homologues from Petroleum"
+      ]
+    },
+    "Structure of Benzene": {
+      "adv": [
+        "Kekule Structure",
+        "Modern Concept"
+      ]
+    },
+    "Isomerism in Benzene Derivatives": {
+      "adv": [
+        "Isomerism in Benzene Derivatives"
+      ]
+    },
+    "Polynuclear Hydrocarbons and Their Derivatives": {
+      "adv": [
+        "Polynuclear Hydrocarbons and Their Derivatives"
+      ]
+    },
+    "Reactions in Naphthalene": {
+      "adv": [
+        "Reactions in Naphthalene"
+      ]
+    },
+    "Kinetic Isotope Effect": {
+      "adv": [
+        "Kinetic Isotope Effect"
+      ]
+    },
+    "SE Reactions (Substitution electrophilic reactions)": {
+      "adv": [
+        "Experimental Verification of Rate-Determining Step (R.D.S.) in SE Reaction",
+        "Formation of π-Complex or Charge Transfer Complex",
+        "Experimental Verification"
+      ]
+    },
+    "o/p and (o + p)/m Ratio in Aromatic SE Reactions": {
+      "adv": [
+        "o/p and (o + p)/m Ratio in Aromatic SE Reactions"
+      ]
+    },
+    "Sulphonation": {
+      "adv": [
+        "Reversible and Irreversible Aromatic SE Reactions",
+        "Sulphonation Showing Primary Isotope Effect",
+        "Some More Reactions of Sulphonation",
+        "Isoelectric Point"
+      ]
+    },
+    "Nitration": {
+      "adv": [
+        "Nitration"
+      ]
+    },
+    "Halogenation": {
+      "adv": [
+        "Fluorination of Benzene"
+      ]
+    },
+    "Directive or Orientation Influence of Groups": {
+      "adv": [
+        "Introduction of Second Group into Benzene Ring",
+        "Introduction of Third Group into Benzene Ring"
+      ]
+    },
+    "Relative reactivities of Different Substituents": {
+      "adv": [
+        "Relative reactivities of Different Substituents"
+      ]
+    },
+    "Friedel-Crafts Reaction": {
+      "adv": [
+        "Intramolecular Friedel-Crafts Reaction",
+        "Limitations of F.C. Reaction",
+        "Blocking of p-Position by F.C. Alkylation"
+      ]
+    }
+  },
+  "Environmental Chemistry": {
+    "Environmental Pollution": {
+      "adv": [
+        "Environmental Pollution"
+      ]
+    },
+    "Atmospheric Pollution": {
+      "adv": [
+        "Atmospheric Pollution"
+      ]
+    },
+    "Global Warming and Greenhouse Effect": {
+      "adv": [
+        "Global Warming and Greenhouse Effect"
+      ]
+    },
+    "Acid Rain": {
+      "adv": [
+        "Harmful Effects of Acid Rain",
+        "Taj Mahal and Acid Rain",
+        "How to Reduce Acid Rain"
+      ]
+    },
+    "Particulate Pollutants": {
+      "adv": [
+        "Particulate Pollutants"
+      ]
+    },
+    "Smog": {
+      "adv": [
+        "Formation of Photochemical Smog",
+        "Effects of Photochemical Smog",
+        "How can Photochemical Smog be Controlled?"
+      ]
+    },
+    "Stratospheric Pollution": {
+      "adv": [
+        "Formation and Breakdown of Ozone",
+        "Ozone Hole",
+        "Effects of Depletion of the Ozone Layer"
+      ]
+    },
+    "Water Pollution": {
+      "adv": [
+        "Causes of Water Pollution",
+        "International Standards for Drinking Water",
+        "Prevention of Water Pollution"
+      ]
+    },
+    "Soil Pollution": {
+      "adv": [
+        "Composition of the Soil",
+        "Loam Soil",
+        "Sources of Soil Pollution"
+      ]
+    },
+    "Some Developments About Waste Recycling": {
+      "adv": [
+        "Some Developments About Waste Recycling"
+      ]
+    },
+    "Strategies to Control Environmental Pollution": {
+      "adv": [
+        "Strategies to Control Environmental Pollution"
+      ]
+    },
+    "Green Chemistry": {
+      "adv": [
+        "Definition",
+        "Methods Used in Green Chemistry"
+      ]
+    },
+    "Green Chemistry in Day-to-day Life": {
+      "adv": [
+        "Dry Cleaning of Clothes",
+        "Bleaching of Paper",
+        "Synthesis of Chemicals"
+      ]
+    }
+  },
+  "Grignard Reagents and Organometallic Compounds": {
+    "Grignard Reagents": {
+      "adv": [
+        "Preparation of Grignard Reagents",
+        "Chemical Reactions of Grignard Reagents (G.R.)",
+        "Application of Grignard Reagents in the Preparation of Organometallic Compounds",
+        "Order of Reactivity of Functional Groups with Grignard Reagents",
+        "Limitations of Grignard Reagents"
+      ]
+    },
+    "Organolithium Compounds": {
+      "adv": [
+        "Preparation",
+        "Reaction of Alkyl Lithium (RLi)"
+      ]
+    },
+    "Organozinc Compounds": {
+      "adv": [
+        "Reformatsky Reaction",
+        "Synthesis of Citric Acid"
+      ]
+    }
+  },
+  "Reduction and Oxidation Reactions of Organic Compounds": {
+    "Reduction of Different Functional Groups": {
+      "adv": [
+        "Reduction of Different Functional Groups"
+      ]
+    },
+    "Clemmensen Reduction": {
+      "adv": [
+        "Clemmensen Reduction"
+      ]
+    },
+    "Wolff-Kishner Reduction": {
+      "adv": [
+        "Wolff-Kishner Reduction"
+      ]
+    },
+    "Birch Reduction (B.R.)": {
+      "adv": [
+        "Birch Reduction (B.R.)"
+      ]
+    },
+    "Reduction by Lindlar's Catalyst or Poisoned Pd (H2 + Finely Divided Pd + CaCO3 + Traces of PbO2)": {
+      "adv": [
+        "Reduction by Lindlar's Catalyst or Poisoned Pd (H2 + Finely Divided Pd + CaCO3 + Traces of PbO2)"
+      ]
+    },
+    "Reduction by H2 + Pd + C (Charcoal)": {
+      "adv": [
+        "Reduction by H2 + Pd + C (Charcoal)"
+      ]
+    },
+    "Mendius Reduction (Complete Reduction)": {
+      "adv": [
+        "Mendius Reduction (Complete Reduction)"
+      ]
+    },
+    "Stephen's Reduction (Partial Reduction)": {
+      "adv": [
+        "Stephen's Reduction (Partial Reduction)"
+      ]
+    },
+    "Reduction with DIBAL-H (Di-Isobutyl Aluminium Hydride)": {
+      "adv": [
+        "Reduction with DIBAL-H (Di-Isobutyl Aluminium Hydride)"
+      ]
+    },
+    "Rosenmund Reduction (reduction with Poisoned Palladium)": {
+      "adv": [
+        "Rosenmund Reduction (reduction with Poisoned Palladium)"
+      ]
+    },
+    "Bouveault-Blanc Reduction": {
+      "adv": [
+        "Bouveault-Blanc Reduction"
+      ]
+    },
+    "Selective Reduction": {
+      "adv": [
+        "Selective Reduction"
+      ]
+    },
+    "Bimolecular Reduction to Pinacols": {
+      "adv": [
+        "Bimolecular Reduction to Pinacols"
+      ]
+    },
+    "Reduction with Zinc Dust": {
+      "adv": [
+        "Reduction with Zinc Dust"
+      ]
+    },
+    "Reduction of Nitrobenzene": {
+      "adv": [
+        "Reduction of Nitrobenzene"
+      ]
+    },
+    "Catalytic and LAH Reduction": {
+      "adv": [
+        "Comparison of LAH and NaBH4",
+        "Reduction of Amides",
+        "Mechanism of LAH as a Reducing Agent",
+        "Mechanism of NaBH4"
+      ]
+    },
+    "Meerwein-Ponndorf-Verley (MPV) Reduction": {
+      "adv": [
+        "Meerwein-Ponndorf-Verley (MPV) Reduction"
+      ]
+    },
+    "Raney Nickel": {
+      "adv": [
+        "Raney Nickel"
+      ]
+    },
+    "Protection of (>C=O) Group": {
+      "adv": [
+        "Protection of (>C=O) Group"
+      ]
+    },
+    "Oxidation of Alkyl Benzenes": {
+      "adv": [
+        "Oxidation of Alkyl Benzenes"
+      ]
+    },
+    "Partial Oxidation": {
+      "adv": [
+        "Partial Oxidation"
+      ]
+    },
+    "Oxidation of Alcohols": {
+      "adv": [
+        "Oxidation of Alcohols with PCC and Collins Reagent"
+      ]
+    },
+    "Oxidation by Jones Reagent (J.R.)": {
+      "adv": [
+        "Oxidation by Jones Reagent (J.R.)"
+      ]
+    },
+    "Oxidation with MnO2": {
+      "adv": [
+        "Oxidation with MnO2"
+      ]
+    },
+    "Oxidation with SeO2": {
+      "adv": [
+        "Oxidation with SeO2"
+      ]
+    },
+    "Oxidation with Fenton's Reagent": {
+      "adv": [
+        "Oxidation with Fenton's Reagent"
+      ]
+    },
+    "Oxidation of Amines": {
+      "adv": [
+        "Oxidation of Amines"
+      ]
+    },
+    "Dehydrogenation with Hot Copper at 573 K": {
+      "adv": [
+        "Dehydrogenation with Hot Copper at 573 K"
+      ]
+    },
+    "Distinction Between 1°, 2°, 3° Alcohols": {
+      "adv": [
+        "Distinction Between 1°, 2°, 3° Alcohols"
+      ]
+    },
+    "Distinction Between Alcohols and Phenols": {
+      "adv": [
+        "Distinction Between Alcohols and Phenols"
+      ]
+    },
+    "Oxidation of Ketones": {
+      "adv": [
+        "Oxidation of Ketones"
+      ]
+    },
+    "Töllens, Fehling's, Benedict's, and Schiff's Reagents": {
+      "adv": [
+        "Töllens, Fehling's, Benedict's, and Schiff's Reagents"
+      ]
+    },
+    "Iodoform Test or Haloform Reaction (Hypohalite Oxidation or Degradation)": {
+      "adv": [
+        "Iodoform Test or Haloform Reaction (Hypohalite Oxidation or Degradation)"
+      ]
+    },
+    "Oppenauer Oxidation": {
+      "adv": [
+        "Oppenauer Oxidation"
+      ]
+    },
+    "Hydroxylation": {
+      "adv": [
+        "Hydroxylation"
+      ]
+    },
+    "Oxidation with Hot KMnO4 or Acidic KMnO4 or Acidic K2Cr2O7": {
+      "adv": [
+        "Oxidation with Hot KMnO4 or Acidic KMnO4 or Acidic K2Cr2O7"
+      ]
+    },
+    "Oxidation with Ozone": {
+      "adv": [
+        "Oxidation with Ozone"
+      ]
+    },
+    "Periodic Oxidation": {
+      "adv": [
+        "Periodic Oxidation"
+      ]
+    },
+    "Baeyer-Villiger Oxidation": {
+      "adv": [
+        "Baeyer-Villiger Oxidation"
+      ]
+    }
+  },
+  "Alkyl and Aryl Halides": {
+    "Nomenclature": {
+      "adv": [
+        "Nomenclature"
+      ]
+    },
+    "Dipole Moment": {
+      "adv": [
+        "Dipole Moment Measurement Method"
+      ]
+    },
+    "Preparation of Alkyl Halides": {
+      "adv": [
+        "From Alcohols",
+        "From Alkenes",
+        "From Aliphatic Compounds",
+        "Halogen Exchange",
+        "Fluorination (Swarts Reaction)",
+        "Borodine-Hunsdiecker and Birnbaum-Simonini Reactions"
+      ]
+    },
+    "Preparation of Aryl Halides": {
+      "adv": [
+        "Sandmeyer's Reaction",
+        "SE Reaction",
+        "Side-Chain Halogenation"
+      ]
+    },
+    "Physical Properties": {
+      "adv": [
+        "Physical Properties"
+      ]
+    },
+    "Chemical Properties": {
+      "adv": [
+        "SN Reactions",
+        "Aromatic Nucleophilic Substitution (ArSN) (Addition-Elimination) reaction",
+        "ArSN (Elimination-Addition) Reaction via Benzyne Intermediate",
+        "SE Reactions of Aryl Halides"
+      ]
+    },
+    "Polyhalogen Compounds": {
+      "adv": [
+        "Methylene Chloride or Dichloromethane (CH2Cl2)",
+        "Triiodo Methane (Iodoform) (CHI3)",
+        "Chloroform or Trichloromethane (CHCl3)",
+        "Carbon tetrachloride (or Tetrachloromethane) (CCl4)",
+        "Freons",
+        "D.D.T. (p,p'-Dichlorodiphenyl trichloro-ethane)"
+      ]
+    }
+  },
+  "Alcohols, Phenols and Ethers": {
+    "Classification of Alcohols and Phenols": {
+      "adv": [
+        "Classification of Alcohols and Phenols"
+      ]
+    },
+    "IUPAC and Common Names of Some Alcohols and Phenols": {
+      "adv": [
+        "IUPAC and Common Names of Some Alcohols and Phenols"
+      ]
+    },
+    "Classification and Nomenclature of Ethers": {
+      "adv": [
+        "Naming of Polyethers and Cyclic Ethers"
+      ]
+    },
+    "Comparison Between the Structures of Alcohols, Phenols, and Ethers": {
+      "adv": [
+        "Comparison Between the Structures of Alcohols, Phenols, and Ethers"
+      ]
+    },
+    "Commercial Methods for Preparation of Methanol and Ethanol": {
+      "adv": [
+        "Commercial Methods for Preparation of Methanol and Ethanol"
+      ]
+    },
+    "Different Types of Industrial Alcohols": {
+      "adv": [
+        "Different Types of Industrial Alcohols"
+      ]
+    },
+    "Preparation of Alcohols": {
+      "adv": [
+        "From Alkenes",
+        "From Alkyl Halide with Ag2O in H2O",
+        "From Grignard Reagents (G.R.)",
+        "From Carbonyl Compounds",
+        "Treating Haloalkene with Moist Ag2O or (AgCl + H2O)"
+      ]
+    },
+    "Physical Properties of Alcohols and Phenols": {
+      "adv": [
+        "Physical Properties of Alcohols and Phenols"
+      ]
+    },
+    "Chemical Reactions of alcohols": {
+      "adv": [
+        "Reactions Involving Cleavage of (O—H) Bond",
+        "Acidity of Alcohols",
+        "Reactions Involving Cleavage of (C—O) Bond in Alcohols",
+        "Dehydration",
+        "Distinction Test for 1°, 2°, 3° Alcohols"
+      ]
+    },
+    "Dihydric Alcohols": {
+      "adv": [
+        "Ethylene Glycol or Ethane-1,2-Diol"
+      ]
+    },
+    "Trihydric Alcohols": {
+      "adv": [
+        "Glycerol or Glycerine 1,2,3-Propane Triol"
+      ]
+    },
+    "Preparation of Phenols": {
+      "adv": [
+        "From Middle Oil Fraction of Coal Tar Distillation",
+        "From Aryl Halides (Dow's Method)",
+        "From Diazonium Salts",
+        "From Benzene Sulfonic Acids",
+        "From Cumene",
+        "Preparation of Acyl Substituted Phenol (Fries Rearrangement)"
+      ]
+    },
+    "Chemical Reactions of Phenols": {
+      "adv": [
+        "Acidity of Phenols",
+        "SE (Substitution by Electrophile) Reaction",
+        "Reaction of Phenol with PX3 or PX5 (X = Cl, Br)",
+        "Reaction of Phenol with Zinc Dust",
+        "Acetylation, Benzoylation of Phenols",
+        "Oxidation",
+        "Esterification",
+        "Aspirin Synthesis",
+        "Distinction Test between Alcohols and Phenols",
+        "Elbs Persulphate Oxidation",
+        "Reimer-Tiemann Reaction",
+        "Kolbe-Schmidt Reaction",
+        "Reaction of Phenol with an Aldehyde",
+        "Bimolecular Reduction of Carbonyl Compounds to Vicinal diol",
+        "Pinacol-Pinacolone Rearrangement Reaction"
+      ]
+    },
+    "Preparation of Ethers (Etherification)": {
+      "adv": [
+        "Dehydration of Alcohols Under Different Conditions",
+        "Williamson's Synthesis",
+        "Some Other Methods for the Preparation of Ethers",
+        "Alkoxy Mercuration-Demercuration (A Type of Solvomercuration-Demercuration)",
+        "Commercial Synthesis of Diphenyl Ether"
+      ]
+    },
+    "Physical Properties of Ethers": {
+      "adv": [
+        "Physical Properties of Ethers"
+      ]
+    },
+    "Chemical Reactions of Ethers": {
+      "adv": [
+        "Cleavage of (C—O) Bond in Ethers",
+        "Reaction of Ether with Lewis Acids",
+        "Reaction of Ether with H2SO4",
+        "Reaction of Ether with PCl5",
+        "Reaction of Ether with Acid Chlorides and Anhydrides",
+        "Reactions Involving Alkyl Group",
+        "Reduction",
+        "Zeisel Method for the Determination of Methoxy Groups",
+        "Claisen Rearrangement Reaction",
+        "SE (Substitution by Electrophile) Reactions"
+      ]
+    },
+    "Epoxides (Oxiranes)": {
+      "adv": [
+        "Preparation",
+        "Chemical Reactions of Epoxides"
+      ]
+    },
+    "Uses of Ethers": {
+      "adv": [
+        "Uses of Ethers"
+      ]
+    }
+  },
+  "Aldehydes and Ketones": {
+    "Structure of the Carbonyl Group": {
+      "adv": [
+        "Structure of the Carbonyl Group"
+      ]
+    },
+    "Nomenclature": {
+      "adv": [
+        "Nomenclature"
+      ]
+    },
+    "Preparation of Aldehydes and Ketones": {
+      "adv": [
+        "By Oxidation of Alcohols",
+        "By Dehydrogenation of Alcohols",
+        "From Hydrocarbons",
+        "Partial Oxidation of Methyl Benzene (Etard Reaction)",
+        "By Side-chain Chlorination Followed by Hydrolysis",
+        "Gattermann Aldehyde Reaction",
+        "Gattermann-Koch Aldehyde Synthesis",
+        "Rosenmund Reduction",
+        "Stephen Reduction (Partial Reduction of Nitriles)",
+        "Selective Reduction of Nitriles, Acid Halides and Esters with DIBAL-H or with LBAH",
+        "Ketones from Carboxylic Acids",
+        "Ketones from Alkyl Lithium and Nitriles",
+        "Dry Distillation of Calcium or Barium Salts of Fatty Acids",
+        "By Passing the Vapours of Fatty Acids Over Manganous Oxide (MnO) at 573 K",
+        "For Synthesis of Aldehydes and Ketones from Grignard Reagent",
+        "For Synthesis of Ketones from Dialkyl Cadmium (R2Cd) and Dialkyl Lithium Cuperate (R2CuLi) with Acid Halides",
+        "For Synthesis of Ketones by Friedel-Crafts Acylation Reaction"
+      ]
+    },
+    "Industrial Method for the Preparation of (i) Acetaldehyde, and (ii) Benzaldehyde": {
+      "adv": [
+        "Industrial Method for the Preparation of (i) Acetaldehyde, and (ii) Benzaldehyde"
+      ]
+    },
+    "Physical Properties": {
+      "adv": [
+        "Physical Properties"
+      ]
+    },
+    "Chemical Reactions": {
+      "adv": [
+        "Nucleophilic Addition (NA) Reactions",
+        "Nucleophilic Addition Reaction Followed by Elimination of H2O-Addition of Ammonia Derivatives",
+        "Some Important Examples of N.A (Nucleophilic Addition) Reaction",
+        "Reduction Reactions",
+        "Oxidation Reaction",
+        "Halogenation",
+        "Nitration and Sulphonation",
+        "Reactions Due to α-H Atom",
+        "Claisen-Schmidt Reaction",
+        "Cannizzaro Reaction",
+        "Crossed Cannizzaro Reaction",
+        "Internal Crossed and Intramolecular Cannizzaro Reaction",
+        "Tishchenko Reaction",
+        "Thorpe Reaction",
+        "Michael Addition",
+        "Perkin Reaction",
+        "Knoevenagel Reaction",
+        "Benzoin Condensation",
+        "Benzil-Benzilic Acid Rearrangement",
+        "Beckmann Rearrangement",
+        "Wittig Reaction",
+        "Baeyer-Villiger Oxidation"
+      ]
+    },
+    "Uses of Aldehydes and Ketones": {
+      "adv": [
+        "Uses of Aldehydes and Ketones"
+      ]
+    }
+  },
+  "Carboxylic Acids and their Derivatives": {
+    "Nomenclature of Carboxylic Acids": {
+      "adv": [
+        "Nomenclature of Carboxylic Acids",
+        "Nomenclature of Acid Derivatives"
+      ]
+    },
+    "Preparation": {
+      "adv": [
+        "Preparation"
+      ]
+    },
+    "Physical Properties": {
+      "adv": [
+        "Physical Properties"
+      ]
+    },
+    "Acidity": {
+      "adv": [
+        "Acidity"
+      ]
+    },
+    "Chemical Reactions": {
+      "adv": [
+        "Reaction Involving Cleavage of (O—H) Bond",
+        "Reactions Involving Cleavage of (C—OH) Bond",
+        "Reactions Involving (—COOH) Group",
+        "Substitution Reactions in the Hydrocarbon Part"
+      ]
+    },
+    "Substituted Carboxylic Acids": {
+      "adv": [
+        "Preparation of α-Hydroxy Acids",
+        "Heating of α-, β-, γ-, δ-, and ε-Hydroxy Acids",
+        "Decarboxylation of β-Keto Acids",
+        "Decarboxylation of α-Nitro Acid (Nitroacetic Acid)",
+        "Decarboxylation of Trichloroacetic Acid (Cl3C—COOH)",
+        "Reaction of α-, β-, γ-, and δ-Halo Acids with Aqueous NaOH"
+      ]
+    },
+    "Carboxylic Acid Derivatives": {
+      "adv": [
+        "Carboxylic Acid Derivatives"
+      ]
+    },
+    "Preparation of Carboxylic Acid Derivatives": {
+      "adv": [
+        "Preparation of Acid Halides",
+        "Preparation of Acid Anhydrides",
+        "Preparation of Another Anhydride from Acetic Anhydride",
+        "Preparation of Esters",
+        "Preparation of Amides",
+        "Preparation of Azides (R-C(=O)-N3)",
+        "Preparation of Hydroxamic Acids (R-C(=O)-NHOH)",
+        "Preparation of Acid Hydrazides (R-C(=O)-NHNH2)"
+      ]
+    },
+    "Claisen Ester Condensation": {
+      "adv": [
+        "Comparison of the Mechanism of Aldol and Claisen Ester Condensation"
+      ]
+    },
+    "Mixed or Cross Claisen Condensation": {
+      "adv": [
+        "Mixed Claisen Condensation When One Ester Has α-H Atom and Another Ester Lacks α-H Atom",
+        "Reverse Problems",
+        "Intramolecular Claisen Ester Condensation (Dieckmann Condensation)"
+      ]
+    },
+    "Some Rearrangement Reactions": {
+      "adv": [
+        "Hofmann Bromamide Rearrangement or Degradation Reaction",
+        "Lossen Rearrangement Reaction",
+        "Curtius Rearrangement Reaction",
+        "Schmidt Reaction"
+      ]
+    },
+    "Arndt–Eistert Reaction": {
+      "adv": [
+        "Arndt–Eistert Reaction"
+      ]
+    },
+    "Wolff Rearrangement": {
+      "adv": [
+        "Wolff Rearrangement"
+      ]
+    },
+    "Reformatsky Reaction": {
+      "adv": [
+        "Reformatsky Reaction"
+      ]
+    },
+    "Favorskii Rearrangement": {
+      "adv": [
+        "Favorskii Rearrangement"
+      ]
+    }
+  },
+  "Organic Compounds with Functional Groups Containing Nitrogen": {
+    "Preparation of Amines": {
+      "adv": [
+        "Reduction of Nitro Compounds",
+        "Hofmann Ammonolysis Reaction (SN2 Reaction)",
+        "Reduction of Nitriles",
+        "Reduction of Amides, Oximes, and Azides with LAH",
+        "Gabriel Phthalimide Synthesis",
+        "Hoffmann Bromamide Degradation Reaction",
+        "Lossen Rearrangement Reaction",
+        "Curtius Rearrangement Reaction",
+        "Schmidt Reaction",
+        "Reductive Amination of Carbonyl Compounds",
+        "Ritter Reaction"
+      ]
+    },
+    "Physical Properties": {
+      "adv": [
+        "Physical Properties"
+      ]
+    },
+    "Chemical Reactions": {
+      "adv": [
+        "Alkylation, Acylation, Benzoylation and Tosylation",
+        "Reaction of Aldehydes and Ketones with Secondary Amines",
+        "Reaction with CS2 and COCl2 (Hofmann Mustard Oil Reaction) (Test for 1° Amines)",
+        "Carbylamine Reaction (Test for 1° Aliphatic or Aromatic Amines)",
+        "Reaction with Nitrous Acid (Test to Distinguish Between 1°, 2°, and 3° Amines)",
+        "Hofmann's Exhaustive Methylation and Elimination",
+        "Oxidation of Amines and Cope Reaction",
+        "Test for Amines",
+        "Electrophilic Substitution (SE) Reactions"
+      ]
+    },
+    "Diazonium Salts": {
+      "adv": [
+        "Introduction",
+        "Diazotisation",
+        "Reaction Involving Displacement of Nitrogen",
+        "Reactions Involving Retention of Diazo Group (Coupling Reactions)"
+      ]
+    },
+    "Heating of α-, β-, γ-, δ-, and ε-Amino Acids": {
+      "adv": [
+        "α-Amino Acid",
+        "β-Amino Acid",
+        "γ-Amino Acid",
+        "δ-Amino Acid",
+        "ε-Amino Acid"
+      ]
+    },
+    "Nitro Compounds": {
+      "adv": [
+        "Reaction of 1°, 2°, and 3° Nitroalkanes",
+        "Tautomerism",
+        "Acidic Character",
+        "Halogenation",
+        "SE Reaction"
+      ]
+    },
+    "Cyanides": {
+      "adv": [
+        "Nomenclature",
+        "Structure"
+      ]
+    },
+    "Methods of Preparation of Cyanides": {
+      "adv": [
+        "By Nucleophilic Substitution of Alkyl Halides",
+        "By Substitution of Diazonium Salts",
+        "By Addition of Cyanide Ion to Carbonyl Compounds",
+        "By Dehydration of Primary Amides"
+      ]
+    },
+    "Physical Properties of Cyanides": {
+      "adv": [
+        "Physical Properties of Cyanides"
+      ]
+    },
+    "Chemical Reactions of Cyanides": {
+      "adv": [
+        "Hydrolysis",
+        "Reaction with Grignard Reagent",
+        "Reduction"
+      ]
+    },
+    "Isocyanides": {
+      "adv": [
+        "Introduction",
+        "Nomenclature"
+      ]
+    },
+    "Methods of Preparation of Isocyanides": {
+      "adv": [
+        "Methods of Preparation of Isocyanides"
+      ]
+    },
+    "Chemical Reactions of Isocyanides": {
+      "adv": [
+        "Addition of Water",
+        "Reduction with LAH"
+      ]
+    }
+  },
+  "Synthetic and Natural Polymers": {
+    "Classification of Polymers": {
+      "adv": [
+        "Classification Based on Source",
+        "Classification Based on Structure",
+        "Classification Based on Synthesis",
+        "Classification Based on the Mode of Polymerisation",
+        "Classification Based on Molecular Forces"
+      ]
+    },
+    "Polymerisation": {
+      "adv": [
+        "Conjugated Diene Polymerisation",
+        "Addition Polymerisation",
+        "Copolymerisation",
+        "Polyethylene (or Polythene) Formation"
+      ]
+    },
+    "Some Commercially Important Polymers": {
+      "adv": [
+        "Addition Polymers",
+        "Polydienes (Homopolymers)",
+        "Copolymers",
+        "Condensation Polymers",
+        "Polyamides",
+        "Formaldehyde Resins"
+      ]
+    },
+    "Biopolymers": {
+      "adv": [
+        "Biodegradable Polymers"
+      ]
+    },
+    "Plasticity": {
+      "adv": [
+        "Plasticity"
+      ]
+    },
+    "Number-Average, Weight-Average and Z-Average Molecular Masses": {
+      "adv": [
+        "Polydispersity Index (PDI)",
+        "Determination of Molecular Mass of Polymers"
+      ]
+    }
+  },
+  "Biomolecules": {
+    "The Cell and Energy Cycle": {
+      "adv": [
+        "Photosynthesis and Energy"
+      ]
+    },
+    "Carbohydrates": {
+      "adv": [
+        "Classification",
+        "Classification of Aldols: D and L",
+        "Representation of Structures of Glucose",
+        "Representation of Structures of Glucosides",
+        "Representation of Structures of Fructose",
+        "Epimers",
+        "Anomers",
+        "Mutarotation",
+        "Tests of Carbohydrates",
+        "Glucose",
+        "Cyclic Structure of D-Glucose",
+        "Disaccharides",
+        "Polysaccharides"
+      ]
+    },
+    "Proteins": {
+      "adv": [
+        "Amino Acids",
+        "Test of Proteins",
+        "Structure of Proteins",
+        "Zwitterion or Ampholyte or Dipolar Ion or Internal Salt",
+        "Determination of the Polypeptide Sequence"
+      ]
+    },
+    "Enzymes": {
+      "adv": [
+        "Properties of Enzymes",
+        "Mechanism of Enzyme Action",
+        "Examples of Enzyme-catalysed Reactions"
+      ]
+    },
+    "Nucleic Acids": {
+      "adv": [
+        "Heredity: The Genetic Code",
+        "DNA Fingerprinting",
+        "Biological Functions of Nucleic Acids"
+      ]
+    },
+    "Vitamins": {
+      "adv": [
+        "Classification of Vitamins",
+        "Physiological Functions of Vitamins"
+      ]
+    },
+    "Hormones": {
+      "adv": [
+        "Classification of Hormones",
+        "Functions of Hormones"
+      ]
+    }
+  },
+  "Chemistry in Everyday Life": {
+    "Drugs": {
+      "adv": [
+        "Classification of Drugs"
+      ]
+    },
+    "Drug-Target Interaction": {
+      "adv": [
+        "Enzymes as Drug Targets",
+        "Receptors as Drug Targets"
+      ]
+    },
+    "Chemicals in Medicine": {
+      "adv": [
+        "Analgesics",
+        "Antipyretics",
+        "Antiseptics",
+        "Disinfectants",
+        "Neurologically Active Drugs (Tranquillizers)",
+        "Antibiotics",
+        "Sulpha Drugs",
+        "Antimicrobials",
+        "Antacids",
+        "Antihistamines",
+        "Antifertility Drugs"
+      ]
+    },
+    "Chemicals in Food": {
+      "adv": [
+        "Antioxidants",
+        "Artificial Sweeteners",
+        "Preservatives",
+        "Edible Colours"
+      ]
+    },
+    "Cleansing Agents": {
+      "adv": [
+        "Soaps",
+        "Types of Soaps",
+        "Why Do Soaps Not Work in Hard Water?",
+        "Detergents"
+      ]
+    }
+  }
+}

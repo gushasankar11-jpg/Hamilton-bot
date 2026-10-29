@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 280" width="100%" height="280">
+  <rect width="100%" height="100%" fill="#0a0a1a"/>
+  <!-- Title -->
+  <text x="350" y="30" fill="#38bdf8" font-size="18" font-weight="bold" text-anchor="middle" font-family="sans-serif">D-Glucose: Fischer to Haworth (α-D-Glucopyranose)</text>
+  
+  <!-- Fischer Projection -->
+  <g font-family="sans-serif" font-size="14" fill="#f8fafc" text-anchor="middle">
+    <text x="140" y="65">CHO (C1)</text>
+    <line x1="140" y1="72" x2="140" y2="230" stroke="#94a3b8" stroke-width="2"/>
+    <!-- C2 -->
+    <line x1="90" y1="100" x2="190" y2="100" stroke="#94a3b8" stroke-width="2"/>
+    <text x="80" y="105">H</text><text x="205" y="105">OH</text>
+    <!-- C3 -->
+    <line x1="90" y1="135" x2="190" y2="135" stroke="#94a3b8" stroke-width="2"/>
+    <text x="75" y="140">HO</text><text x="200" y="140">H</text>
+    <!-- C4 -->
+    <line x1="90" y1="170" x2="190" y2="170" stroke="#94a3b8" stroke-width="2"/>
+    <text x="80" y="175">H</text><text x="205" y="175">OH</text>
+    <!-- C5 -->
+    <line x1="90" y1="205" x2="190" y2="205" stroke="#94a3b8" stroke-width="2"/>
+    <text x="80" y="210">H</text><text x="205" y="210">OH</text>
+    <text x="140" y="250">CH₂OH (C6)</text>
+    <text x="140" y="272" fill="#38bdf8" font-size="12">D-(+)-Glucose (Fischer)</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 270 150 L 340 150 M 330 143 L 340 150 L 330 157" stroke="#38bdf8" stroke-width="2.5" fill="none"/>
+  <text x="305" y="135" fill="#facc15" font-size="12" text-anchor="middle" font-family="sans-serif">Ring closure</text>
+  <text x="305" y="172" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="sans-serif">C5-OH attacks C1</text>
+
+  <!-- Haworth Projection α-D-glucopyranose -->
+  <g font-family="sans-serif" font-size="13" fill="#f8fafc">
+    <!-- Pyranose ring polygon -->
+    <polygon points="460,110 540,110 580,160 520,200 420,200 390,160" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+    <circle cx="500" cy="110" r="14" fill="#0a0a1a"/>
+    <text x="500" y="115" fill="#f43f5e" font-size="16" font-weight="bold" text-anchor="middle">O</text>
+    
+    <!-- C1 substituents (down = OH for alpha) -->
+    <line x1="580" y1="160" x2="580" y2="125" stroke="#94a3b8" stroke-width="1.5"/>
+    <line x1="580" y1="160" x2="580" y2="195" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="580" y="120" text-anchor="middle">H</text>
+    <text x="580" y="210" fill="#facc15" font-weight="bold" text-anchor="middle">OH (α)</text>
+
+    <!-- C2 (down = OH) -->
+    <line x1="520" y1="200" x2="520" y2="230" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="520" y="245" text-anchor="middle">OH</text>
+    
+    <!-- C3 (up = OH) -->
+    <line x1="420" y1="200" x2="420" y2="170" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="420" y="165" text-anchor="middle">OH</text>
+
+    <!-- C4 (down = OH) -->
+    <line x1="390" y1="160" x2="390" y2="190" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="390" y="205" text-anchor="middle">OH</text>
+
+    <!-- C5 (up = CH2OH) -->
+    <line x1="460" y1="110" x2="460" y2="75" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="460" y="70" text-anchor="middle">CH₂OH</text>
+
+    <text x="490" y="272" fill="#38bdf8" font-size="12" text-anchor="middle">α-D-Glucopyranose</text>
+  </g>
+</svg>

@@ -1,0 +1,51 @@
+{
+  "secured": true,
+  "name": "Krishna Vamsi",
+  "institute": "Narayana engineering College",
+  "level": "Senior",
+  "exams": [
+    "JEE_ADV",
+    "JEE_MAIN"
+  ],
+  "priority": "JEE_ADV",
+  "priority_pct": 70,
+  "target_year": 2027,
+  "target_marks": {
+    "JEE_ADV": 200,
+    "JEE_MAIN": 200
+  },
+  "selected_chapters": {
+    "Maths": [
+      "Trigonometric Functions",
+      "Trigonometric Ratios and Transformation Formulas",
+      "Trigonometric Equations"
+    ],
+    "Chemistry": [
+      "Redox Reactions"
+    ]
+  },
+  "subtopic_stats": {},
+  "onboarding_step": "done",
+  "behavior": {
+    "strikes": 0,
+    "blocked_until": null
+  },
+  "strikes_total": 0,
+  "blocks_total": 0,
+  "api_calls_total": 19,
+  "last_strike_at": null,
+  "last_block_at": null,
+  "leaderboard_optin": true,
+  "story_shown": true,
+  "no_key_attempts": 2,
+  "hku_id": "HKU-000002",
+  "activation_key": "HK Publications 2026-27",
+  "key_expired": false,
+  "_practice_active": false,
+  "_practice_exam": null,
+  "_practice_level": "medium",
+  "created_at": "2026-10-24T07:09:41.093262",
+  "last_seen": "2026-10-29T06:20:45.440827",
+  "name_strikes": 0,
+  "phone": "9876543210"
+}

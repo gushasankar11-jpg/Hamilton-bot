@@ -1,0 +1,101 @@
+[
+  {
+    "scheduled_at": "2026-10-17 10:26",
+    "text": "Testing message",
+    "recipients": [
+      8958102724,
+      5483091877,
+      8984699390,
+      7269061563,
+      5751516037,
+      8857708587,
+      8672465004,
+      6980299158,
+      6296905467,
+      8867633916,
+      8671233758
+    ],
+    "sent": true,
+    "sent_at": "2026-10-17T10:27:38.624325"
+  },
+  {
+    "scheduled_at": "2026-10-17 10:09",
+    "text": "AUTOMATED TEST \u2014 scheduler is working",
+    "recipients": [
+      8857708587
+    ],
+    "sent": true,
+    "sent_at": "2026-10-17T10:09:31.054169"
+  },
+  {
+    "scheduled_at": "2026-10-17 10:26",
+    "text": "Testing message",
+    "recipients": [
+      8958102724,
+      5483091877,
+      8984699390,
+      7269061563,
+      5751516037,
+      8857708587,
+      8672465004,
+      6980299158,
+      6296905467,
+      8867633916,
+      8671233758
+    ],
+    "sent": true,
+    "sent_at": "2026-10-17T10:27:38.624325"
+  },
+  {
+    "scheduled_at": "2026-10-17 15:12",
+    "text": "Broadcast messaging system test 2 schedule in mechanism",
+    "recipients": [
+      8958102724,
+      5483091877,
+      8984699390,
+      7269061563,
+      5751516037,
+      8857708587,
+      8672465004,
+      6980299158,
+      6296905467,
+      8867633916,
+      8671233758
+    ],
+    "sent": true,
+    "sent_at": "2026-10-17T15:12:06.028193"
+  },
+  {
+    "scheduled_at": "2026-10-21 07:00",
+    "text": "Hello everyone this is a testing message but informing up to everyone that the preference were ending the next 4 days please restart your key by doing the payment present price 200 if you still don't take any action",
+    "file_type": null,
+    "file_id": null,
+    "recipients": [
+      5586609986,
+      8958102724,
+      5483091877,
+      8984699390,
+      7269061563,
+      5751516037,
+      8857708587,
+      8672465004,
+      6980299158,
+      6296905467,
+      8867633916,
+      8671233758
+    ],
+    "sent": true,
+    "sent_at": "2026-10-21T07:00:03.864310"
+  },
+  {
+    "scheduled_at": "2026-10-25 12:37",
+    "text": "",
+    "file_type": "document",
+    "file_id": "BQACAgUAAxkDAAIgLmrc3qFf3c-vaNclO9t7e5igL7D0AAJ7JAACw17oVsXvPfN8NbatPQQ",
+    "recipients": [
+      8867633916
+    ],
+    "sent": true,
+    "sent_at": "2026-10-25T12:37:13.839635"
+  }
+]

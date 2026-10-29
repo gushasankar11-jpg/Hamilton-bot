@@ -1,0 +1,17 @@
+[
+  {
+    "timestamp": "2026-10-17T11:41:45.354279",
+    "subject": "Physics",
+    "chapter": "Electromagnetic Waves",
+    "subtopic": "Energy Density, Intensity and Momentum of Electromagnetic Waves",
+    "question": "A linearly polarized electromagnetic wave propagates in vacuum with electric field $$\\mathbf{E}=E_0\\cos(kx-\\omega t)\\,\\hat{y}$$ where the amplitude $E_0=300\\,\\text{V m}^{-1}$. A perfectly absorbing flat plate is placed perpendicular to the direction of propagation. What is the average radiation pressure exerted on the plate? (Answer to 2 significant figures in $\\text{N m}^{-2}$)",
+    "options": [
+      "$4.0\\times10^{-7}$",
+      "$2.0\\times10^{-6}$",
+      "$1.2\\times10^{-6}$",
+      "$8.0\\times10^{-8}$"
+    ],
+    "correct_index": 0,
+    "explanation": "The intensity (average power per unit area) of a plane EM wave in vacuum is\n$$I=\\frac{1}{2}\\,c\\,\\varepsilon_0\\,E_0^{2}$$\nwhere $c=3\\times10^{8}\\,\\text{m s}^{-1}$ and $\\varepsilon_0=8.854\\times10^{-12}\\,\\text{F m}^{-1}$.\\\nFirst compute $E_0^{2}= (300)^{2}=9.0\\times10^{4}\\,\\text{V}^{2}\\text{m}^{-2}$.\\\n\\\n$$\\begin{aligned}\nI&=\\frac{1}{2}\\times3\\times10^{8}\\times8.854\\times10^{-12}\\times9.0\\times10^{4}\\\\\n&=\\frac{1}{2}\\times3\\times10^{8}\\times7.9686\\times10^{-7}\\\\\n&\\approx\\frac{1}{2}\\times239.1\\\\\n&\\approx1.19\\times10^{2}\\,\\text{W m}^{-2}\\\n\\end{aligned}$$\nFor a perfectly absorbing surface the radiation pressure $p$ is related to intensity by $p=I/c$.\\\n\\\n$$p=\\frac{1.19\\times10^{2}}{3\\times10^{8}}\\approx3.97\\times10^{-7}\\,\\text{N m}^{-2}$$\\\nRounded to two significant figures, $p=4.0\\times10^{-7}\\,\\text{N m}^{-2}$."
+  }
+]

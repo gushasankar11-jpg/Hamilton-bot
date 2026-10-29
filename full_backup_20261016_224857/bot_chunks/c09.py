@@ -1,0 +1,933 @@
+PENDING_AUTH_FLOW = {}
+
+# ==========================================================
+# bot.py — Chunk 9 (FINAL): notes, free-text, admin, leaderboard, find, boot
+# ==========================================================
+
+# ==========================================================
+# NOTES — main command
+# ==========================================================
+@bot.message_handler(commands=['notes'])
+def cmd_notes(message):
+    uid = message.chat.id
+    ready, reason = _profile_ready(uid)
+    if not ready:
+        _send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    sel = p.get("selected_chapters", {})
+    subjects = [s for s in ["Maths", "Physics", "Chemistry"] if sel.get(s)]
+    if not subjects:
+        subjects = health.available_subjects()
+    if not subjects:
+        bot.send_message(uid, "❌ No subjects available.")
+        return
+    if len(subjects) == 1:
+        _notes_ask_chapter(uid, subjects[0])
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "📝 *Which subject?*",
+                           reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, _notes_pick_subject)
+
+
+def _notes_pick_subject(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    subj = (message.text or "").strip().capitalize()
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "❌ Invalid subject.")
+        return
+    _notes_ask_chapter(uid, subj)
+
+
+def _notes_ask_chapter(uid, subj):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    sel_ch = p.get("selected_chapters", {}).get(subj, [])
+    if sel_ch:
+        ch_list = sel_ch
+    else:
+        data = health.load_subject_data(subj, exam)
+        if not data:
+            bot.send_message(uid, f"❌ No data for {subj}.")
+            return
+        ch_list = list(data.keys())
+
+    numbered = "\n".join(f"{i+1}. {c}" for i, c in enumerate(ch_list))
+    header = f"📝 *{subj}* — pick a chapter:\n\n{numbered}\n\nReply with number."
+    if len(header) > 4000:
+        safe_send(uid, f"📝 *{subj}* chapters:", parse_mode="Markdown")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, "Reply with the number.")
+        bot.register_next_step_handler(msg, _notes_capture_chapter, subj, ch_list)
+    else:
+        msg = bot.send_message(uid, header, parse_mode="Markdown")
+        bot.register_next_step_handler(msg, _notes_capture_chapter, subj, ch_list)
+
+
+def _notes_capture_chapter(message, subj, ch_list):
+    uid = message.chat.id
+    try:
+        idx = int((message.text or "").strip()) - 1
+        if idx < 0 or idx >= len(ch_list):
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "❌ Invalid number.")
+        return
+    chapter = ch_list[idx]
+    _generate_notes_begin(uid, subj, chapter)
+
+
+# ==========================================================
+# NOTES — begin generation with part state
+# ==========================================================
+# def _generate_notes_begin(uid, subject, chapter):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    data = health.load_subject_data(subject, exam)
+    if not data or chapter not in data:
+        safe_send(uid, "❌ No data for chapter.")
+        return
+
+    subs = data[chapter]
+    subtopics_list = []
+    for sub, val in subs.items():
+        cl = val.get("adv", []) if isinstance(val, dict) else val
+        subtopics_list.append({"name": sub, "concepts": list(cl)})
+
+    total_concepts = sum(len(s["concepts"]) for s in subtopics_list)
+
+    # Group subtopics so each part covers ~6 subtopics
+    groups = []
+    current = []
+    for st in subtopics_list:
+        current.append(st)
+        if len(current) >= 6:
+            groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    if not groups:
+        groups = [subtopics_list]
+
+    total_parts = len(groups)
+
+    # Save notes state in profile
+    p["_notes_state"] = {
+        "subject": subject,
+        "chapter": chapter,
+        "exam": exam,
+        "groups": groups,
+        "current_part": 0,
+        "total_parts": total_parts,
+        "last_notes": "",
+        "waiting_continue": False,
+    }
+    save_profile(uid, p)
+
+    safe_send(uid,
+        f"📝 *Generating short notes: {chapter}*\n\n"
+        f"Subtopics: {len(subtopics_list)}\n"
+        f"Concepts: {total_concepts}\n"
+        f"Parts: {total_parts}\n\n"
+        "_Sending Part 1 now..._",
+        parse_mode="Markdown")
+    time.sleep(0.5)
+
+    _send_next_notes_batch(uid)
+
+
+# def _send_next_notes_batch(uid):
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        safe_send(uid, "No notes session.")
+        return
+
+    current = state.get("current_part", 0)
+    total = state.get("total_parts", 1)
+
+    if current >= total:
+        p.pop("_notes_state", None)
+        save_profile(uid, p)
+        safe_send(uid,
+            f"✅ *All {total} parts of {state['chapter']} notes delivered.*\n\n"
+            "_Ask me anything about it, or /notes for another chapter._",
+            parse_mode="Markdown")
+        return
+
+    group = state["groups"][current]
+    part_num = current + 1
+
+    topics_text = ""
+    for st in group:
+        topics_text += f"\n*{st['name']}*\n"
+        for c in st["concepts"]:
+            topics_text += f"  • {c}\n"
+
+    timer_manager.start_generating_timer(bot, uid, f"notes {part_num}/{total}")
+
+    prompt = (
+        f"You are writing SHORT NOTES for a JEE Advanced student.\n\n"
+        f"Chapter: {state['chapter']} ({state['subject']})\n"
+        f"Part {part_num} of {total}.\n\n"
+        f"Subtopics to cover in this part:\n{topics_text}\n\n"
+        "FORMATTING RULES:\n"
+        "- Talk like a friendly senior — warm, encouraging\n"
+        "- Open with a warm line like 'Let\\'s dive into...' or 'Here\\'s the cool part...'\n"
+        "- Use real Unicode math symbols: θ τ π √ ² ³ ⁻ ⁺ ½ → × ·\n"
+        "- For chemistry: proper subscripts — H₂O, CO₂, C₆H₁₂O₆, CH₃COOH\n"
+        "- NEVER use LaTeX\n"
+        "- Bold key terms with *asterisks*\n"
+        "- For each concept: one-line definition + key formula + 1-2 traps\n"
+        "- Include numeric values where relevant\n"
+        "- For EVERY structure (Fischer, Haworth, Chair, benzene, ray diagrams), "
+        "include a fenced SVG block:\n"
+        "```svg\n<svg>...</svg>\n```\n"
+        "The SVG must show the structure accurately.\n"
+        "- Cover EVERY listed subtopic — no skipping\n"
+        "- End with a line saying 'Type /continue for the next part' if not last part."
+    )
+
+    bump_api_calls(uid)
+
+    notes = ai_client.ask_hamilton(state["exam"], prompt)
+    timer_manager.stop_generating_timer(bot, uid)
+
+    if not notes:
+        safe_send(uid, f"⚠️ Could not generate Part {part_num}. Type /continue to retry.")
+        return
+
+    svg, notes_clean = svg_renderer.detect_svg_in_text(notes)
+
+    header = f"📝 *{state['chapter']} — Part {part_num}/{total}*\n\n"
+    final = header + notes_clean
+
+    if part_num < total:
+        final += f"\n\n━━━━━━━━━━━━━━━\n_Type /continue for Part {part_num+1}_"
+    else:
+        final += "\n\n━━━━━━━━━━━━━━━\n✅ _All parts delivered._"
+
+    safe_send(uid, final + _countdown_footer(uid), parse_mode="Markdown")
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name=f"notes_{uid}_{part_num}")
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+    state["current_part"] = part_num
+    state["last_notes"] = notes_clean[:500]
+    state["waiting_continue"] = True
+    p["_notes_state"] = state
+    save_profile(uid, p)
+
+
+@bot.message_handler(commands=['continue'])
+def cmd_continue(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        safe_send(uid, "No notes in progress. Type /notes to start.")
+        return
+    _send_next_notes_batch(uid)
+
+
+# ==========================================================
+# LEADERBOARD
+# ==========================================================
+def _compute_leaderboard(level_filter=None):
+    entries = []
+    if not os.path.exists(PROFILE_DIR):
+        return entries
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        uid_str = fname.replace(".json", "")
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured") or not p.get("name"):
+            continue
+        if not p.get("leaderboard_optin", True):
+            continue
+        if not p.get("exams"):
+            continue
+
+        lvl = (p.get("level") or "").lower()
+        if level_filter == "junior" and lvl != "junior":
+            continue
+        if level_filter == "senior" and lvl not in ("senior", "dropper"):
+            continue
+
+        summary = health.attempts_summary(p)
+        if summary["attempted"] < 20:
+            continue
+
+        r = health.overall_health(p)
+        h = r.get("overall") or 0
+        pct = health.predict_percentile(h)
+        score = 0.4 * h + 0.4 * pct + 0.2 * min(100, summary["attempted"] / 5)
+
+        entries.append({
+            "uid": uid_str,
+            "hku": p.get("hku_id", "—"),
+            "name": p.get("name"),
+            "institute": p.get("institute", "—"),
+            "level": p.get("level", "—"),
+            "health": round(h, 1),
+            "percentile": pct,
+            "attempted": summary["attempted"],
+            "accuracy": summary["accuracy"],
+            "score": round(score, 1),
+        })
+    entries.sort(key=lambda x: x["score"], reverse=True)
+    return entries
+
+
+@bot.message_handler(commands=['leaderboard'])
+def cmd_leaderboard(message):
+    uid = message.chat.id
+    parts = message.text.split()
+    filt = None
+    if len(parts) > 1:
+        a = parts[1].lower()
+        if "jun" in a:
+            filt = "junior"
+        elif "sen" in a or "drop" in a:
+            filt = "senior"
+    entries = _compute_leaderboard(filt)
+    if not entries:
+        bot.reply_to(message, "📭 No qualifying users yet (min 20 attempts).")
+        return
+    title = "🏆 *Leaderboard*"
+    if filt == "junior":
+        title += " — Juniors"
+    elif filt == "senior":
+        title += " — Seniors & Droppers"
+    lines = [title + "\n"]
+    for i, e in enumerate(entries[:20], 1):
+        m = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+        lines.append(f"{m} {e['name']} ({e['hku']})")
+        lines.append(f"   Health {e['health']} · %ile {e['percentile']} · {e['attempted']} attempts")
+    lines.append("")
+    lines.append("Filters: /leaderboard junior · /leaderboard senior")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("top "))
+def cmd_top(message):
+    uid = message.chat.id
+    try:
+        n = int(message.text.split()[1])
+        if n < 1 or n > 20:
+            raise ValueError
+    except Exception:
+        bot.reply_to(message, "Usage: top 3")
+        return
+    entries = _compute_leaderboard()
+    if not entries or n > len(entries):
+        bot.reply_to(message, "No data.")
+        return
+    e = entries[n - 1]
+    safe_send(uid,
+        f"🏆 *Rank #{n}*\n\n"
+        f"👤 {e['name']}\n"
+        f"🆔 {e['hku']}\n"
+        f"🏫 {e['institute']}\n"
+        f"🎓 {e['level']}\n\n"
+        f"📊 Health: {e['health']}\n"
+        f"🎯 %ile: {e['percentile']}\n"
+        f"📝 Attempts: {e['attempted']}\n"
+        f"🎯 Accuracy: {e['accuracy']}%",
+        parse_mode="Markdown")
+
+
+# ==========================================================
+# /find HKU-XXXXXX
+# ==========================================================
+@bot.message_handler(commands=['find'])
+def cmd_find(message):
+    uid = message.chat.id
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /find HKU-000001")
+        return
+    hku = parts[1].strip().upper()
+    found_uid = find_user_by_hku_id(hku)
+    if not found_uid:
+        bot.reply_to(message, f"❌ No user found with ID {hku}.")
+        return
+    try:
+        target = load_profile(int(found_uid))
+    except Exception:
+        target = load_profile(found_uid)
+    if not target or not target.get("secured"):
+        bot.reply_to(message, "❌ User not available.")
+        return
+
+    r = health.overall_health(target)
+    summary = health.attempts_summary(target)
+    pct = health.predict_percentile(r.get("overall"))
+    _, tier = health.estimate_rank(target)
+
+    board = _compute_leaderboard()
+    lb_rank = None
+    for i, e in enumerate(board, 1):
+        if str(e.get("uid")) == str(found_uid):
+            lb_rank = i
+            break
+
+    lines = [
+        f"🔍 *Search Result*\n",
+        f"👤 {target.get('name','—')}",
+        f"🆔 {hku}",
+        f"🏫 {target.get('institute','—')}",
+        f"🎓 {target.get('level','—')}",
+        f"📚 {', '.join(EXAM_NAMES.get(e,e) for e in target.get('exams',[]))}",
+        f"📅 Year: {target.get('target_year','—')}",
+        "",
+        "━━━ Attempts ━━━",
+        f"Total attempted: {summary['attempted']}",
+        f"✅ Correct: {summary['correct']}",
+        f"❌ Wrong: {summary['wrong']}",
+        f"🎯 Accuracy: {summary['accuracy']}%",
+        "",
+        f"📊 Overall Health: {r.get('overall') or 0}/100",
+        f"🎯 Predicted %ile: {pct}",
+        f"🏆 Rank tier: {tier}",
+    ]
+    if lb_rank:
+        lines.append(f"🥇 Leaderboard rank: #{lb_rank}")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+    # 1 SVG only
+    if SVG_ENABLED and r.get("overall") is not None:
+        subj_data = {s: d["health"] for s, d in r["subjects"].items()}
+        svg = svg_templates.combined_progress(r["overall"], subj_data)
+        path = svg_renderer.render_svg(svg, name=f"find_{found_uid}")
+        if path:
+            safe_send_photo(uid, path, caption=f"{target.get('name','')} — Progress")
+            svg_renderer.cleanup_file(path)
+
+
+# ==========================================================
+# ADMIN — /genkey YY COUNT
+# ==========================================================
+@bot.message_handler(commands=['genkey'])
+def cmd_genkey(message):
+    uid = message.chat.id
+    if uid != ADMIN_CHAT_ID:
+        return
+    parts = message.text.strip().split()
+    if len(parts) < 3:
+        bot.reply_to(message, "Usage: /genkey YY COUNT\nExample: /genkey 27 5")
+        return
+    try:
+        yy = parts[1].zfill(2)
+        count = int(parts[2])
+    except Exception:
+        bot.reply_to(message, "Invalid args.")
+        return
+    year_full = 2000 + int(yy)
+    import string
+    keys = load_keys()
+    new_keys = []
+    for _ in range(count):
+        b1 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        b2 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        k = f"HK-{yy}-{b1}-{b2}"
+        keys[k] = {
+            "year": year_full,
+            "bound_to": None,
+            "bound_at": None,
+            "created_at": datetime.now().isoformat(),
+        }
+        new_keys.append(k)
+    with open(KEYS_FILE, "w") as f:
+        json.dump(keys, f, indent=2)
+    safe_send(uid, f"✅ Generated {len(new_keys)} keys for year {year_full}:\n\n" +
+              "\n".join(new_keys))
+
+
+# ==========================================================
+# ADMIN — /shutdown MESSAGE
+# ==========================================================
+@bot.message_handler(commands=['shutdown'])
+def cmd_shutdown(message):
+    uid = message.chat.id
+    if uid != ADMIN_CHAT_ID:
+        return
+    text = message.text.replace("/shutdown", "").strip()
+    if not text:
+        text = ("⚠️ *Server maintenance in progress.*\n\n"
+                "Hamilton will be back soon.\n\n"
+                "Until then — revise a concept, do some bits, practice PYQs.\n"
+                "Don't waste your time.")
+    count = 0
+    if os.path.exists(PROFILE_DIR):
+        for fname in os.listdir(PROFILE_DIR):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                chat_id = int(fname.replace(".json", ""))
+            except Exception:
+                continue
+            try:
+                safe_send(chat_id, text, parse_mode="Markdown")
+                count += 1
+            except Exception:
+                pass
+    bot.reply_to(message, f"📢 Broadcast sent to {count} users. Shutting down...")
+    time.sleep(3)
+    os._exit(0)
+
+
+# ==========================================================
+# FREE-TEXT HANDLER (the main orchestrator)
+# ==========================================================
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def free_text_handler(message):
+    uid = message.chat.id
+    text = (message.text or "").strip()
+
+    # ============================================================
+    # INLINE DISPATCH — handles all admin/sub/lockin codes directly.
+    # Bypasses handler ordering issues.
+    # ============================================================
+    if text:
+        import admin_auth as _aa
+
+        # --- ADMIN entry ---
+        if text == getattr(config, "ADMIN_PANEL_CODE", None):
+            _aa.note_device(uid, "primary")
+            sess = _aa.get_session(uid)
+            if sess and sess.get("role") == "primary":
+                _show_admin_panel = globals().get("_show_admin_panel")
+                if _show_admin_panel:
+                    _show_admin_panel(uid)
+                return
+            locked, mins = _aa.is_locked(uid, "primary")
+            if locked:
+                safe_send(uid, f"🔒 Locked. Try again in {mins} min.", parse_mode="Markdown")
+                return
+            # Set pending state in c30a's _PENDING
+            _set_pending_global = None
+            try:
+                import sys as _sys
+                _c30a = _sys.modules.get("__main__")
+                if hasattr(_c30a, "_set_pending"):
+                    _c30a._set_pending(uid, "primary_priv")
+                else:
+                    _set_pending_global = None
+            except Exception:
+                pass
+            # Fallback: set our own pending dict
+            try:
+                _c30a_mod = __import__("bot_chunks.c30a_admin_auth", fromlist=["_set_pending"])
+                _c30a_mod._set_pending(uid, "primary_priv")
+            except Exception:
+                pass
+            PENDING_AUTH_FLOW[uid] = {"action": "primary_priv", "at": __import__("time").time()}
+            safe_send(uid,
+                f"👑 *Welcome Admin — {config.ADMIN_NAME}*\n\n"
+                "Please enter your *privacy code* to open the admin panel.\n\n"
+                "_Forgot your code? Type_ `/forgot`",
+                parse_mode="Markdown")
+            return
+
+        # --- SUB-ADMIN entry ---
+        if text == getattr(config, "SUB_ADMIN_CODE", None):
+            _aa.note_device(uid, "sub")
+            sess = _aa.get_session(uid)
+            if sess and sess.get("role") == "sub":
+                _show_sub = globals().get("_show_sub_admin_panel")
+                if _show_sub:
+                    _show_sub(uid)
+                return
+            locked, mins = _aa.is_locked(uid, "sub")
+            if locked:
+                safe_send(uid, f"🔒 Locked. Try again in {mins} min.", parse_mode="Markdown")
+                return
+            if _aa.is_sub_admin_registered(uid):
+                try:
+                    _c30a_mod = __import__("bot_chunks.c30a_admin_auth", fromlist=["_set_pending"])
+                    _c30a_mod._set_pending(uid, "sub_priv")
+                except Exception:
+                    pass
+                PENDING_AUTH_FLOW[uid] = {"action": "sub_priv", "at": __import__("time").time()}
+                safe_send(uid, "🛡️ *Welcome back, Sub-Admin*\n\nPlease enter your *privacy code*.",
+                          parse_mode="Markdown")
+            else:
+                from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+                kb = InlineKeyboardMarkup(row_width=2)
+                kb.add(
+                    InlineKeyboardButton("🆕 New Device", callback_data="sub_new"),
+                    InlineKeyboardButton("✅ Already Registered", callback_data="sub_reg"),
+                )
+                bot.send_message(uid,
+                    "🛡️ *Sub-Admin Entry*\n\nHave you registered on this device before?",
+                    reply_markup=kb, parse_mode="Markdown")
+            return
+
+        # --- LOCK-IN GENERATOR code ---
+        if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
+            code, mins = _aa.generate_lockin_code()
+            _aa.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+            safe_send(uid,
+                f"🔑 *Lock-in Generator Access*\n\n"
+                f"Your one-time code:\n\n"
+                f"`{code}`\n\n"
+                f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+                f"Type this code anywhere in the chat to unlock any lockout.",
+                parse_mode="Markdown")
+            return
+
+        # --- Hex lock-in code (8-char) ---
+        if _aa.is_hex_lockin_code(text):
+            ok, entry = _aa.verify_lockin_code(text, requester_uid=uid)
+            if ok:
+                _aa.unlock_primary()
+                _aa.unlock_sub_admin(uid)
+                _aa.clear_user_block(uid)
+                _aa.audit("lockin_used", uid, {})
+                safe_send(uid,
+                    "🔓 *Lock-in accepted.*\n"
+                    "Your lockout and any block have been cleared.\n"
+                    "Type the entry code to try again.",
+                    parse_mode="Markdown")
+            else:
+                safe_send(uid, "❌ Invalid or expired lock-in code.")
+            return
+
+    # ============================================================
+
+    uid = message.chat.id
+    text = (message.text or "").strip()
+    if not text:
+        return
+
+    p = get_or_create_profile(uid)
+
+    # ============================================================
+    # PENDING AUTH FLOW — check if this message is a privacy code
+    # ============================================================
+    _pend = PENDING_AUTH_FLOW.get(uid)
+    if _pend:
+        # 2-minute expiry
+        if __import__("time").time() - _pend["at"] > 120:
+            PENDING_AUTH_FLOW.pop(uid, None)
+        else:
+            act = _pend["action"]
+            import admin_auth as _aa2
+
+            # ---- Primary privacy code ----
+            if act == "primary_priv":
+                locked, mins = _aa2.is_locked(uid, "primary")
+                if locked:
+                    safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    return
+                if _aa2.verify_primary_privacy(text):
+                    _aa2.reset_failed_attempts(uid, "primary")
+                    _aa2.start_session(uid, "primary")
+                    _aa2.audit("primary_login_ok", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    _show_panel = globals().get("_show_admin_panel")
+                    if _show_panel:
+                        _show_panel(uid)
+                    else:
+                        safe_send(uid, "✅ Logged in. Panel loading error — try /admin_lockin.")
+                else:
+                    _aa2.record_failed_attempt(uid, "primary")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid, "❌ Wrong privacy code. Entry cancelled.", parse_mode="Markdown")
+                return
+
+            # ---- Sub-admin privacy code ----
+            if act == "sub_priv":
+                locked, mins = _aa2.is_locked(uid, "sub")
+                if locked:
+                    safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    return
+                if _aa2.verify_sub_admin_privacy(uid, text):
+                    _aa2.reset_failed_attempts(uid, "sub")
+                    _aa2.start_session(uid, "sub")
+                    _aa2.update_sub_admin_last_seen(uid)
+                    _aa2.audit("sub_login_ok", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    _show_sub = globals().get("_show_sub_admin_panel")
+                    if _show_sub:
+                        _show_sub(uid)
+                    else:
+                        _show_panel = globals().get("_show_admin_panel")
+                        if _show_panel:
+                            _show_panel(uid)
+                else:
+                    _aa2.record_failed_attempt(uid, "sub")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid, "❌ Wrong privacy code. Entry cancelled.", parse_mode="Markdown")
+                return
+
+    # ---- Admin unblock code (works even when blocked) ----
+    if text.strip() == ADMIN_UNBLOCK_CODE:
+        p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+        p["behavior"]["strikes"] = 0
+        p["behavior"]["blocked_until"] = None
+        save_profile(uid, p)
+        bot.reply_to(message, "🔓 *Admin unblock successful.* Strikes reset to 0.",
+                     parse_mode="Markdown")
+        return
+
+    # ---- Blocked check ----
+    blocked, time_left = check_blocked(uid)
+    if blocked:
+        safe_send(uid,
+            f"⛔ *Blocked*\n\n"
+            f"Try again in: *{time_left}*\n\n"
+            f"Every message updates the timer.\n"
+            f"WhatsApp *{WHATSAPP_CONTACT}* for help."
+            + _countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # ---- Activation gate ----
+    if not p.get("secured"):
+        if is_valid_key(text):
+            p["secured"] = True
+            p["activation_key"] = text.strip()
+            p["key_expired"] = False
+            p["onboarding_step"] = "name"
+            save_profile(uid, p)
+            # Hamilton story (once)
+            if not p.get("story_shown"):
+                safe_send(uid, _hamilton_story(), parse_mode="Markdown")
+                p["story_shown"] = True
+                save_profile(uid, p)
+                time.sleep(1)
+            bot.reply_to(message, "✅ *Key confirmed. Let's set up your profile.*",
+                         parse_mode="Markdown")
+            _run_onboarding(uid)
+        else:
+            p.setdefault("no_key_attempts", 0)
+            p["no_key_attempts"] += 1
+            save_profile(uid, p)
+            if p["no_key_attempts"] <= 2:
+                safe_send(uid, _no_key_message(short=False), parse_mode="Markdown")
+            else:
+                safe_send(uid, _no_key_message(short=True), parse_mode="Markdown")
+        return
+
+    # ---- Expired key check ----
+    if _check_key_expired(uid, p):
+        return
+
+    # ---- Onboarding gate ----
+    if p.get("onboarding_step") and p["onboarding_step"] != "done":
+        _run_onboarding(uid)
+        return
+
+    if not p.get("exams"):
+        bot.reply_to(message, "🎯 Set exams with /mode first.")
+        return
+
+    # ============================================
+    # SESSION LOCKS (borders)
+    # ============================================
+    sess = exam_engine.get_session(uid)
+
+    # Test mode → hard border
+    if sess and sess.get("mode") == "test":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        paper = sess.get("current_paper", 1)
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="test_stop"))
+        safe_send(uid,
+            f"📝 *Test in progress* — Paper {paper}, Q{q_done}/{len(plan)}\n\n"
+            f"I can't answer questions during the test.\n"
+            f"Finish first, then we can talk.\n\n"
+            f"Use the button below to end early.",
+            parse_mode="Markdown",
+            reply_markup=markup)
+        return
+
+    # Conceptual mode → hard border
+    if sess and sess.get("mode") == "conceptual":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="concept_stop"))
+        safe_send(uid,
+            f"🧠 *Conceptual test in progress* — Q{q_done}/{len(plan)}\n\n"
+            f"I can't answer questions during the test.\n"
+            f"Finish first, then we can talk.",
+            parse_mode="Markdown",
+            reply_markup=markup)
+        return
+
+    # Practice mode → soft border (allow doubt)
+    if p.get("_practice_active") and sess and sess.get("mode") == "practice":
+        # Treat as doubt → answer briefly, then show Continue/Stop
+        exam = sess.get("exam") or health.exam_of(p) or "JEE_MAIN"
+        timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+        try:
+            bump_api_calls(uid)
+            answer = ai_client.ask_hamilton(exam, text)
+        except Exception:
+            answer = None
+        timer_manager.stop_thinking_timer(uid)
+        if not answer:
+            safe_send(uid, "⚠️ Could not answer right now. Retry or Continue.")
+            return
+        svg, clean = svg_renderer.detect_svg_in_text(answer)
+        final = "💬 *Your doubt answered:*\n\n" + clean
+        safe_send(uid, final + _countdown_footer(uid),
+                  parse_mode="Markdown",
+                  reply_markup=_doubt_continue_buttons())
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name=f"doubt_{uid}")
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        return
+
+    # Stuck practice flag without session → clear
+    if p.get("_practice_active") and not sess:
+        p["_practice_active"] = False
+        save_profile(uid, p)
+
+    # Notes session → if user types anything else, treat as doubt about notes
+    if p.get("_notes_state"):
+        low = text.lower().strip()
+        if low in ("continue", "next", "next part", "go on", "cont"):
+            _send_next_notes_batch(uid)
+            return
+        if low in ("stop", "exit", "done", "end"):
+            p.pop("_notes_state", None)
+            save_profile(uid, p)
+            safe_send(uid, "✅ Notes session ended.")
+            return
+        if low in ("explain", "explain more", "detail"):
+            state = p.get("_notes_state", {})
+            last = state.get("last_notes", "")
+            exam = state.get("exam", "JEE_MAIN")
+            if not last:
+                safe_send(uid, "Nothing to explain.")
+                return
+            timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+            prompt = ("The student wants a simpler explanation of these notes:\n\n"
+                      + last + "\n\nRe-explain in simpler friendly language.")
+            bump_api_calls(uid)
+            answer = ai_client.ask_hamilton(exam, prompt)
+            timer_manager.stop_thinking_timer(uid)
+            if answer:
+                svg, clean = svg_renderer.detect_svg_in_text(answer)
+                safe_send(uid, clean + _countdown_footer(uid), parse_mode="Markdown")
+                if svg and SVG_ENABLED:
+                    path = svg_renderer.render_svg(svg, name=f"explain_{uid}")
+                    if path:
+                        safe_send_photo(uid, path)
+                        svg_renderer.cleanup_file(path)
+            return
+
+    # Pending numerical (practice)
+    if uid in PENDING_NUMERICAL:
+        pending = PENDING_NUMERICAL.get(uid)
+        if pending and pending.get("is_test"):
+            _handle_test_numerical(uid, text)
+        else:
+            _handle_numerical_answer(uid, text)
+        return
+
+    # ============================================
+    # NORMAL FREE-TEXT AI
+    # ============================================
+    exam = health.exam_of(p) or "JEE_MAIN"
+
+    # 3-tier classification (merged single-call: classify + answer)
+    bump_api_calls(uid)
+    try:
+        intent, merged_reply = ai_client.classify_message_and_answer(
+            exam, text, selected_exams=p.get("exams") or [exam]
+        )
+    except Exception:
+        intent, merged_reply = "STUDY", None
+
+    if intent == "OFF_TOPIC":
+        blocked_now, mins = register_strike(uid)
+        stats = get_usage_stats(uid)
+        sc  = stats["strikes_current"]
+        st  = stats["strikes_total"]
+        bt  = stats["blocks_total"]
+        remaining = max(0, STRIKE_LIMIT - sc)
+
+        if blocked_now:
+            safe_send(uid,
+                f"⛔ *BLOCK MODE ACTIVATED*\n\n"
+                f"You have been blocked for *{mins} minutes* for repeated misuse.\n\n"
+                f"📊 *Your record so far:*\n"
+                f"  • Strikes this session: *{sc}*\n"
+                f"  • Total strikes ever: *{st}*\n"
+                f"  • Previous blocks: *{bt}*\n\n"
+                f"WhatsApp *{WHATSAPP_CONTACT}* if this was a mistake."
+                + _countdown_footer(uid),
+                parse_mode="Markdown")
+            return
+
+        safe_send(uid,
+            f"⚠️ *STRIKE {sc}/{STRIKE_LIMIT}*\n"
+            f"_({remaining} more strikes until temporary block)_\n\n"
+            "Think about study. Think about studies. Don't simply learn. "
+            "Understand it so you can simply memorize it. Remember that your "
+            "ultimate success requires the right resources. If you are "
+            "distracted or bored, invest your time wisely with Hemanth and "
+            "Krishna Publications. Message 8074231426 to get books that "
+            "clarify your concepts and elevate your ranks immediately.\n\n"
+            "Focus now. Your exam is watching the calendar."
+            + _countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # Thinking timer + AI
+    timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+    try:
+        bump_api_calls(uid)
+        answer = ai_client.ask_hamilton(exam, text)
+    except Exception:
+        answer = None
+    timer_manager.stop_thinking_timer(uid)
+
+    if not answer:
+        mid = timer_manager.get_thinking_msg_id(uid)
+        err = "⚠️ Hamilton is momentarily overloaded. Please try again."
+        if mid:
+            safe_edit(uid, mid, err)
+        else:
+            safe_send(uid, err)
+        return
+
+    svg, clean = svg_renderer.detect_svg_in_text(answer)
+    final = clean + _countdown_footer(uid)
+
+    mid = timer_manager.get_thinking_msg_id(uid)
+    if mid:
+        safe_edit(uid, mid, final, parse_mode="Markdown")
+    else:
+        safe_send(uid, final, parse_mode="Markdown")
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name=f"ai_{uid}")
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+

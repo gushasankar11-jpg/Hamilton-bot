@@ -1,0 +1,72 @@
+{
+  "secured": true,
+  "name": "Gokarnam Muni Krishna Vamsi",
+  "institute": "Viswasai junior College Nellore",
+  "level": "Senior",
+  "exams": [
+    "JEE_ADV",
+    "JEE_MAIN",
+    "EAMCET"
+  ],
+  "priority": "JEE_ADV",
+  "priority_pct": 70,
+  "target_year": 2027,
+  "target_marks": {
+    "JEE_ADV": 150,
+    "JEE_MAIN": 180,
+    "EAMCET": 140
+  },
+  "selected_chapters": {
+    "Maths": [
+      "Differential Equations"
+    ],
+    "Physics": [
+      "Dual Nature of Radiation and Matter"
+    ],
+    "Chemistry": [
+      "Biomolecules"
+    ]
+  },
+  "subtopic_stats": {
+    "Maths::Differential Equations::Differential Equations: Order, Degree, and Formation": {
+      "attempts": 1,
+      "correct": 0,
+      "total_time": 17371,
+      "ideal_time": 60,
+      "avg_time": 17371.0,
+      "health": 4.5,
+      "concepts_seen": {},
+      "last_difficulty": "hard"
+    }
+  },
+  "onboarding_step": "done",
+  "behavior": {
+    "strikes": 1,
+    "blocked_until": null
+  },
+  "leaderboard_optin": true,
+  "story_shown": true,
+  "no_key_attempts": 0,
+  "hku_id": "HKU-000002",
+  "activation_key": null,
+  "key_expired": false,
+  "_practice_active": false,
+  "_practice_exam": "JEE_MAIN",
+  "_practice_level": "hard",
+  "created_at": "2026-10-13T17:04:53.375608",
+  "_marks_queue": [],
+  "_exam_mode_chosen": "practice",
+  "_exam_chosen": "JEE_MAIN",
+  "_practice_chapter_mode": "custom",
+  "_practice_custom_chapters": {
+    "Chemistry": [
+      "Some Basic Concepts and Mole Concept"
+    ]
+  },
+  "last_updated": "2026-10-14T13:59:55.930222",
+  "api_calls_total": 72,
+  "strikes_total": 25,
+  "last_strike_at": "2026-10-16T21:46:16.386198",
+  "blocks_total": 1,
+  "last_block_at": "2026-10-16T21:45:21.961294"
+}

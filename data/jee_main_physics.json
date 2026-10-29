@@ -1,0 +1,2063 @@
+{
+  "Dimensions and Measurement": {
+    "Physical Quantity": {
+      "adv": [
+        "Types of Physical Quantity",
+        "Fundamental and Derived Quantities",
+        "Fundamental and Derived Units",
+        "SI Prefixes"
+      ]
+    },
+    "Dimensions of a Physical Quantity": {
+      "adv": [
+        "Dimensions of Derived Quantities",
+        "Dimensions of Angular Quantities"
+      ]
+    },
+    "Applications of Dimensional Analysis": {
+      "adv": [
+        "Finding the Unit of a Physical Quantity in a Given System of Units",
+        "Converting a Physical Quantity from one System to the other",
+        "Checking the Dimensional Correctness of a Given Physical Relation"
+      ]
+    },
+    "Significant Figures": {
+      "adv": [
+        "Rounding off",
+        "Significant Figures in Calculation",
+        "Order of Magnitude"
+      ]
+    },
+    "Errors of Measurement": {
+      "adv": [
+        "Propagation of Errors"
+      ]
+    }
+  },
+  "Basic Mathematics": {
+    "Elementary Algebra": {
+      "adv": [
+        "Common Formulae",
+        "Polynomial, Linear, and Quadratic Equations",
+        "Binomial Expression and Theorem"
+      ]
+    },
+    "Elementary Trigonometry": {
+      "adv": [
+        "Angle and Systems of Measurement of an Angle",
+        "Four Quadrants and Sign Conventions",
+        "Limits of the Values of Trigonometric Ratios",
+        "Graphs of Sine and Cosine Functions",
+        "Some Important Trigonometric Formulae",
+        "Trigonometric Ratios of General Angles (Reduction Formulae)",
+        "Inverse Trigonometric Functions",
+        "Sine and Cosine Rule for Triangles"
+      ]
+    },
+    "Basic Coordinate Geometry": {
+      "adv": [
+        "Origin",
+        "Axis",
+        "Position of a Point",
+        "Distance Formulae",
+        "Slope of a Line",
+        "Straight Line Equations",
+        "Dependent and Independent Variables",
+        "Plotting the Velocity-time Relation of a Particle Moving with Constant Acceleration",
+        "Parabola: Quadratic Equations"
+      ]
+    },
+    "Function": {
+      "adv": [
+        "Function"
+      ]
+    },
+    "Differentiation": {
+      "adv": [
+        "Limit of a Function",
+        "Differential Coefficient or Derivative of a Function",
+        "Graphical Representation of Derivative of a Function",
+        "Defining Instantaneous Velocity and Instantaneous Acceleration",
+        "Notation",
+        "Properties of Derivatives",
+        "Derivative of a Power Function",
+        "Derivative of Function sin x",
+        "Derivative of Function cos x",
+        "Differentiation of Commonly Used Functions",
+        "Product Rule",
+        "Quotient Rule",
+        "Chain Rule or Outside Inside Rule",
+        "Applications of Derivative in Physics"
+      ]
+    },
+    "Elementary Integration": {
+      "adv": [
+        "Integration as Inverse of Differentiation",
+        "Finding Integration of Constant Function",
+        "Some Important Properties of Integration",
+        "Standard Formulae for Integration",
+        "Definite Integral of a Function",
+        "Algebraic Method to Evaluate Definite Integral",
+        "Properties of Definite Integral",
+        "Rule of Substitution",
+        "Applications of Integration in One-Dimensional Motion",
+        "Derivations of Equations of Motions by Calculus Method"
+      ]
+    }
+  },
+  "Vectors": {
+    "Vectors and Scalars": {
+      "adv": [
+        "Vectors and Scalars",
+        "Representation of Vectors",
+        "Addition of Vectors"
+      ]
+    },
+    "Vector Addition Methods": {
+      "adv": [
+        "Triangle Law of Vector Addition",
+        "Parallelogram Law of Vector Addition",
+        "Subtraction of Vectors",
+        "Polygon Law of Vector Addition",
+        "Properties of Vector Addition",
+        "Vector Addition by Analytical Method"
+      ]
+    },
+    "Unit Vectors": {
+      "adv": [
+        "Unit Vectors"
+      ]
+    },
+    "Components of a Vector": {
+      "adv": [
+        "Finding Rectangular (x and y) Components of a Vector",
+        "Writing Components of a Vector",
+        "Finding a Vector if x and y Components of the Vector are Given",
+        "Finding Rectangular Components of a Vector in Three Dimensions",
+        "Addition of Vectors by Means of Components"
+      ]
+    },
+    "Position Vector": {
+      "adv": [
+        "Position Vector",
+        "Displacement Vector"
+      ]
+    },
+    "Product of Two Vectors": {
+      "adv": [
+        "Scalar Product"
+      ]
+    }
+  },
+  "Motion in a Straight Line": {
+    "Translatory Motion and Frame of Reference": {
+      "adv": [
+        "Translatory Motion",
+        "Frame of Reference",
+        "Rest and Motion",
+        "Distance and Displacement",
+        "A Body can be considered as a Particle",
+        "Expressing Displacement in Case of Motion in One Dimension"
+      ]
+    },
+    "Velocity and Speed": {
+      "adv": [
+        "Instantaneous Speed",
+        "Average Velocity and Average Speed",
+        "Instantaneous Velocity"
+      ]
+    },
+    "Acceleration": {
+      "adv": [
+        "Average Acceleration",
+        "Instantaneous Acceleration"
+      ]
+    },
+    "Motion with Constant Acceleration": {
+      "adv": [
+        "Formulae for Uniformly Accelerated Motion in a Straight Line",
+        "Displacement of a Particle in nth Second of its Motion in Uniformly Accelerated Motion"
+      ]
+    },
+    "Motion Under Gravity": {
+      "adv": [
+        "Motion Under Gravity",
+        "Motion Upon an Inclined Plane",
+        "Motion along other Slope Lines"
+      ]
+    },
+    "Relative Motion in One Dimension": {
+      "adv": [
+        "Velocity of Approach and Separation"
+      ]
+    },
+    "Graphs in Motion in One Dimension": {
+      "adv": [
+        "Motion Diagrams",
+        "Graphical Representation for Motion",
+        "How to Analyze and Draw the Graphs",
+        "Position-time Relation"
+      ]
+    }
+  },
+  "Motion in a Plane": {
+    "Trajectory": {
+      "adv": [
+        "Definition of Trajectory Equation",
+        "Finding Trajectory Equation"
+      ]
+    },
+    "Velocity and Acceleration in Two-dimensional Motion": {
+      "adv": [
+        "Principle of Physical Independence of Motions"
+      ]
+    },
+    "Projectile Motion": {
+      "adv": [
+        "Principle of Physical Independence of Motions in Projectile Cases",
+        "Calculation of Various Parameters in Projectile Motion",
+        "Horizontal Projectile",
+        "Projectile from Height at Certain Angle with Horizontal",
+        "Minimum Velocity and Angle to Hit a Given Point"
+      ]
+    },
+    "Relative Motion in Two Dimensions": {
+      "adv": [
+        "Analysis of Relative Motion in General",
+        "Method to Find Relative Velocity",
+        "Relative Motion in River Flow",
+        "Velocity of Approach"
+      ]
+    }
+  },
+  "Newton's Laws of Motion (Without Friction)": {
+    "Concept of Force": {
+      "adv": [
+        "Classification of Forces",
+        "Central Forces"
+      ]
+    },
+    "Newton's Laws of Motion": {
+      "adv": [
+        "Newton's First Law of Motion",
+        "Inertial and Non-inertial Reference Frames",
+        "Newton's Second Law of Motion",
+        "Principle of Conservation of Linear Momentum",
+        "Impulse",
+        "Newton's Third Law of Motion"
+      ]
+    },
+    "Free-body Diagrams": {
+      "adv": [
+        "Weight",
+        "Normal Force",
+        "Tension",
+        "Friction",
+        "Spring Force"
+      ]
+    },
+    "Equilibrium of a Particle": {
+      "adv": [
+        "Concurrent Forces"
+      ]
+    },
+    "Problem-solving by Applying Newton's Laws": {
+      "adv": [
+        "Problem-solving by Applying Newton's Laws",
+        "Dynamics of Particles: Translational Motion of Accelerated Bodies",
+        "Analysis of Newton's Laws of Motion in Connected Bodies: Problems based on Normal Reaction",
+        "Apparent Weight",
+        "Problems Based on Blocks Connected with Strings",
+        "Problems of String with Mass"
+      ]
+    },
+    "Constraint Relations": {
+      "adv": [
+        "Pulley Constraint"
+      ]
+    },
+    "Spring Force and Combinations of Springs": {
+      "adv": [
+        "Force Constant of Composite Springs"
+      ]
+    }
+  },
+  "Newton's Laws of Motion (With Friction)": {
+    "Friction and Frictional Force": {
+      "adv": [
+        "Static and Kinetic Friction",
+        "Properties of Friction",
+        "Direction of Frictional Force"
+      ]
+    },
+    "Analyzing Friction in Connected Bodies": {
+      "adv": [
+        "Analyzing Friction in case of Connected Bodies"
+      ]
+    },
+    "Angle of Friction": {
+      "adv": [
+        "Pull is Easier than Push",
+        "Minimum Force Required to Move a Block"
+      ]
+    },
+    "Angle of Repose or Angle of Sliding": {
+      "adv": [
+        "Angle of Repose or Angle of Sliding",
+        "Two Blocks in Contact Moving on an Inclined Plane",
+        "Analysis of Frictional Force between two Blocks in Contact: Condition of Existence of Static Friction"
+      ]
+    },
+    "Friction While Walking": {
+      "adv": [
+        "Analyzing Frictional Force While Walking"
+      ]
+    }
+  },
+  "Work, Energy and Power": {
+    "Work Done by a Force": {
+      "adv": [
+        "Work Done by a Force",
+        "Nature of Work Done",
+        "Positive Work (0 ≤ θ < 90)",
+        "Negative Work (90 < θ ≤ 180)",
+        "Zero Work",
+        "Work Depends on the Frame of Reference"
+      ]
+    },
+    "Work Done by a Variable Force": {
+      "adv": [
+        "Work Done by a Variable Force",
+        "Graphical Interpretation of Work Done"
+      ]
+    },
+    "Work Done by Different Forces": {
+      "adv": [
+        "Work Done by Gravity",
+        "Work Done by Static Friction",
+        "Work Done by Kinetic Friction",
+        "Work Done by Spring Force"
+      ]
+    },
+    "Kinetic Energy": {
+      "adv": [
+        "Kinetic Energy",
+        "Work-energy Theorem"
+      ]
+    },
+    "Conservative and Non-conservative Forces": {
+      "adv": [
+        "Conservative Forces",
+        "Non-conservative Forces"
+      ]
+    },
+    "Potential Energy": {
+      "adv": [
+        "Work-potential Energy Theorem",
+        "Gravitational Potential Energy",
+        "Elastic Potential Energy Stored in a Spring",
+        "Change in Potential Energy"
+      ]
+    },
+    "Relationship between Conservative Forces and Potential Energy": {
+      "adv": [
+        "Potential Energy Curve",
+        "Nature of Force"
+      ]
+    },
+    "Mechanical Energy and its Conservation": {
+      "adv": [
+        "Mechanical Energy and its Conservation",
+        "Mechanical Power"
+      ]
+    }
+  },
+  "Circular Motion": {
+    "Kinematics of Circular Motion": {
+      "adv": [
+        "Uniform and Non-uniform Circular Motion",
+        "Angular Position and Displacement",
+        "Angular Velocity",
+        "Frequency and Time Period",
+        "Angular Acceleration",
+        "Motion with Constant Angular Acceleration",
+        "Relation Between Linear and Angular Velocity",
+        "Relative Angular Velocity"
+      ]
+    },
+    "Acceleration in Circular Motion": {
+      "adv": [
+        "Tangential and Radial Acceleration",
+        "Total Acceleration",
+        "Centripetal Acceleration",
+        "Acceleration in Circular Motion: Vector Approach",
+        "Radius of Curvature"
+      ]
+    },
+    "Dynamics of Circular Motion": {
+      "adv": [
+        "Centripetal Force",
+        "Non-uniform Circular Motion"
+      ]
+    },
+    "Conical Pendulum": {
+      "adv": [
+        "Conical Pendulum"
+      ]
+    },
+    "Turning of a Vehicle on Horizontal Circular Road": {
+      "adv": [
+        "Turning of a Vehicle on Horizontal Circular Road",
+        "Banking of Roads",
+        "Centrifugal Force"
+      ]
+    },
+    "Motion in a Vertical Circle": {
+      "adv": [
+        "Condition for Completing Vertical Circle",
+        "Condition for Oscillation: Speed Becomes Zero Before Tension",
+        "Condition for Leaving the Circle: Tension Becomes Zero Before Speed",
+        "Condition for Looping the Loop in Some Other Cases",
+        "Motion of a Particle on a Spherical Surface"
+      ]
+    }
+  },
+  "System of Particles and Centre of Mass": {
+    "Centre of Mass": {
+      "adv": [
+        "Centre of Mass of a System of N Discrete Particles",
+        "Centre of Mass of a Continuous Mass Distribution"
+      ]
+    },
+    "Motion of a System of Particles": {
+      "adv": [
+        "Displacement of Centre of Mass of a System of Particles"
+      ]
+    },
+    "Conservation of Linear Momentum for System of Particles": {
+      "adv": [
+        "Conservation of Linear Momentum for System of Particles"
+      ]
+    },
+    "Gravitational Potential Energy of a System of Particles": {
+      "adv": [
+        "Gravitational Potential Energy of a System of Particles",
+        "Mechanical Energy and Non-conservative Force"
+      ]
+    }
+  },
+  "Impulse and Collision": {
+    "Impulse": {
+      "adv": [
+        "Impulse",
+        "Instantaneous Impulse",
+        "Impulsive Force"
+      ]
+    },
+    "Collision or Impact": {
+      "adv": [
+        "Types of Collision",
+        "Coefficient of Restitution (e)",
+        "General Equation for Direct Impact"
+      ]
+    },
+    "Collision in Two Dimensions (Oblique Impact)": {
+      "adv": [
+        "Oblique Collision of Two Discs",
+        "Collision of Wedge and Particle"
+      ]
+    }
+  },
+  "Rigid Body Dynamics: Part 1": {
+    "Rigid Body": {
+      "adv": [
+        "Rigid Body",
+        "General Rigid Body Motion",
+        "Relative Angular Velocity in Case of a Rigid Body"
+      ]
+    },
+    "Types of Rotational Motion": {
+      "adv": [
+        "Rotation About a Fixed Axis or Pure Rotation",
+        "Combined Rotation and Translation"
+      ]
+    },
+    "Rolling Motion": {
+      "adv": [
+        "Rolling as Pure Rotation About Point of Contact"
+      ]
+    },
+    "Moment of Inertia": {
+      "adv": [
+        "Moment of Inertia of a Rigid Body",
+        "Moment of Inertia of a Straight Rod About an Axis Through its Centre",
+        "Moment of Inertia of a Circular Ring About an Axis Passing Through its Centre and Perpendicular to its Plane",
+        "Moment of Inertia of a Disc",
+        "Moment of Inertia of a Triangular Lamina About its Base",
+        "Moment of Inertia of a Square Lamina About its Diagonal"
+      ]
+    },
+    "Moment of Inertia About a General Axis of Rotation": {
+      "adv": [
+        "Perpendicular Axis Theorem",
+        "Parallel Axis Theorem"
+      ]
+    },
+    "Radius of Gyration": {
+      "adv": [
+        "Radius of Gyration"
+      ]
+    },
+    "Torque": {
+      "adv": [
+        "Calculation of Torque",
+        "Couple"
+      ]
+    },
+    "Equilibrium of Rigid Bodies": {
+      "adv": [
+        "Equilibrium of Rigid Bodies"
+      ]
+    },
+    "Toppling and Shifting of Normal Reaction": {
+      "adv": [
+        "Toppling and Shifting of Normal Reaction"
+      ]
+    },
+    "Newton's Second Law for Rotational Motion": {
+      "adv": [
+        "Newton's Second Law for Rotational Motion"
+      ]
+    }
+  },
+  "Rigid Body Dynamics: Part 2": {
+    "Angular Momentum": {
+      "adv": [
+        "Can a Particle Moving in a Straight Line have Angular Momentum?",
+        "Angular Momentum of a System of Particles",
+        "Angular Momentum of a Rotating Rigid Object About an Axis Passing Through Centre of Mass",
+        "Angular Momentum of a Rotating Rigid Object About a Fixed Axis of Rotation",
+        "Angular Momentum of a Rigid Body Due to Translation and Rotation Both"
+      ]
+    },
+    "Angular Impulse": {
+      "adv": [
+        "Angular Impulse: Impulse-Momentum Theorem",
+        "Law of Conservation of Angular Momentum"
+      ]
+    },
+    "Dynamics of Rolling Motion": {
+      "adv": [
+        "Rolling of an Object Without Net External Force"
+      ]
+    },
+    "Kinetic Energy of Rotating Body About a Fixed Axis": {
+      "adv": [
+        "Kinetic Energy of a Body in Combined Rotation and Translation",
+        "Kinetic Energy of a Body Rolling on a Fixed Surface"
+      ]
+    },
+    "Rotational Work and Power": {
+      "adv": [
+        "Work-Kinetic Energy Theorem for Rotational Motion"
+      ]
+    }
+  },
+  "Gravitation": {
+    "Kepler's Laws of Planetary Motion": {
+      "adv": [
+        "Kepler's First Law: The Law of Orbits",
+        "Kepler's Second Law: The Law of Area",
+        "Kepler's Third Law: The Law of Periods"
+      ]
+    },
+    "Newton's Law of Universal Gravitation": {
+      "adv": [
+        "Gravity and Gravitation",
+        "Gravitation and the Principle of Superposition",
+        "Gravitational Force Between an Extended Object and a Particle"
+      ]
+    },
+    "Gravitational Field": {
+      "adv": [
+        "Intensity of Gravitational Field",
+        "Gravitational Field Intensity Due to Continuous Mass Distribution"
+      ]
+    },
+    "Acceleration Due to Gravity": {
+      "adv": [
+        "Relation Between g and G",
+        "Variation in g with Height",
+        "Variation in g with Depth",
+        "Effect of Shape of Earth",
+        "Effect of Rotation of Earth About its Axis"
+      ]
+    },
+    "Gravitational Potential": {
+      "adv": [
+        "Expression for Gravitational Potential at a Point",
+        "Gravitational Potential at a Point Due to the Earth",
+        "Gravitational Potential Energy",
+        "Expression for Gravitational Potential Energy"
+      ]
+    },
+    "Escape Speed": {
+      "adv": [
+        "Escape Speed"
+      ]
+    },
+    "Artificial Satellite": {
+      "adv": [
+        "Orbital Velocity of Satellite",
+        "Time Period of Satellite",
+        "Height of Satellite",
+        "Angular Momentum of an Orbiting Satellite",
+        "Energy of an Orbiting Satellite",
+        "Binding Energy of a Satellite",
+        "Geostationary and Polar Satellites"
+      ]
+    }
+  },
+  "Fluid Mechanics": {
+    "Hydrostatics": {
+      "adv": [
+        "Pressure",
+        "Some Properties of Pressure",
+        "Pascal's Law",
+        "Measurement of Pressure",
+        "Pressure Diagrams and Force on Boundaries",
+        "Force on Surface Immersed in a Liquid and Centre of Force",
+        "Hydrostatic Forces on Inclined Surfaces Immersed in Liquid"
+      ]
+    },
+    "Archimedes' Principle": {
+      "adv": [
+        "Archimedes' Principle",
+        "Calculation of Buoyant Force",
+        "Floating Body",
+        "Buoyant Force in Accelerating Fluid"
+      ]
+    },
+    "Hydrodynamics": {
+      "adv": [
+        "Types of Flow",
+        "Visualization of Flow"
+      ]
+    },
+    "Principle of Continuity: The Continuity Equation": {
+      "adv": [
+        "Principle of Continuity: The Continuity Equation"
+      ]
+    },
+    "Applications of Principle of Continuity": {
+      "adv": [
+        "Applications of Principle of Continuity"
+      ]
+    },
+    "Energy Associated with a Moving Liquid": {
+      "adv": [
+        "Potential Energy",
+        "Kinetic Energy",
+        "Pressure Energy"
+      ]
+    },
+    "Bernoulli's Equation": {
+      "adv": [
+        "Other Forms of Bernoulli's Equation"
+      ]
+    },
+    "Velocity of Efflux: Torricelli's Theorem": {
+      "adv": [
+        "Velocity of Efflux: Torricelli's Theorem",
+        "Horizontal Range of the Escaping Liquid"
+      ]
+    }
+  },
+  "Elasticity": {
+    "Elasticity": {
+      "adv": [
+        "Elasticity",
+        "Elastic Properties of Solids",
+        "Stress and Strain",
+        "Longitudinal Stress",
+        "Longitudinal Strain",
+        "Bulk or Volume Stress",
+        "Volumetric Strain",
+        "Shear or Tangential Stress",
+        "Shearing Strain",
+        "Poisson's Ratio"
+      ]
+    },
+    "Modulus of Elasticity and Hooke's Law": {
+      "adv": [
+        "Modulus of Elasticity and Hooke's Law",
+        "Young's Modulus: Elasticity in Length",
+        "Breaking of Wire",
+        "Analogy of Rod as a Spring"
+      ]
+    },
+    "Shear Modulus: Elasticity of Shape": {
+      "adv": [
+        "Shear Modulus: Elasticity of Shape"
+      ]
+    },
+    "Bulk Modulus: Volume Elasticity": {
+      "adv": [
+        "Bulk Modulus: Volume Elasticity",
+        "Density of Compressed Liquid",
+        "Fractional Change in the Radius of Sphere"
+      ]
+    },
+    "Elastic Energy": {
+      "adv": [
+        "Work Done in Stretching a Wire",
+        "Elastic Potential Energy Stored in a Stretched Wire or in a Rod"
+      ]
+    },
+    "Elastic Property of Matter": {
+      "adv": [
+        "Elastic Property of Matter"
+      ]
+    },
+    "Stress-Strain Curve": {
+      "adv": [
+        "Important Facts About Elasticity"
+      ]
+    }
+  },
+  "Surface Tension and Viscosity": {
+    "Surface Tension": {
+      "adv": [
+        "Some Observed Phenomena Based on Surface Tension",
+        "Types of Molecular Forces",
+        "Molecular Theory of Surface Tension",
+        "How to Define Surface Tension",
+        "Determination of Coefficient of Surface Tension"
+      ]
+    },
+    "Surface Energy": {
+      "adv": [
+        "Relation Between Surface Energy and Surface Tension",
+        "Shape of Liquid Meniscus",
+        "Surface of a Liquid",
+        "Excess Pressure Inside a Curved Surface",
+        "Excess Pressure Inside a Liquid Drop and a Bubble",
+        "Excess Pressure Inside a Liquid Drop",
+        "Excess Pressure in Soap Bubble",
+        "Relation Between Surface Tension, Radii of Curvature and Excess Pressure on a Curved Surface"
+      ]
+    },
+    "Capillarity": {
+      "adv": [
+        "Angle of Contact",
+        "Rise of a Liquid in a Capillary Tube (Ascent Formula)",
+        "Rise of Liquid in a Capillary Tube of Insufficient Length"
+      ]
+    },
+    "Effect of Detergents on Surface Tension": {
+      "adv": [
+        "Water Molecules and Surface Tension",
+        "Surface Tension and Surfactants"
+      ]
+    },
+    "Viscosity": {
+      "adv": [
+        "How Viscous Force Acts",
+        "Similarities and Differences Between Viscosity and Sliding Friction",
+        "Comparing the Viscosity of Two Fluids",
+        "Units of Coefficient of Viscosity",
+        "Effect of Temperature on Viscosity",
+        "Reynold's Number",
+        "Terminal Velocity"
+      ]
+    }
+  },
+  "Thermometry, Thermal Expansion and Calorimetry": {
+    "Temperature and Zeroth Law of Thermodynamics": {
+      "adv": [
+        "Heat",
+        "Scales of Temperature",
+        "Thermometry"
+      ]
+    },
+    "Thermal Expansion": {
+      "adv": [
+        "Linear Expansion",
+        "Superficial (Areal) Expansion",
+        "Volume or Cubical Expansion",
+        "Thermal Expansion in Liquids",
+        "Variation of Density With Temperature"
+      ]
+    },
+    "Calorimetry": {
+      "adv": [
+        "Units of Heat",
+        "Specific Heat Capacity and Absorption of Heat",
+        "Heat Capacity",
+        "Water Equivalent",
+        "Phase Change and Latent Heat",
+        "Principle of Calorimetry"
+      ]
+    }
+  },
+  "Transmission of Heat": {
+    "Conduction": {
+      "adv": [
+        "Conduction in Metallic Rod",
+        "Law of Thermal Conductivity",
+        "Thermal Resistance",
+        "Electrical Analogy for Thermal Conduction",
+        "Slabs in Series Combination",
+        "Slabs in Parallel Combination"
+      ]
+    },
+    "Radiation": {
+      "adv": [
+        "Important Properties of Radiation",
+        "Interaction of Radiation With Matter",
+        "Emissive Power, Absorptive Power and Emissivity",
+        "Perfect Black Body",
+        "Kirchhoff's Law",
+        "Stefan's Law",
+        "Newton's Law of Cooling",
+        "Wien's Displacement Law"
+      ]
+    }
+  },
+  "Kinetic Theory of Gases": {
+    "Assumption of Ideal Gases (or Kinetic Theory of Gases)": {
+      "adv": [
+        "Avogadro's Number",
+        "Pressure of an Ideal Gas",
+        "Various Types of Speeds of Gas Molecules"
+      ]
+    },
+    "Derivation of Gas Laws from Kinetic Theory of Gases": {
+      "adv": [
+        "Boyle's Law",
+        "Charles's Law",
+        "Gay-Lussac's Law or Pressure Law",
+        "Avogadro's Law"
+      ]
+    },
+    "Equation of State or Ideal Gas Equation": {
+      "adv": [
+        "Equation of State or Ideal Gas Equation"
+      ]
+    },
+    "Relation Between Pressure and Kinetic Energy": {
+      "adv": [
+        "Relation Between Pressure and Kinetic Energy",
+        "Average Translational Kinetic Energy Per Molecule of Gas",
+        "Degree of Freedom",
+        "Law of Equipartition of Energy"
+      ]
+    },
+    "Different Processes in Ideal Gas": {
+      "adv": [
+        "Isochoric Process",
+        "Isobaric Process",
+        "Isothermal Process"
+      ]
+    }
+  },
+  "Thermodynamics": {
+    "Thermodynamic System": {
+      "adv": [
+        "Thermodynamic Process",
+        "Quasi-static Process",
+        "Work Done by an Ideal Gas"
+      ]
+    },
+    "First Law of Thermodynamics": {
+      "adv": [
+        "First Law of Thermodynamics",
+        "Heat in Thermodynamics",
+        "Heat (Q)",
+        "Specific Heat of Gases",
+        "Specific Heat of a Gas at Constant Pressure in Terms of Degree of Freedom"
+      ]
+    },
+    "Gaseous Mixture": {
+      "adv": [
+        "Gaseous Mixture"
+      ]
+    },
+    "Different Processes in First Law of Thermodynamics": {
+      "adv": [
+        "Isobaric Process",
+        "Isochoric or Isometric Process",
+        "Isothermal Process",
+        "Adiabatic Process"
+      ]
+    },
+    "Reversible and Irreversible Processes": {
+      "adv": [
+        "Reversible Process",
+        "Irreversible Process"
+      ]
+    },
+    "Heat Engine and Second Law of Thermodynamics": {
+      "adv": [
+        "Heat Engine",
+        "Second Law of Thermodynamics",
+        "Carnot Engine",
+        "Carnot Cycle",
+        "Refrigerator or Heat Pump"
+      ]
+    }
+  },
+  "Linear and Angular Simple Harmonic Motion": {
+    "Periodic Function": {
+      "adv": [
+        "Periodic Function"
+      ]
+    },
+    "Simple Harmonic Motion": {
+      "adv": [
+        "A Few Terms Related to SHM",
+        "Equation of Simple Harmonic Motion",
+        "Velocity and Acceleration in SHM from Displacement Equation",
+        "Different Graphs in SHM",
+        "Comparing Simple Harmonic Motion With Uniform Circular Motion",
+        "Analysing Displacement of a Particle in SHM",
+        "Analysing Velocity and Acceleration of a Particle in SHM",
+        "Phase and Phase Difference in Two Simple Harmonic Motions",
+        "Relation Between Phase Difference and Time Difference",
+        "Same Phase SHMs",
+        "Opposite Phase SHMs"
+      ]
+    },
+    "Energy of a Body in Simple Harmonic Motion": {
+      "adv": [
+        "Energy of a Body in Simple Harmonic Motion"
+      ]
+    },
+    "Spring-Mass System": {
+      "adv": [
+        "Spring-Mass System Oscillating on a Smooth Horizontal Surface",
+        "Spring-Mass System Oscillating in a Vertical Plane",
+        "Series and Parallel Combination of Springs",
+        "Oscillation of a Block not Connected With a Spring"
+      ]
+    },
+    "Oscillation of a Two-Particle System (Two-Body Problem)": {
+      "adv": [
+        "Oscillation of Simple Pendulum",
+        "Physical Pendulum (Compound Pendulum)",
+        "SHM in Case of Rotation and Rolling"
+      ]
+    },
+    "Motion in SHM": {
+      "adv": [
+        "Superposition of Two SHM's"
+      ]
+    }
+  },
+  "Travelling Waves": {
+    "Wave Motion": {
+      "adv": [
+        "Wave Motion",
+        "Mechanical and Non-mechanical Waves",
+        "Wave Pulse",
+        "Types of Waves",
+        "Transverse Waves",
+        "Longitudinal Waves",
+        "Wave Parameters"
+      ]
+    },
+    "Wave Function": {
+      "adv": [
+        "Wave Function",
+        "Travelling Wave Model",
+        "Sine Wave Travelling on a String",
+        "Speed of Sinusoidal Wave",
+        "General Expression for a Sinusoidal Wave"
+      ]
+    },
+    "Particle Velocity and Acceleration": {
+      "adv": [
+        "Particle Velocity and Acceleration",
+        "Speed of Waves on String",
+        "Transport of Energy in Wave Motion"
+      ]
+    }
+  },
+  "Superposition and Standing Waves": {
+    "Principle of Superposition for Waves": {
+      "adv": [
+        "Principle of Superposition for Waves"
+      ]
+    },
+    "Interference of the Waves": {
+      "adv": [
+        "Mathematical Analysis of Interference",
+        "Constructive and Destructive Interference",
+        "Condition for Sustained Interference"
+      ]
+    },
+    "Reflection and Refraction of Wave": {
+      "adv": [
+        "Reflection of a Wave From a Fixed end and Free End",
+        "Free End Reflection"
+      ]
+    },
+    "Stationary Waves": {
+      "adv": [
+        "Stationary Waves",
+        "Characteristics of Stationary Waves",
+        "Important Observation",
+        "Nodes and Antinodes",
+        "Comparison Between Progressive and Stationary Waves"
+      ]
+    },
+    "Formation of Stationary Waves on Strings": {
+      "adv": [
+        "Formation of Stationary Waves on Strings",
+        "Normal Modes of Vibration of a Stretched String",
+        "String Fixed at One End and Free From Other End",
+        "Resonance in String Oscillation",
+        "Sonometer"
+      ]
+    },
+    "Organ Pipes": {
+      "adv": [
+        "Reflection of Longitudinal Waves",
+        "Longitudinal Stationary Waves",
+        "Normal Modes of Vibration in an Open Organ Pipe",
+        "Normal Modes of Vibration in a Closed Organ Pipe",
+        "Kundt's Tube",
+        "End Correction",
+        "Beats: Interference in Time"
+      ]
+    }
+  },
+  "Sound Waves and Doppler Effect": {
+    "Sound Waves": {
+      "adv": [
+        "Propagation of Sound Wave in a Medium",
+        "Motion of a Longitudinal Pulse in a Medium",
+        "Velocity of Sound/Longitudinal Waves in Solids"
+      ]
+    },
+    "Speed of Sound": {
+      "adv": [
+        "Newton's Formula",
+        "Laplace's Correction"
+      ]
+    },
+    "Factors Affecting Speed of Sound in Gas": {
+      "adv": [
+        "Effect of Pressure",
+        "Effect of Density",
+        "Effect of Temperature",
+        "Effect of Humidity",
+        "Effect of Frequency",
+        "Effect of Wind"
+      ]
+    },
+    "Displacement, Pressure and Density Wave": {
+      "adv": [
+        "Relation Between Displacement Wave and Pressure Wave",
+        "Relation Between Pressure Wave and Density Wave"
+      ]
+    },
+    "Intensity of Periodic Sound Waves": {
+      "adv": [
+        "Intensity of Periodic Sound Waves",
+        "Frequency and Pitch of Sound Waves",
+        "Measurements of Sound Levels"
+      ]
+    },
+    "Doppler Effect": {
+      "adv": [
+        "Stationary Source and Moving Observer",
+        "Moving Source and Stationary Observer",
+        "Source and Observer Both in Motion",
+        "Apparent Frequency and Apparent Wavelength in Different Situations"
+      ]
+    }
+  },
+  "Coulomb's Law and Electric Field": {
+    "Electric Charge and Charging": {
+      "adv": [
+        "Electric Charge",
+        "Conductors and Insulators",
+        "Charging by Friction",
+        "Charging by Conduction",
+        "Charging by Induction"
+      ]
+    },
+    "Coulomb's Law": {
+      "adv": [
+        "Comparison Between Coulomb's Law and Newton's Universal Law of Gravitation",
+        "Principle of Superposition for Electric Forces",
+        "Limitations of Coulomb's Law"
+      ]
+    },
+    "Electric Field": {
+      "adv": [
+        "Electric Field Due to an Isolated Point Charge",
+        "Electric Field Intensity Due to a Group of Charges",
+        "Application of Concept of Symmetry in Analysing Electric Fields"
+      ]
+    },
+    "Electric Field Due to Continuous Distribution of Charge": {
+      "adv": [
+        "Electric Field of Charged Ring",
+        "Electric Field Due to an Infinite Line Charge",
+        "Electric Field of Uniformly Charged Disk",
+        "Electric Field Due to Two Oppositely Charged Sheets"
+      ]
+    },
+    "Lines of Force": {
+      "adv": [
+        "Properties of Electric Lines of Force",
+        "Different Patterns of Electric Field Lines"
+      ]
+    },
+    "Electrostatic Shielding or Screening": {
+      "adv": [
+        "Electrostatic Shielding or Screening"
+      ]
+    },
+    "Motion of a Charged Particle in Electric Field": {
+      "adv": [
+        "Motion of a Charged Particle in Electric Field"
+      ]
+    },
+    "Electric Dipole": {
+      "adv": [
+        "Electric Dipole",
+        "Electric Field Intensity Due to an Electric Dipole at a Point on the Axial Line",
+        "Electric Field Intensity Due to an Electric Dipole at a Point on the Equatorial Line"
+      ]
+    }
+  },
+  "Electric Flux and Gauss's Law": {
+    "Electric Flux": {
+      "adv": [
+        "Electric Flux"
+      ]
+    },
+    "Gauss's Law": {
+      "adv": [
+        "Gauss's Law"
+      ]
+    },
+    "Applications of Gauss's Theorem": {
+      "adv": [
+        "Field of a Charged Conducting Sphere",
+        "Field of a Line Charge",
+        "Field of an Infinite Plane Sheet of Charge",
+        "Field at the Surface of a Conductor",
+        "Field of a Uniformly Charged Sphere",
+        "Field Due to a Long Uniformly Charged Cylinder"
+      ]
+    }
+  },
+  "Electric Potential": {
+    "Work Done to Move a Charge in an Electric Field": {
+      "adv": [
+        "Work Done to Move a Charge in an Electric Field"
+      ]
+    },
+    "Electric Potential": {
+      "adv": [
+        "Potential Due to a Point Charge",
+        "Potential Due to Collection of Charges",
+        "Potential Difference"
+      ]
+    },
+    "Equipotential Surface": {
+      "adv": [
+        "Equipotential Surface"
+      ]
+    },
+    "Electric Potential Energy": {
+      "adv": [
+        "Potential Energy of a System of Three Charges",
+        "Potential Energy of Charges in an External Electric Field"
+      ]
+    },
+    "Electric Potential of Some Continuous Charge Distributions": {
+      "adv": [
+        "Charged Conducting Sphere",
+        "Non-Conducting Solid Sphere",
+        "Uniform Line of Charge",
+        "A Ring of Charge",
+        "Charged Disk"
+      ]
+    },
+    "Potential Energy of an Electric Dipole in a Uniform Electric Field": {
+      "adv": [
+        "Potential Energy of an Electric Dipole in a Uniform Electric Field"
+      ]
+    }
+  },
+  "Capacitor and Capacitance": {
+    "Capacitance": {
+      "adv": [
+        "Isolated Conductor",
+        "Capacitance of a Spherical Conductor or Capacitor",
+        "System of Conductors"
+      ]
+    },
+    "Parallel Plate Capacitor": {
+      "adv": [
+        "Parallel Plate Capacitor"
+      ]
+    },
+    "Spherical Capacitor": {
+      "adv": [
+        "Spherical Capacitor"
+      ]
+    },
+    "Cylindrical Capacitor": {
+      "adv": [
+        "Cylindrical Capacitor"
+      ]
+    },
+    "Energy Stored in a Charged Conductor": {
+      "adv": [
+        "Energy Stored in a Charged Capacitor"
+      ]
+    },
+    "Energy Density in a Parallel Plate Capacitor": {
+      "adv": [
+        "Force Between Plates of a Parallel Plate Capacitor"
+      ]
+    },
+    "Dielectric": {
+      "adv": [
+        "Dielectric",
+        "Capacity of Parallel Plate Capacitor With Dielectric",
+        "Effect of Dielectric on Different Parameters"
+      ]
+    },
+    "Combination of Capacitors": {
+      "adv": [
+        "Capacitors Connected in Series",
+        "Capacitors Connected in Parallel",
+        "Finding Equivalent Capacitance"
+      ]
+    },
+    "Kirchhoff's Rules for Capacitors": {
+      "adv": [
+        "Application of Kirchhoff's Loop Rule in a Circuit"
+      ]
+    }
+  },
+  "Electric Current and Circuits": {
+    "Electric Current": {
+      "adv": [
+        "Electric Current",
+        "Current Density",
+        "Microscopic Model of Current: Drift Velocity",
+        "Relation Between Drift Velocity and Current"
+      ]
+    },
+    "Ohm's Law; Conductivity and Resistivity": {
+      "adv": [
+        "Electric Resistance",
+        "Temperature Dependence of Resistance"
+      ]
+    },
+    "Electromotive Force and Potential Difference": {
+      "adv": [
+        "Analogy Between Water Flow and Electric Current",
+        "Flow of Current in a Circuit"
+      ]
+    },
+    "Combination of Resistances": {
+      "adv": [
+        "Resistances in Series",
+        "Resistances in Parallel",
+        "Calculation of Effective Resistance",
+        "Short and Open Circuits"
+      ]
+    },
+    "Equipotential Points": {
+      "adv": [
+        "Electrical Symmetry"
+      ]
+    },
+    "Kirchhoff's Law for Electrical Networks": {
+      "adv": [
+        "Guidelines for Applying Kirchhoff's Law"
+      ]
+    },
+    "Balanced Wheatstone Bridge": {
+      "adv": [
+        "Balanced Wheatstone Bridge"
+      ]
+    },
+    "Combination of Cells": {
+      "adv": [
+        "Series Grouping",
+        "Parallel Grouping",
+        "Mixed Grouping"
+      ]
+    },
+    "Charging and Discharging of a Capacitor Through a Resistance": {
+      "adv": [
+        "Charging",
+        "Energy Dissipated While Charging",
+        "Discharging of Capacitor",
+        "Energy Dissipated While Discharging",
+        "Charging a Capacitor Having Some Initial Charge"
+      ]
+    }
+  },
+  "Electrical Measuring Instruments": {
+    "Galvanometer": {
+      "adv": [
+        "Important Terminology",
+        "Current Sensitivity",
+        "Relation Between Figure of Merit and Current Sensitivity",
+        "Voltage Sensitivity"
+      ]
+    },
+    "Ammeter": {
+      "adv": [
+        "Resistance of Ammeter",
+        "Error in Measuring Current by an Ammeter"
+      ]
+    },
+    "Voltmeter": {
+      "adv": [
+        "Why do we Need a High Series Resistance?",
+        "Working Principle"
+      ]
+    },
+    "Potentiometer": {
+      "adv": [
+        "Uses of Potentiometer"
+      ]
+    },
+    "Metre Bridge or Slide Wire Bridge": {
+      "adv": [
+        "Working"
+      ]
+    }
+  },
+  "Heating Effects of Current": {
+    "Joule's Heating Effect": {
+      "adv": [
+        "Heat Produced by an Electric Current"
+      ]
+    },
+    "Resistance and Power Rating of a Bulb": {
+      "adv": [
+        "Variation of Power With Applied Voltage",
+        "Effect of Excess Voltage (Over-Voltage Condition)",
+        "Effect of Lower Voltage (Under-Voltage Condition)"
+      ]
+    },
+    "Fuse and its Action": {
+      "adv": [
+        "Fuse and its Action"
+      ]
+    },
+    "Long-Distance Power Transmission": {
+      "adv": [
+        "High Voltage: Used for Power Transmission",
+        "Practical Significance"
+      ]
+    }
+  },
+  "Magnetic Field and Magnetic Forces": {
+    "Force on a Moving Charge in a Magnetic Field": {
+      "adv": [
+        "Units of Magnetic Field Strength",
+        "Right Hand Rules For Determining the Direction of the Magnetic Force Acting on a Moving Charged Particle"
+      ]
+    },
+    "Lorentz Force": {
+      "adv": [
+        "Lorentz Force"
+      ]
+    },
+    "Motion of a Charged Particle in a Magnetic Field": {
+      "adv": [
+        "Charged Particle Entering into Magnetic Field Region From Outside",
+        "Charged Particle is Projected at Some Angle With Magnetic Field (Helical Path)",
+        "Path of a Charged Particle in Both Electric and Magnetic Fields"
+      ]
+    },
+    "Force on a Current-carrying Wire": {
+      "adv": [
+        "Magnetic Force Acting on a Current-carrying Conductor",
+        "Direction of Force on a Current-carrying Wire in Magnetic Field"
+      ]
+    },
+    "Magnetic Dipole and Dipole Moment": {
+      "adv": [
+        "Magnetic Dipole and Dipole Moment",
+        "Torque on a Current-carrying Planar Loop in a Uniform Magnetic Field",
+        "Energy of Dipole",
+        "Work Done in Rotating a Current-carrying Coil in Magnetic Field"
+      ]
+    },
+    "Moving Coil Galvanometer": {
+      "adv": [
+        "Construction",
+        "Theory",
+        "Current Sensitivity of the Galvanometer",
+        "Voltage Sensitivity of the Galvanometer"
+      ]
+    }
+  },
+  "Sources of Magnetic Field": {
+    "Magnetic Field Due to a Current Element: Biot and Savart Law": {
+      "adv": [
+        "Direction of Magnetic Field Due to a Straight Current Carrying Wire",
+        "Magnetic Field Due to a Straight Current Carrying Wire",
+        "Magnetic Field Due to a Straight Current Carrying Wire of Infinite Length",
+        "Magnetic Field Due to a Semi-infinite Straight Current-carrying Wire"
+      ]
+    },
+    "Magnetic Field Due to Conductors With Distributed Current": {
+      "adv": [
+        "Magnetic Field at the Center of a Circular Coil",
+        "Magnetic Field on the Axis of a Circular Current Loop",
+        "Finding Magnetic Field Inside a Long Solenoid"
+      ]
+    },
+    "Force Between Current-carrying Conductors": {
+      "adv": [
+        "Force Between Two Infinite Parallel Current-carrying Wires"
+      ]
+    },
+    "Ampere's Law": {
+      "adv": [
+        "Ampere's Law"
+      ]
+    },
+    "Applications of Ampere's Law": {
+      "adv": [
+        "Magnetic Induction Due to a Solid Cylindrical Wire",
+        "Magnetic Induction Due to a Hollow Cylindrical Wire",
+        "Magnetic Field of a Solenoid",
+        "Magnetic Field of a Toroid"
+      ]
+    }
+  },
+  "Permanent Magnets and Magnetic Properties of Matter": {
+    "Bar Magnet": {
+      "adv": [
+        "Properties of a Bar Magnet",
+        "Strength of a Bar Magnet"
+      ]
+    },
+    "Magnetic Field": {
+      "adv": [
+        "Magnetic Field Lines",
+        "Coulomb's Law of Force Between Two Magnetic Poles",
+        "A Small Current-carrying Coil as a Magnetic Dipole",
+        "Magnetic Field on Axial Line of a Bar Magnet",
+        "Magnetic Field on Equatorial Line of a Bar Magnet",
+        "Magnetic Field at Any Point Due to a Short Magnetic Dipole",
+        "Torque on a Bar Magnet in a Magnetic Field",
+        "Potential Energy of a Bar Magnet Placed in a Magnetic Field"
+      ]
+    },
+    "Earth's Magnetism": {
+      "adv": [
+        "Magnetic Elements of the Earth",
+        "Neutral Point and Magnetic Moment of a Bar Magnet"
+      ]
+    },
+    "Magnetic Properties of Materials": {
+      "adv": [
+        "Intensity of Magnetization",
+        "Intensity",
+        "Total Magnetic Field or Induction",
+        "Magnetic Susceptibility",
+        "Magnetic Permeability",
+        "Magnetic Flux"
+      ]
+    },
+    "Classification of Magnetic Materials": {
+      "adv": [
+        "Diamagnetic Substances",
+        "Paramagnetic Substances",
+        "Ferromagnetic Substances"
+      ]
+    }
+  },
+  "Electromagnetic Induction": {
+    "Magnetic Flux": {
+      "adv": [
+        "Magnetic Flux",
+        "Flux Linkage"
+      ]
+    },
+    "Faraday's Law of Electromagnetic Induction": {
+      "adv": [
+        "Faraday's Law of Electromagnetic Induction",
+        "Induced Charge",
+        "Direction of Induced EMF"
+      ]
+    },
+    "Lenz's Law": {
+      "adv": [
+        "Direction of the Induced Current in a Circuit"
+      ]
+    },
+    "Motional Electromotive Force": {
+      "adv": [
+        "Finding Direction of Induced EMF",
+        "Special Cases"
+      ]
+    },
+    "Conductor Rotating in Magnetic Field": {
+      "adv": [
+        "Electric Field Inside the Rotating Conductor",
+        "A Rotating Conducting Disc"
+      ]
+    },
+    "Induced Electric Field": {
+      "adv": [
+        "Induced EMF in a Stationary Conductor",
+        "Time-varying Magnetic Field",
+        "Electric Field Lines of Forces"
+      ]
+    }
+  },
+  "Inductance": {
+    "Self Inductance": {
+      "adv": [
+        "Direction of the Self-Induced EMF",
+        "Inductance of a Solenoid"
+      ]
+    },
+    "Mutual Inductance": {
+      "adv": [
+        "Total Flux Linked to a Pair of Coils"
+      ]
+    },
+    "Inductor in Electrical Circuits": {
+      "adv": [
+        "Analogy Between Self Induction and Inertia"
+      ]
+    },
+    "Growth and Decay of Current": {
+      "adv": [
+        "Growth of Current",
+        "Decay of Current"
+      ]
+    }
+  },
+  "Alternating Current": {
+    "Alternating Current and Voltage": {
+      "adv": [
+        "Alternating Current and Voltage",
+        "Mean or Average Value of Current",
+        "Root Mean Square (RMS) Value of Current"
+      ]
+    },
+    "AC Circuits": {
+      "adv": [
+        "AC Circuits Containing Resistor Only",
+        "AC Circuits Containing Inductor Only",
+        "AC Circuits Containing Capacitor Only",
+        "AC Circuits Containing Resistor, Inductor, and Capacitor in Series (Series LCR Circuit)"
+      ]
+    },
+    "Resonance in Series LCR Circuit": {
+      "adv": [
+        "Q-Factor (or Quality Factor) of Resonance",
+        "Another Definition of Q-Factor"
+      ]
+    },
+    "Transformers": {
+      "adv": [
+        "Transformers"
+      ]
+    },
+    "Alternating Current (AC) Generator": {
+      "adv": [
+        "Alternating Current (AC) Generator"
+      ]
+    }
+  },
+  "Electromagnetic Waves": {
+    "Maxwell's Insight and Displacement Current": {
+      "adv": [
+        "Displacement Current in a Charging Capacitor"
+      ]
+    },
+    "Energy Density, Intensity and Momentum of Electromagnetic Waves": {
+      "adv": [
+        "Energy Density",
+        "Intensity",
+        "Momentum"
+      ]
+    },
+    "Electromagnetic Wave Spectrum": {
+      "adv": [
+        "Electromagnetic Wave Spectrum"
+      ]
+    }
+  },
+  "Geometrical Optics: Part 1": {
+    "Reflection of Light": {
+      "adv": [
+        "Regular Reflection",
+        "Diffused Reflection",
+        "Laws of Reflection"
+      ]
+    },
+    "Reflection From a Plane Surface: Plane Mirror": {
+      "adv": [
+        "Image Formation From Plane Mirror",
+        "Field of View",
+        "Effect of Rotation of Plane Mirror",
+        "Angle of Deviation",
+        "Images Formed by Two Plane Mirrors",
+        "Relation Between Velocity of Object and Image"
+      ]
+    },
+    "Reflection From a Curved Surface: Spherical Mirrors": {
+      "adv": [
+        "Sign Convention: Cartesian Convention",
+        "Rules For Ray Diagrams",
+        "Mirror Formula",
+        "Magnification",
+        "Image Formation",
+        "Nature of Image Formed by Concave Mirror",
+        "Nature of Image Formed by Convex Mirror",
+        "Object Distance (u) vs Image Distance (v) Graph"
+      ]
+    },
+    "Cutting of a Mirror": {
+      "adv": [
+        "Cutting of a Mirror"
+      ]
+    },
+    "Images Formed by Two Mirrors": {
+      "adv": [
+        "Images Formed by Two Mirrors"
+      ]
+    },
+    "Relation Between Object and Image Velocity": {
+      "adv": [
+        "When Object is Moving Along the Principal Axis",
+        "When Object is Moving Normal to the Principal Axis"
+      ]
+    },
+    "Refraction of Light": {
+      "adv": [
+        "Refractive Index",
+        "Laws of Refraction"
+      ]
+    },
+    "Critical Angle and Total Internal Reflection": {
+      "adv": [
+        "Deviation of Ray Due to Refraction",
+        "Circle of Illuminance",
+        "Optical Fiber"
+      ]
+    },
+    "Refraction at a Plane Surface": {
+      "adv": [
+        "Real Depth and Apparent Depth",
+        "Refraction Through a Slab",
+        "Slab and Mirror Combined",
+        "Measurement of Refractive Index",
+        "By a Concave Mirror",
+        "By a Travelling Microscope"
+      ]
+    },
+    "Prism": {
+      "adv": [
+        "Condition of No Emergence",
+        "Condition of Maximum Deviation",
+        "Condition of Minimum Deviation",
+        "Thin Prism",
+        "Dispersion of Light"
+      ]
+    }
+  },
+  "Geometrical Optics: Part 2": {
+    "Refraction at a Spherical Surface": {
+      "adv": [
+        "Types of Images",
+        "Sign Convention to be Used",
+        "Refraction at a Convex Surface Towards the Rarer Medium",
+        "Power of a Refracting Curved (Spherical) Surface",
+        "Focal Length of a Single Spherical Surface",
+        "Lateral Magnification For Refracting Spherical Surface"
+      ]
+    },
+    "Thin Lens": {
+      "adv": [
+        "Lens Maker's Formula",
+        "Power of a Lens",
+        "Rules For Image Formation",
+        "Linear Magnification Produced by a Lens",
+        "Image Formed by a Convex Lens",
+        "Image Formed by a Concave Lens",
+        "Cutting the Lens"
+      ]
+    },
+    "Lenses With Different Media on Either Side": {
+      "adv": [
+        "Lenses With Different Media on Either Side"
+      ]
+    },
+    "Analysis of a Coaxial Optical System (Multiple Lenses and Mirrors)": {
+      "adv": [
+        "Concept of Image Forming at Object Itself",
+        "Focal Length of Combination of Two Thin Lenses in Contact",
+        "The Equivalent Focal Length of Thin Lenses Separated by a Distance From Each Other"
+      ]
+    },
+    "Relation Between Object and Image Velocity": {
+      "adv": [
+        "Relation Between Object and Image Velocity"
+      ]
+    },
+    "Optical Instruments": {
+      "adv": [
+        "Simple Microscope",
+        "Compound Microscope",
+        "Telescope"
+      ]
+    }
+  },
+  "Wave Optics": {
+    "Huygens' Wave Theory": {
+      "adv": [
+        "Huygens' Wave Theory",
+        "Wavefront",
+        "Types of Wavefronts",
+        "Important Characteristics of a Wavefront",
+        "Behaviour of a Wavefront on Reflection and Refraction",
+        "Geometrical and Optical Paths",
+        "Principle of Linear Superposition"
+      ]
+    },
+    "Interference": {
+      "adv": [
+        "Conditions of Interference",
+        "Coherent Sources"
+      ]
+    },
+    "Interference of Light": {
+      "adv": [
+        "Thin-film Interference"
+      ]
+    },
+    "Young's Double-slit Experiment": {
+      "adv": [
+        "Conditions For Observing Sustained Interference",
+        "Position of Bright and Dark Fringes in YDSE",
+        "Fringe Width",
+        "Angular Fringe Width",
+        "Maximum Order of Interference Fringes",
+        "Intensity Distribution on Screen in YDSE",
+        "Shape of Interference Fringes in YDSE",
+        "Shift of Fringes Due to a Transparent Slab"
+      ]
+    }
+  },
+  "Diffraction and Polarization": {
+    "Diffraction": {
+      "adv": [
+        "Fraunhofer Diffraction at a Single Slit",
+        "Diffraction by a Circular Aperture"
+      ]
+    },
+    "Resolving Power of Optical Instruments": {
+      "adv": [
+        "Rayleigh's Criterion",
+        "Resolving Power of a Telescope",
+        "Resolving Power of a Microscope"
+      ]
+    },
+    "Polarization": {
+      "adv": [
+        "Polarization by Reflection",
+        "Brewster's Law",
+        "Malus's Law",
+        "Polaroids"
+      ]
+    },
+    "Doppler Effect For Light": {
+      "adv": [
+        "Expression For the Apparent Frequency of Light",
+        "Applications of Doppler Effect"
+      ]
+    }
+  },
+  "Dual Nature of Radiation and Matter": {
+    "Photons": {
+      "adv": [
+        "Properties of Photons",
+        "Photon Counts Emitted by a Source Per Second",
+        "Intensity of Radiation"
+      ]
+    },
+    "Electron Emission": {
+      "adv": [
+        "Electron Emission"
+      ]
+    },
+    "Photoelectric Effect": {
+      "adv": [
+        "Study of Photoelectric Effect",
+        "Experimental Study of Photoelectric Effect",
+        "Failure of Wave Theory of Light in Explaining Photoelectric Effect",
+        "Einstein's Explanation of Photoelectric Effect",
+        "Einstein's Photoelectric Equation"
+      ]
+    },
+    "Wave Nature of Matter: de-Broglie Waves or Matter Waves": {
+      "adv": [
+        "de-Broglie Waves Equation",
+        "de-Broglie Wavelength of an Electron",
+        "de-Broglie Wavelength Associated With Different Charged Particles",
+        "Properties of Matter Waves",
+        "Heisenberg's Uncertainty Principle"
+      ]
+    }
+  },
+  "Atomic Physics": {
+    "Rutherford's Atomic Model": {
+      "adv": [
+        "Experimental Arrangement",
+        "Distance of Closest Approach: Estimation of Nuclear Size",
+        "Impact Parameter",
+        "Drawbacks of Rutherford's Atomic Model"
+      ]
+    },
+    "Bohr Model of the Hydrogen Atom": {
+      "adv": [
+        "Radius of Orbit",
+        "Velocity of Electron in nth Orbit",
+        "Orbital Frequency of Electron",
+        "Energy of Electron in nth Orbit",
+        "Frequency of Emitted Radiation",
+        "Bohr Model to Define Hypothetical Atomic Energy Levels"
+      ]
+    },
+    "Atomic Excitation and De-Excitation": {
+      "adv": [
+        "Ionization Energy (IE) and Ionization Potential (IP)",
+        "Excitation Energy and Excitation Potential",
+        "Binding Energy or Separation Energy"
+      ]
+    },
+    "Atomic Spectrum": {
+      "adv": [
+        "Spectral Series of Hydrogen Atom"
+      ]
+    },
+    "X-Rays": {
+      "adv": [
+        "Properties of X-Rays",
+        "X-Ray Spectrum",
+        "Moseley's Law"
+      ]
+    }
+  },
+  "Nuclear Physics": {
+    "Nuclear Structure": {
+      "adv": [
+        "Nuclear Quantities",
+        "Classification of Nuclides: Isotopes, Isobars, and Isotones"
+      ]
+    },
+    "Size of the Nucleus": {
+      "adv": [
+        "Nuclear Density"
+      ]
+    },
+    "Nuclear Stability and Nuclear Force": {
+      "adv": [
+        "Characteristics of Nuclear Forces",
+        "Nuclear Stability and the N/Z Ratio"
+      ]
+    },
+    "Atomic Mass Unit": {
+      "adv": [
+        "Atomic Mass Unit"
+      ]
+    },
+    "Nuclear Binding Energy and Mass Defect": {
+      "adv": [
+        "Nuclear Binding Energy and Mass Defect"
+      ]
+    },
+    "Binding Energy Per Nucleon": {
+      "adv": [
+        "Binding Energy Per Nucleon"
+      ]
+    },
+    "Radioactivity": {
+      "adv": [
+        "Alpha (α) Decay",
+        "Beta (β) Decay",
+        "Gamma (γ) Decay",
+        "Fundamental Laws of Radioactivity",
+        "Measurement of Radioactivity"
+      ]
+    },
+    "The Law of Radioactive Decay": {
+      "adv": [
+        "The Law of Radioactive Decay",
+        "Half-Life and Mean Life",
+        "Population After n Half-Lives",
+        "Mean Life Time (T_m)"
+      ]
+    },
+    "Exothermic and Endothermic Nuclear Reactions": {
+      "adv": [
+        "Exothermic Nuclear Reactions",
+        "Endothermic Nuclear Reactions"
+      ]
+    },
+    "Nuclear Fission": {
+      "adv": [
+        "The Process of Fission"
+      ]
+    },
+    "Nuclear Fission Reactor": {
+      "adv": [
+        "Principle of Working",
+        "Main Components of a Nuclear Fission Reactor"
+      ]
+    },
+    "Nuclear Fusion": {
+      "adv": [
+        "Nuclear Fusion"
+      ]
+    }
+  },
+  "Semiconductor Devices and Digital Circuits": {
+    "Intrinsic Semiconductors": {
+      "adv": [
+        "Intrinsic Semiconductors"
+      ]
+    },
+    "Extrinsic Semiconductors": {
+      "adv": [
+        "n-Type Extrinsic Semiconductor",
+        "p-Type Extrinsic Semiconductor",
+        "Electrical Conductivity of a Semiconductor"
+      ]
+    },
+    "p-n Junction Diode": {
+      "adv": [
+        "Biasing",
+        "Characteristics of a p-n Junction",
+        "Dynamic Resistance of a Diode"
+      ]
+    },
+    "p-n Junction Diode as a Rectifier": {
+      "adv": [
+        "Half-Wave Rectifier",
+        "Full-Wave Rectifier"
+      ]
+    },
+    "Special Purpose Diodes": {
+      "adv": [
+        "Special Purpose Diodes"
+      ]
+    }
+  },
+  "Experimental Skills": {
+    "Vernier Calipers": {
+      "adv": [
+        "Vernier Calipers"
+      ]
+    },
+    "Screw Gauge": {
+      "adv": [
+        "Screw Gauge"
+      ]
+    },
+    "Simple Pendulum": {
+      "adv": [
+        "Simple Pendulum"
+      ]
+    },
+    "Metre Scale": {
+      "adv": [
+        "Metre Scale"
+      ]
+    },
+    "Young's Modulus": {
+      "adv": [
+        "Young's Modulus"
+      ]
+    },
+    "Surface Tension": {
+      "adv": [
+        "Surface Tension"
+      ]
+    },
+    "Coefficient of Viscosity": {
+      "adv": [
+        "Coefficient of Viscosity"
+      ]
+    },
+    "Speed of Sound": {
+      "adv": [
+        "Speed of Sound"
+      ]
+    },
+    "Specific Heat Capacity": {
+      "adv": [
+        "Specific Heat Capacity"
+      ]
+    },
+    "Metre Bridge": {
+      "adv": [
+        "Metre Bridge"
+      ]
+    },
+    "Ohm's Law": {
+      "adv": [
+        "Ohm's Law"
+      ]
+    },
+    "Half Deflection Method": {
+      "adv": [
+        "Half Deflection Method"
+      ]
+    },
+    "Focal Length of Concave Mirror, Convex Mirror and Convex Lens": {
+      "adv": [
+        "Focal Length of Concave Mirror, Convex Mirror and Convex Lens"
+      ]
+    },
+    "Triangular Prism": {
+      "adv": [
+        "Triangular Prism"
+      ]
+    },
+    "Refractive Index of Glass Slab": {
+      "adv": [
+        "Refractive Index of Glass Slab"
+      ]
+    },
+    "p-n Junction Diode": {
+      "adv": [
+        "p-n Junction Diode"
+      ]
+    },
+    "Zener Diode": {
+      "adv": [
+        "Zener Diode"
+      ]
+    },
+    "Identification of Diode, LED, Resistor, Capacitor From a Mixed Collection of Such Items": {
+      "adv": [
+        "Identification of Diode, LED, Resistor, Capacitor From a Mixed Collection of Such Items"
+      ]
+    }
+  }
+}

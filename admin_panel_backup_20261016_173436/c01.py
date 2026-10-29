@@ -1,0 +1,506 @@
+# ==========================================================
+# bot.py — Chunk 1: Foundation
+# ==========================================================
+
+import telebot
+import json
+import os
+import time
+import threading
+import random
+from datetime import datetime, timedelta
+
+import config
+import ai_client
+import health
+import exam_engine
+import svg_renderer
+import svg_templates
+import timer_manager
+
+TELEGRAM_TOKEN = config.TELEGRAM_TOKEN
+ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
+ADMIN_UNBLOCK_CODE = config.ADMIN_UNBLOCK_CODE
+ADMIN_PANEL_CODE = config.ADMIN_PANEL_CODE
+EXAM_OPTIONS = config.EXAM_OPTIONS
+EXAM_NAMES = config.EXAM_NAMES
+EXAM_MD = config.EXAM_MD
+MAX_MARKS = config.MAX_MARKS
+DURATION_MIN = config.DURATION_MIN
+PAPER_PATTERN = config.PAPER_PATTERN
+MAX_FUTURE_YEARS = config.MAX_FUTURE_YEARS
+KEYS_FILE = config.KEYS_FILE
+PROFILE_DIR = config.PROFILE_DIR
+BOOKMARK_DIR = config.BOOKMARK_DIR
+USER_ID_FILE = config.USER_ID_FILE
+TELEGRAM_MSG_LIMIT = config.TELEGRAM_MSG_LIMIT
+STRIKE_LIMIT = config.STRIKE_LIMIT
+BLOCK_MINUTES = config.BLOCK_MINUTES
+SVG_ENABLED = config.SVG_ENABLED
+PRICE_UNIVERSAL = config.PRICE_UNIVERSAL
+PRICING_NOTE = config.PRICING_NOTE
+WHATSAPP_CONTACT = config.WHATSAPP_CONTACT
+
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+os.makedirs(PROFILE_DIR, exist_ok=True)
+os.makedirs(BOOKMARK_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(USER_ID_FILE), exist_ok=True)
+
+PRELOAD_QUEUE = {}
+PENDING_NUMERICAL = {}
+_QGEN_RETRIES = {}
+WAITING_DOUBT = {}
+
+
+# ==========================================================
+# PROFILE I/O
+# ==========================================================
+def load_profile(uid):
+    path = os.path.join(PROFILE_DIR, f"{uid}.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def save_profile(uid, profile):
+    path = os.path.join(PROFILE_DIR, f"{uid}.json")
+    with open(path, "w") as f:
+        json.dump(profile, f, indent=2, ensure_ascii=False)
+
+
+def new_profile():
+    return {
+        "secured": False,
+        "name": None,
+        "institute": None,
+        "level": None,
+        "exams": [],
+        "priority": None,
+        "priority_pct": 100,
+        "target_year": None,
+        "target_marks": {},
+        "selected_chapters": {},
+        "subtopic_stats": {},
+        "onboarding_step": "name",
+        "behavior": {"strikes": 0, "blocked_until": None},
+        "strikes_total": 0,
+        "blocks_total": 0,
+        "api_calls_total": 0,
+        "last_strike_at": None,
+        "last_block_at": None,
+        "leaderboard_optin": True,
+        "story_shown": False,
+        "no_key_attempts": 0,
+        "hku_id": None,
+        "activation_key": None,
+        "key_expired": False,
+        "_practice_active": False,
+        "_practice_exam": None,
+        "_practice_level": "medium",
+        "created_at": datetime.now().isoformat(),
+    }
+
+
+def get_or_create_profile(uid):
+    p = load_profile(uid)
+    if p:
+        return p
+    return new_profile()
+
+
+# ==========================================================
+# USER IDs (HKU-XXXXXX)
+# ==========================================================
+def _load_user_ids():
+    if not os.path.exists(USER_ID_FILE):
+        return {"counter": 0, "mapping": {}}
+    try:
+        with open(USER_ID_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {"counter": 0, "mapping": {}}
+
+
+def _save_user_ids(data):
+    with open(USER_ID_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def allocate_user_id(uid):
+    data = _load_user_ids()
+    uid_str = str(uid)
+    if uid_str in data["mapping"]:
+        return data["mapping"][uid_str]
+    data["counter"] += 1
+    new_id = f"{config.USER_ID_PREFIX}{str(data['counter']).zfill(config.USER_ID_DIGITS)}"
+    data["mapping"][uid_str] = new_id
+    _save_user_ids(data)
+    return new_id
+
+
+def find_user_by_hku_id(hku_id):
+    data = _load_user_ids()
+    for uid_str, stored in data["mapping"].items():
+        if stored == hku_id:
+            return uid_str
+    return None
+
+
+# ==========================================================
+# KEYS
+# ==========================================================
+def load_keys():
+    if not os.path.exists(KEYS_FILE):
+        return {}
+    try:
+        with open(KEYS_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def is_valid_key(key):
+    return key.strip() in load_keys()
+
+
+# ==========================================================
+# STRIKE / BLOCK
+# ==========================================================
+def check_blocked(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, 0
+    bu = p.get("behavior", {}).get("blocked_until")
+    if not bu:
+        return False, 0
+    try:
+        dt = datetime.fromisoformat(bu)
+    except Exception:
+        return False, 0
+    if datetime.now() < dt:
+        secs = int((dt - datetime.now()).total_seconds())
+        return True, f"{secs // 60} min {secs % 60} sec"
+    p["behavior"]["blocked_until"] = None
+    p["behavior"]["strikes"] = 0
+    save_profile(uid, p)
+    return False, 0
+
+
+def register_strike(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, None
+    p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+    p["behavior"]["strikes"] = p["behavior"].get("strikes", 0) + 1
+    p["strikes_total"] = p.get("strikes_total", 0) + 1
+    p["last_strike_at"] = datetime.now().isoformat()
+    if p["behavior"]["strikes"] >= STRIKE_LIMIT:
+        until = datetime.now() + timedelta(minutes=BLOCK_MINUTES)
+        p["behavior"]["blocked_until"] = until.isoformat()
+        p["blocks_total"] = p.get("blocks_total", 0) + 1
+        p["last_block_at"] = datetime.now().isoformat()
+        save_profile(uid, p)
+        return True, BLOCK_MINUTES
+    save_profile(uid, p)
+    return False, None
+
+
+# ==========================================================
+# SAFE SEND / EDIT / PHOTO
+# ==========================================================
+
+# ==========================================================
+# Persistent usage tracking helpers
+# ==========================================================
+def record_strike_total(uid):
+    p = load_profile(uid)
+    if not p: return 0
+    p["strikes_total"] = p.get("strikes_total", 0) + 1
+    p["last_strike_at"] = datetime.now().isoformat()
+    save_profile(uid, p)
+    return p["strikes_total"]
+
+def record_block_total(uid):
+    p = load_profile(uid)
+    if not p: return 0
+    p["blocks_total"] = p.get("blocks_total", 0) + 1
+    p["last_block_at"] = datetime.now().isoformat()
+    save_profile(uid, p)
+    return p["blocks_total"]
+
+DAILY_USAGE_FILE = "daily_usage.json"
+
+def _load_daily():
+    if not os.path.exists(DAILY_USAGE_FILE):
+        return {}
+    try:
+        with open(DAILY_USAGE_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_daily(data):
+    try:
+        with open(DAILY_USAGE_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+def bump_api_calls(uid):
+    p = load_profile(uid)
+    if not p: return
+    p["api_calls_total"] = p.get("api_calls_total", 0) + 1
+    save_profile(uid, p)
+    # ---- daily counter ----
+    today = datetime.now().strftime("%Y-%m-%d")
+    daily = _load_daily()
+    day = daily.setdefault(today, {"api_calls": 0, "users": []})
+    day["api_calls"] = day.get("api_calls", 0) + 1
+    uid_str = str(uid)
+    if uid_str not in day.get("users", []):
+        day.setdefault("users", []).append(uid_str)
+    daily[today] = day
+    _save_daily(daily)
+
+def get_usage_stats(uid):
+    p = load_profile(uid) or {}
+    beh = p.get("behavior", {})
+    return {
+        "strikes_current": beh.get("strikes", 0),
+        "strikes_total": p.get("strikes_total", 0),
+        "blocks_total": p.get("blocks_total", 0),
+        "api_calls_total": p.get("api_calls_total", 0),
+        "blocked_until": beh.get("blocked_until"),
+        "last_strike_at": p.get("last_strike_at"),
+        "last_block_at": p.get("last_block_at"),
+    }
+
+def safe_send(chat_id, text, parse_mode=None, reply_markup=None):
+    if not text:
+        return
+    while len(text) > TELEGRAM_MSG_LIMIT:
+        cut = text.rfind("\n", 0, TELEGRAM_MSG_LIMIT)
+        if cut == -1:
+            cut = TELEGRAM_MSG_LIMIT
+        try:
+            bot.send_message(chat_id, text[:cut], parse_mode=parse_mode)
+        except Exception:
+            bot.send_message(chat_id, text[:cut])
+        text = text[cut:].lstrip()
+        time.sleep(0.3)
+    if text:
+        try:
+            bot.send_message(chat_id, text, parse_mode=parse_mode,
+                             reply_markup=reply_markup)
+        except Exception:
+            bot.send_message(chat_id, text, reply_markup=reply_markup)
+
+
+def safe_edit(chat_id, message_id, text, parse_mode=None, reply_markup=None):
+    try:
+        if len(text) > TELEGRAM_MSG_LIMIT:
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                  text=text[:TELEGRAM_MSG_LIMIT],
+                                  parse_mode=parse_mode)
+            safe_send(chat_id, text[TELEGRAM_MSG_LIMIT:], parse_mode=parse_mode)
+        else:
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                  text=text, parse_mode=parse_mode,
+                                  reply_markup=reply_markup)
+    except Exception:
+        safe_send(chat_id, text, parse_mode=parse_mode, reply_markup=reply_markup)
+
+
+def safe_send_photo(chat_id, photo_path, caption=None):
+    try:
+        with open(photo_path, "rb") as f:
+            bot.send_photo(chat_id, f, caption=caption)
+        return True
+    except Exception:
+        return False
+
+
+# ==========================================================
+# GATING
+# ==========================================================
+def _profile_ready(uid):
+    p = load_profile(uid)
+    if not p:
+        return False, "no_profile"
+    if not p.get("secured"):
+        return False, "not_secured"
+    if not p.get("name") or not p.get("institute") or not p.get("level"):
+        return False, "not_onboarded"
+    if not p.get("exams"):
+        return False, "no_exams"
+    if not p.get("target_year"):
+        return False, "no_year"
+    return True, None
+
+
+def _send_setup_prompt(uid, reason):
+    msgs = {
+        "not_secured": "🔒 Please activate first. Send your key.",
+        "not_onboarded": "⚠️ Finish your profile setup first.\n\nSend /start.",
+        "no_exams": "⚠️ Complete your setup first.\n\nType /mode.",
+        "no_year": "⚠️ Almost there.\n\nType /mode to set your target year.",
+        "no_profile": "⚠️ Welcome!\n\nSend /start to begin.",
+    }
+    safe_send(uid, msgs.get(reason, "⚠️ Complete setup with /mode first."))
+
+
+def _check_key_expired(uid, profile):
+    if not profile.get("secured"):
+        return False
+    used_key = profile.get("activation_key")
+    if not used_key:
+        return False
+    current_keys = load_keys()
+    if used_key not in current_keys:
+        profile["secured"] = False
+        profile["key_expired"] = True
+        save_profile(uid, profile)
+        safe_send(uid,
+            "⌛ Your activation key has expired.\n\n"
+            f"To get a fresh key, WhatsApp *{WHATSAPP_CONTACT}*.\n\n"
+            "Send your new key here to unlock.",
+            parse_mode="Markdown")
+        return True
+    return False
+
+
+# ==========================================================
+# COUNTDOWN
+# ==========================================================
+def _days_until_exam(exam, year):
+    if exam not in EXAM_MD:
+        return None
+    m, d = EXAM_MD[exam]
+    try:
+        exam_date = datetime(year, m, d).date()
+    except Exception:
+        return None
+    today = datetime.now().date()
+    return max(0, (exam_date - today).days)
+
+
+def _countdown_footer(uid):
+    p = load_profile(uid)
+    if not p:
+        return ""
+    exams = p.get("exams", [])
+    priority = p.get("priority")
+    year = p.get("target_year")
+    if not exams or not year:
+        return ""
+    ordered = []
+    if priority and priority in exams:
+        ordered.append(priority)
+    for e in exams:
+        if e not in ordered:
+            ordered.append(e)
+    lines = []
+    for e in ordered:
+        days = _days_until_exam(e, year)
+        if days is None:
+            continue
+        name = EXAM_NAMES.get(e, e)
+        if e == priority:
+            lines.append(f"⏳ *{name} {year}: {days} days left* (primary)")
+        else:
+            lines.append(f"⏳ {name} {year}: {days} days left")
+    if not lines:
+        return ""
+    return "\n\n━━━━━━━━━━━━━━━\n" + "\n".join(lines)
+
+
+# ==========================================================
+# PRICING / NO-KEY / STORY
+# ==========================================================
+def _pricing_message():
+    return (
+        f"💰 *Price: ₹{PRICE_UNIVERSAL}* — any exam, full prep duration.\n\n"
+        f"{PRICING_NOTE}\n"
+        f"WhatsApp: *{WHATSAPP_CONTACT}*"
+    )
+
+
+def _no_key_message(short=False):
+    if short:
+        return (
+            "🔒 Hamilton needs an activation key.\n\n"
+            f"Send your key to begin, or contact *{WHATSAPP_CONTACT}*."
+        )
+    return (
+        "🔒 *Hamilton needs an activation key to begin.*\n\n"
+        f"If you don't have a key yet, message WhatsApp *{WHATSAPP_CONTACT}*.\n\n"
+        + _pricing_message()
+        + "\n\nOnce you receive your key, send it here to unlock Hamilton."
+    )
+
+
+def _hamilton_story():
+    return (
+        "🎬 *Why \"Hamilton\"?*\n\n"
+        "Remember Cars 3? Lightning McQueen needed to beat Jackson Storm. "
+        "He had three months. He had one shot.\n\n"
+        "His trainer wasn't another racer. It was *Hamilton* — an AI that "
+        "studied every lap, every turn, every mistake, and quietly guided "
+        "Lightning back to the top.\n\n"
+        "Just like that, Hamilton was built to do one thing:\n"
+        "*Stand beside you for these final months and pull you to your rank.*\n\n"
+        "Three months. One shot. Let's make it count.\n\n"
+        "— Hamilton Study AI\n"
+        "   by Hemanth and Krishna Publications"
+    )
+
+
+# ==========================================================
+# UTILITY
+# ==========================================================
+def _bump_retry(uid):
+    _QGEN_RETRIES[uid] = _QGEN_RETRIES.get(uid, 0) + 1
+    return _QGEN_RETRIES[uid]
+
+
+def _reset_retry(uid):
+    _QGEN_RETRIES[uid] = 0
+
+
+def difficulty_str(d):
+    if not isinstance(d, str):
+        return str(d)
+    return {"easy": "Easy", "medium": "Medium", "hard": "Hard"}.get(d, d.capitalize())
+
+
+def _is_guess(q, time_taken):
+    if q.get("logic_type") != "calc":
+        return False
+    return time_taken < q.get("min_realistic_sec", 20)
+
+
+print("bot.py Chunk 1 loaded: foundation ready.")
+
+
+# ==========================================================
+# c01 - Sticker helper (Stage 1, flag-gated)
+# ==========================================================
+def try_send_sticker(chat_id, event_key):
+    """Safe sticker sender. Never raises. Type-only logging."""
+    try:
+        if not getattr(config, "ENABLE_STICKERS", False):
+            return
+        sticker_id = getattr(config, "STICKER_IDS", {}).get(event_key)
+        if not sticker_id:
+            return
+        bot.send_sticker(chat_id=chat_id, sticker=sticker_id)
+    except Exception as e:
+        try:
+            print(f"[stickers] fail '{event_key}': {type(e).__name__}")
+        except Exception:
+            pass

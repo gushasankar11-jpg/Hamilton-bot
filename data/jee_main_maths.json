@@ -1,0 +1,1197 @@
+{
+  "Sets and Foundation of Functions": {
+    "Sets": {
+      "adv": [
+        "Definition of Set",
+        "Representation of Sets",
+        "Equal Sets and Equivalent Sets",
+        "Types of Sets",
+        "Operations on Sets",
+        "Intervals on Real Number Line",
+        "Venn Diagrams",
+        "Properties of Cardinal Number of a Set"
+      ]
+    },
+    "Relations and Functions": {
+      "adv": [
+        "Ordered Pairs",
+        "Cartesian Product of Sets",
+        "Relations",
+        "Functions (Mappings)"
+      ]
+    }
+  },
+  "Inequalities, Modulus and Logarithm": {
+    "Inequalities on Real Numbers": {
+      "adv": [
+        "Elementary Properties of Inequalities",
+        "Comparing Squares of Real Numbers",
+        "Comparing Reciprocals of Real Numbers"
+      ]
+    },
+    "Sign Scheme Method": {
+      "adv": [
+        "Sign Scheme (Wavy Curve) Method for Inequalities"
+      ]
+    },
+    "Modulus or Absolute Value": {
+      "adv": [
+        "Modulus of a Real Number",
+        "Modulus of a Function"
+      ]
+    },
+    "Inequalities Involving Modulus": {
+      "adv": [
+        "Standard Inequalities Involving Modulus",
+        "Modulus of Addition and Subtraction of Real Numbers"
+      ]
+    },
+    "Exponential Function": {
+      "adv": [
+        "Exponential Function"
+      ]
+    },
+    "Logarithm": {
+      "adv": [
+        "Logarithm and Logarithmic Function",
+        "Properties of Logarithm - Addition and Subtraction",
+        "Exponents in Argument and Base of a Logarithm",
+        "Reciprocal of Logarithm",
+        "Change of Base of Logarithm",
+        "Function f^(-1)(x) where f(x) is Exponential",
+        "Inequalities Involving Logarithm"
+      ]
+    }
+  },
+  "Theory of Equations": {
+    "Polynomials": {
+      "adv": [
+        "Polynomial Functions and Equations",
+        "Identity Equations and Inequalities"
+      ]
+    },
+    "Equations Reducible to Quadratic Form": {
+      "adv": [
+        "Equations Reducible to Quadratic Form"
+      ]
+    },
+    "Quadratic Equations and Nature of Roots": {
+      "adv": [
+        "Nature of Roots Based on Discriminant",
+        "Range of Functions Involving Quadratic Expressions",
+        "Second-Degree Expressions in Two Variables"
+      ]
+    },
+    "Relations between Roots and Coefficients": {
+      "adv": [
+        "Signs of Roots"
+      ]
+    },
+    "Common Roots": {
+      "adv": [
+        "One Common Root for Two Quadratic Equations",
+        "Two Common Roots for Two Quadratic Equations"
+      ]
+    },
+    "Relations between Roots and Coefficients of Higher-Degree Polynomial Equations": {
+      "adv": [
+        "Relations between Roots and Coefficients of Higher-Degree Polynomial Equations"
+      ]
+    },
+    "Quadratic Functions and Their Graphs": {
+      "adv": [
+        "Quadratic Functions and Their Graphs"
+      ]
+    }
+  },
+  "Complex Numbers": {
+    "Imaginary and Complex Numbers": {
+      "adv": [
+        "Imaginary Numbers",
+        "Complex Numbers",
+        "Equality of Complex Numbers"
+      ]
+    },
+    "Square Root of Complex Number": {
+      "adv": [
+        "Square Root of a Complex Number"
+      ]
+    },
+    "Cube Roots of Unity": {
+      "adv": [
+        "Properties of Cube Roots of Unity",
+        "Cube Roots of any Number",
+        "Some Factorizations Using Cube Roots of Unity"
+      ]
+    },
+    "Polar Form": {
+      "adv": [
+        "Polar Form of a Complex Number",
+        "Argument of a Complex Number in Different Quadrants",
+        "Properties of Modulus and Argument",
+        "Exponential Form of a Complex Number"
+      ]
+    },
+    "Multiplication and Division": {
+      "adv": [
+        "Multiplication and Division of Complex Numbers Using Polar/Exponential Form",
+        "De Moivre's Theorem"
+      ]
+    },
+    "Addition and Subtraction": {
+      "adv": [
+        "Addition and Subtraction of Complex Numbers"
+      ]
+    },
+    "Locus Based on Modulus": {
+      "adv": [
+        "Locus Based on Modulus of Complex Numbers"
+      ]
+    },
+    "Angle Between Rays and Rotation Formula": {
+      "adv": [
+        "Equation of a Ray"
+      ]
+    },
+    "nth Roots of Complex Number": {
+      "adv": [
+        "nth Roots of Unity"
+      ]
+    }
+  },
+  "Progressions and Series": {
+    "Sequence, Progression, Series and Summation": {
+      "adv": [
+        "Sequence, Progression, Series and Summation (Σ)"
+      ]
+    },
+    "Arithmetic Progression": {
+      "adv": [
+        "Properties of A.P.",
+        "Arithmetic Means Between Two Numbers",
+        "Sum of Terms of Arithmetic Progression",
+        "Sum of Arithmetic Means Inserted Between Two Numbers"
+      ]
+    },
+    "Geometric Progression": {
+      "adv": [
+        "Properties of G.P.",
+        "Geometric Means Between Two Numbers",
+        "Sum of First n Terms of G.P.",
+        "Sum of Series when Differences of Consecutive Terms Form a G.P.",
+        "Sum of Infinite G.P."
+      ]
+    },
+    "Arithmetico-Geometric Progression": {
+      "adv": [
+        "Arithmetico-Geometric Progression"
+      ]
+    },
+    "Harmonic Progression": {
+      "adv": [
+        "Harmonic Progression",
+        "Harmonic Means Between Two Numbers"
+      ]
+    },
+    "Properties of Summation Operator": {
+      "adv": [
+        "Sums of Squares and Cubes of First n Natural Numbers",
+        "Sum of Series when Differences of Consecutive Terms Form an A.P.",
+        "Summation Involving More than One Variable"
+      ]
+    },
+    "Sum of a Series Using Cancellation Method": {
+      "adv": [
+        "Sum of a Series Using Cancellation Method"
+      ]
+    },
+    "Exponential and Logarithmic Series": {
+      "adv": [
+        "Exponential Series",
+        "Logarithmic Series"
+      ]
+    },
+    "Inequalities Involving Means": {
+      "adv": [
+        "Ordinary Mean of Two Positive Numbers",
+        "Ordinary Mean of More than Two Positive Numbers",
+        "Weighted Mean"
+      ]
+    }
+  },
+  "Permutations and Combinations": {
+    "Fundamental Principles of Counting": {
+      "adv": [
+        "Multiplication Rule",
+        "Addition Rule"
+      ]
+    },
+    "Factorial Notation": {
+      "adv": [
+        "Factorial Notation",
+        "Exponent of a Prime in a Factorial"
+      ]
+    },
+    "Linear Permutations": {
+      "adv": [
+        "Linear Permutations"
+      ]
+    },
+    "Circular Permutations": {
+      "adv": [
+        "Circular Permutations"
+      ]
+    },
+    "Permutations of Objects when Some are Identical": {
+      "adv": [
+        "Permutations of Objects when Some are Identical"
+      ]
+    },
+    "Combination Formula and Its Properties": {
+      "adv": [
+        "Combination Formula and Its Properties"
+      ]
+    },
+    "Number of Selections": {
+      "adv": [
+        "Number of Selections Using Combination Formula",
+        "All Possible Combinations"
+      ]
+    },
+    "Permutations after Choosing Elements": {
+      "adv": [
+        "Permutations after Choosing Elements"
+      ]
+    },
+    "Selection from Identical Objects": {
+      "adv": [
+        "Number of Divisors Using Prime Factorization"
+      ]
+    },
+    "Division and Distribution of Distinct Objects": {
+      "adv": [
+        "Division of Objects into Groups of Fixed Sizes and Their Distribution",
+        "Distribution of Objects when Group Sizes are Not Fixed"
+      ]
+    },
+    "Distribution of Identical Objects": {
+      "adv": [
+        "Distribution when Any Person Can Receive Any Number of Objects",
+        "Distribution when Each Person Receives at Least One Object"
+      ]
+    }
+  },
+  "Binomial Theorem": {
+    "Binomial and Multinomial Expansions": {
+      "adv": [
+        "Binomial Expansion"
+      ]
+    },
+    "Greatest Term in Binomial Expansion": {
+      "adv": [
+        "Greatest Term in Binomial Expansion"
+      ]
+    },
+    "Finding Specific Coefficients": {
+      "adv": [
+        "Summing Coefficients of x^r in Binomial and Related Series"
+      ]
+    },
+    "Applications of Binomial Theorem": {
+      "adv": [
+        "Applications of Binomial Theorem"
+      ]
+    },
+    "Sum of Coefficients": {
+      "adv": [
+        "Sum of Coefficients in Binomial Expansion"
+      ]
+    },
+    "Series Involving Binomial Coefficients": {
+      "adv": [
+        "Series Involving Binomial Coefficients",
+        "Series of Coefficients Involving Product of Two Expansions"
+      ]
+    }
+  },
+  "Statistics": {
+    "Measures of Central Tendency": {
+      "adv": [
+        "Mean",
+        "Median",
+        "Mode",
+        "Relation Between Mean, Mode and Median"
+      ]
+    },
+    "Measures of Dispersion": {
+      "adv": [
+        "Range",
+        "Deviation",
+        "Variance and Standard Deviation"
+      ]
+    }
+  },
+  "Fundamental Concepts of Probability": {
+    "Probability Definition": {
+      "adv": [
+        "Basic Concepts and Terms Related to Probability",
+        "Mathematical (Classical) Definition of Probability"
+      ]
+    },
+    "Addition Theorem of Probability": {
+      "adv": [
+        "Addition Theorem of Probability",
+        "Inequalities Based on Probability"
+      ]
+    }
+  },
+  "Conditional Probability and Random Variable Distributions": {
+    "Conditional Probability": {
+      "adv": [
+        "Conditional Probability",
+        "Multiplication Theorem of Probability"
+      ]
+    },
+    "Independent Events": {
+      "adv": [
+        "Independent Events"
+      ]
+    },
+    "Partition of Sample Space and Total Probability": {
+      "adv": [
+        "Partition of Sample Space and Total Probability Theorem"
+      ]
+    },
+    "Random Variable and Its Probability Distribution": {
+      "adv": [
+        "Random Variable"
+      ]
+    },
+    "Bernoulli Trials and Binomial Distribution": {
+      "adv": [
+        "Bernoulli Trials"
+      ]
+    }
+  },
+  "Determinants": {
+    "Determinant Definition": {
+      "adv": [
+        "Expansion of a Determinant Using Minors and Cofactors",
+        "Expansion of a Determinant Using Sarrus' Rule",
+        "Area of a Triangle Using Determinant",
+        "Condition for Three Lines to be Concurrent"
+      ]
+    },
+    "Fundamental Properties of a Determinant": {
+      "adv": [
+        "Transposing a Determinant",
+        "Interchanging Rows or Columns",
+        "Multiplying Each Element of a Row or Column by a Constant"
+      ]
+    },
+    "Linear Combinations of Rows and Columns": {
+      "adv": [
+        "Addition and Subtraction of Determinants",
+        "Addition of a Scalar Multiple of One Row (or Column) to Another Row (or Column)",
+        "Frequently Used Determinants"
+      ]
+    },
+    "Product of Determinants": {
+      "adv": [
+        "Product of Determinants"
+      ]
+    },
+    "System of Equations": {
+      "adv": [
+        "Non-Homogeneous System of Equations in Two Variables",
+        "Homogeneous System of Equations in Two Variables",
+        "Non-Homogeneous System of Equations in Three Variables",
+        "Homogeneous System of Equations in Three Variables"
+      ]
+    }
+  },
+  "Matrices": {
+    "Matrix Definition": {
+      "adv": [
+        "Equal Matrices",
+        "Transpose of a Matrix",
+        "Square Matrix",
+        "Trace of a Square Matrix",
+        "Determinant of a Square Matrix"
+      ]
+    },
+    "Elementary Algebraic Operations on Matrices": {
+      "adv": [
+        "Addition and Subtraction of Matrices",
+        "Scalar Multiplication of a Matrix"
+      ]
+    },
+    "Properties of Product of Matrices": {
+      "adv": [
+        "Special Matrices"
+      ]
+    },
+    "Adjoint of a Matrix": {
+      "adv": [
+        "Adjoint of a Matrix",
+        "Property of Adjoint of a Matrix"
+      ]
+    },
+    "Inverse of a Matrix": {
+      "adv": [
+        "Properties of Inverse of a Matrix",
+        "Solution of a System of Equations Using Matrices"
+      ]
+    }
+  },
+  "Trigonometric Functions": {
+    "Trigonometric Ratios of Acute Angles": {
+      "adv": [
+        "Trigonometric Ratios of Acute Angles"
+      ]
+    },
+    "Trigonometric Identities": {
+      "adv": [
+        "Trigonometric Identities"
+      ]
+    },
+    "Measurements of Angles": {
+      "adv": [
+        "Degree Measure",
+        "Radian Measure",
+        "Angle in Trigonometry",
+        "Angle in Standard Position"
+      ]
+    },
+    "Trigonometric Ratios of Any Angle": {
+      "adv": [
+        "Trigonometric Functions on the Unit Circle",
+        "Trigonometric Ratios of Allied Angles"
+      ]
+    }
+  },
+  "Trigonometric Ratios and Transformation Formulas": {
+    "Sine and Cosine of Compound Angles": {
+      "adv": [
+        "Cosine of Compound Angles",
+        "Sine of Compound Angles",
+        "Expression of the Form a cos x + b sin x"
+      ]
+    },
+    "Tangent of Compound Angles": {
+      "adv": [
+        "Tangent of Compound Angles"
+      ]
+    },
+    "Transformation Formulas": {
+      "adv": [
+        "Product-to-sum Formulas",
+        "Sum-to-product Formulas",
+        "Sum of Sines and Cosines of Angles in A.P."
+      ]
+    },
+    "Trigonometric Ratios of Multiple and Submultiple Angles": {
+      "adv": [
+        "Sine and Cosine of Multiple and Submultiple Angles",
+        "Tangent and Cotangent of Multiple and Submultiple Angles"
+      ]
+    },
+    "Applications of Multiple-Angle Formulas": {
+      "adv": [
+        "Some Important Results and Applications"
+      ]
+    }
+  },
+  "Trigonometric Equations": {
+    "Equations Reducible to sin x = k": {
+      "adv": [
+        "Equations with Quadrantal Solutions",
+        "Equations with Non-Quadrantal Solutions",
+        "Equations with General Solutions"
+      ]
+    },
+    "Equations Reducible to cos x = k": {
+      "adv": [
+        "Equations with Quadrantal Solutions",
+        "Equations with Non-Quadrantal Solutions",
+        "Equations with General Solutions"
+      ]
+    },
+    "Equations Reducible to tan x = k": {
+      "adv": [
+        "Equations Reducible to tan x = k"
+      ]
+    },
+    "Equations Reducible to {f(x)}^2 = k": {
+      "adv": [
+        "Equations Reducible to {f(x)}^2 = k"
+      ]
+    },
+    "Equations Reducible to a cos x + b sin x = c": {
+      "adv": [
+        "Equations Reducible to a cos x + b sin x = c"
+      ]
+    }
+  },
+  "Rules and Centres of Triangle": {
+    "Cosine Rule": {
+      "adv": [
+        "Cosine Rule in a Triangle and Its Applications",
+        "Half Angle Formulas in a Triangle"
+      ]
+    },
+    "Circumcentre and Circumcircle": {
+      "adv": [
+        "Circumcentre and Circumcircle of a Triangle"
+      ]
+    },
+    "Incentre and Incircle": {
+      "adv": [
+        "Incentre and Incircle of a Triangle"
+      ]
+    },
+    "Orthocentre and Centroid": {
+      "adv": [
+        "Orthocentre of a Triangle",
+        "Centroid of a Triangle"
+      ]
+    }
+  },
+  "Applications of Trigonometry in Real Life": {
+    "Angle of Elevation and Depression": {
+      "adv": [
+        "Angle of Elevation",
+        "Angle of Depression"
+      ]
+    }
+  },
+  "Inverse Trigonometric Functions": {
+    "Inverse Trigonometric Functions": {
+      "adv": [
+        "Function of the Form f^(-1)(x) for Trigonometric Function"
+      ]
+    },
+    "Relations Among Inverse Trigonometric Functions": {
+      "adv": [
+        "Expressing One Inverse Trigonometric Function in Terms of Another",
+        "Relations for Negative Arguments",
+        "Relations for Reciprocal Arguments",
+        "Simplifying Expression Using Trigonometric Substitution",
+        "Standard Results Obtained by Trigonometric Substitution",
+        "Identities Involving Complementary Angles",
+        "Sum and Difference Formulas in Terms of tan^(-1)"
+      ]
+    }
+  },
+  "Coordinate System": {
+    "Rectangular and Polar Coordinate Systems": {
+      "adv": [
+        "Rectangular Coordinate System",
+        "Polar Coordinate System"
+      ]
+    },
+    "Distance Formula and Area of a Polygon": {
+      "adv": [
+        "Distance Between Two Points"
+      ]
+    },
+    "Section Formula": {
+      "adv": [
+        "Internal Division",
+        "External Division"
+      ]
+    },
+    "Coordinates of Centres of Triangle": {
+      "adv": [
+        "Centroid of a Triangle"
+      ]
+    },
+    "Slope of a Line": {
+      "adv": [
+        "Slope of Line Joining Given Two Points",
+        "Slope of Line Having Given Equation",
+        "Angle Between Two Lines"
+      ]
+    },
+    "Locus and Its Equation": {
+      "adv": [
+        "Finding Equation of Locus by Elimination of Given Variable"
+      ]
+    }
+  },
+  "Straight Line": {
+    "Equation of a Line in Different Forms": {
+      "adv": [
+        "Equation of a Line in Point-Slope Form",
+        "Equation of a Line in Two-Point Form",
+        "Equation of a Line in Intercepts Form",
+        "Equation of a Line in Normal Form"
+      ]
+    },
+    "Equation of a Line in Parametric Form": {
+      "adv": [
+        "Equation of a Line in Parametric Form"
+      ]
+    },
+    "Concurrency of Three Lines and Family of Straight Lines": {
+      "adv": [
+        "Concurrency of Three Lines"
+      ]
+    }
+  },
+  "Pair of Straight Lines": {
+    "General Equation of a Pair of Straight Lines": {
+      "adv": [
+        "Point of Intersection of a Pair of Straight Lines"
+      ]
+    },
+    "Second-Degree Homogeneous Equation and Its Applications": {
+      "adv": [
+        "Angle Between the Pair of Straight Lines",
+        "Angle Bisectors of the Pair of Straight Lines"
+      ]
+    }
+  },
+  "Circle": {
+    "Equation of a Circle in Centre-Radius Form": {
+      "adv": [
+        "Equation of a Circle Touching One or Both Coordinate Axes"
+      ]
+    },
+    "General Form of the Equation of a Circle": {
+      "adv": [
+        "Equation of Circle Circumscribing Triangle and Quadrilateral"
+      ]
+    },
+    "Chord-Angle and Parametric Forms": {
+      "adv": [
+        "Chord-Angle Form of a Circle",
+        "Parametric Form of a Circle"
+      ]
+    },
+    "Properties of a Circle": {
+      "adv": [
+        "Division of the Plane by a Circle",
+        "Tangent, Secant and Midpoint Chord of a Circle"
+      ]
+    },
+    "Tangent and Normal to a Circle": {
+      "adv": [
+        "Tangent to a Circle at a Point on a Circle",
+        "Tangent to a Circle Having a Given Slope",
+        "Tangents to a Circle from an External Point and Chord of Contact",
+        "Normal to a Circle"
+      ]
+    },
+    "Relative Position of Two Circles": {
+      "adv": [
+        "Two Disjoint Circles",
+        "Two Circles Touching Externally",
+        "Two Circles Touching Internally",
+        "Two Intersecting Circles"
+      ]
+    }
+  },
+  "Parabola": {
+    "Introduction to Conic Sections": {
+      "adv": [
+        "Conic Section Defined as a Locus of a Point"
+      ]
+    },
+    "Standard Equations of a Parabola": {
+      "adv": [
+        "Chord Bisected at a Given Point"
+      ]
+    },
+    "Equation of a Parabola Under Given Conditions": {
+      "adv": [
+        "Equation of a Parabola with Axis Parallel to the y-axis",
+        "Equation of a Parabola with Axis Parallel to the x-axis",
+        "Equation of a Parabola with Given Focus and Directrix"
+      ]
+    },
+    "Focal Chord and Its Properties": {
+      "adv": [
+        "Focal Chord and Its Properties"
+      ]
+    },
+    "Tangent to a Parabola": {
+      "adv": [
+        "Line and Parabola",
+        "Tangent at a Given Point or with Given Slope",
+        "Pair of Tangents and Chord of Contact"
+      ]
+    },
+    "Properties of the Tangent": {
+      "adv": [
+        "Properties of the Tangent to a Parabola"
+      ]
+    },
+    "Normal to a Parabola": {
+      "adv": [
+        "Normal at a Given Point or with Given Slope",
+        "Normal(s) from a Given Point"
+      ]
+    }
+  },
+  "Ellipse": {
+    "Ellipse: Definition and Equation": {
+      "adv": [
+        "Standard Equations of an Ellipse",
+        "Equation of an Ellipse with Its Axes Parallel to Coordinate Axes",
+        "Equation of an Ellipse Referred to Two Perpendicular Lines",
+        "Properties of an Ellipse"
+      ]
+    },
+    "Parametric Equations of an Ellipse": {
+      "adv": [
+        "Important Results Using the Parametric Form of the Ellipse"
+      ]
+    },
+    "Tangent to an Ellipse": {
+      "adv": [
+        "Line-Ellipse Intersection and Tangency",
+        "Tangent at a Given Point",
+        "Pair of Tangents and Chord of Contact"
+      ]
+    }
+  },
+  "Hyperbola": {
+    "Hyperbola: Definition and Equation": {
+      "adv": [
+        "Standard Equations of Hyperbola",
+        "Equation of Hyperbola with Its Axes Parallel to Coordinate Axes",
+        "Equation of Hyperbola Referred to Two Perpendicular Lines",
+        "Properties of Hyperbola",
+        "Parametric Equations of Hyperbola"
+      ]
+    },
+    "Tangent to Hyperbola": {
+      "adv": [
+        "Line-Hyperbola Intersection and Tangency",
+        "Tangent at a Given Point",
+        "Pair of Tangents and Chord of Contact"
+      ]
+    }
+  },
+  "Relations and Functions": {
+    "Relations: Definition and Types": {
+      "adv": [
+        "Relation: Definition",
+        "Types of Relations Based on Conditions"
+      ]
+    },
+    "Functions: Definition": {
+      "adv": [
+        "Intervals as Subset of Set R",
+        "Functions (Mappings)",
+        "Algebra of Functions"
+      ]
+    },
+    "Different Types of Mappings": {
+      "adv": [
+        "One-One and Many-One Functions",
+        "Onto and Into Functions"
+      ]
+    },
+    "Algebraic Functions": {
+      "adv": [
+        "Elementary Properties of Inequalities",
+        "Quadratic Function",
+        "Modulus Function"
+      ]
+    },
+    "Trigonometric Functions": {
+      "adv": [
+        "Trigonometric Functions"
+      ]
+    },
+    "Inverse Trigonometric Functions": {
+      "adv": [
+        "Inverse Trigonometric Functions"
+      ]
+    },
+    "Exponential and Logarithmic Functions": {
+      "adv": [
+        "Exponential Functions",
+        "Logarithmic Functions"
+      ]
+    },
+    "Greatest Integer, Fractional Part, Signum, Max-Min": {
+      "adv": [
+        "Greatest Integer Function",
+        "Fractional Part Function",
+        "Signum Function",
+        "Max-Min of Functions"
+      ]
+    },
+    "Even and Odd Functions": {
+      "adv": [
+        "Even Function",
+        "Odd Function",
+        "Even and Odd Extension of a Function"
+      ]
+    },
+    "Transformation of Graphs": {
+      "adv": [
+        "Horizontal and Vertical Transformations of Graphs"
+      ]
+    }
+  },
+  "Limits of Functions": {
+    "Limit: Definition": {
+      "adv": [
+        "Neighbourhood (NBD) of a Real Number",
+        "Understanding Limits",
+        "Algebra of Limits",
+        "Sandwich (Squeeze) Rule"
+      ]
+    },
+    "Limits by Simplifying Indeterminate Forms": {
+      "adv": [
+        "Finding Limits at Infinity"
+      ]
+    },
+    "Trigonometric Limits": {
+      "adv": [
+        "Trigonometric Limits"
+      ]
+    },
+    "Exponential and Logarithmic Limits": {
+      "adv": [
+        "Exponential and Logarithmic Limits"
+      ]
+    },
+    "Limits Using L'Hospital's Rule": {
+      "adv": [
+        "Limits Using L'Hospital's Rule"
+      ]
+    }
+  },
+  "Differentiation": {
+    "Derivative: Definition": {
+      "adv": [
+        "Derivative as Slope of a Tangent to a Curve",
+        "Derivatives of Standard Functions",
+        "Elementary Rules of Differentiation"
+      ]
+    },
+    "Derivatives of Composite, Product and Quotient Functions": {
+      "adv": [
+        "Derivatives of Composite Functions (Chain Rule)",
+        "Product Rule of Differentiation",
+        "Quotient Rule of Differentiation",
+        "Derivative of Determinant"
+      ]
+    },
+    "Higher Order Derivatives": {
+      "adv": [
+        "Higher Order Derivatives"
+      ]
+    },
+    "Differentiation of Parametric and Related Functions": {
+      "adv": [
+        "Differentiation of Parametric Functions",
+        "Differentiation of One Function with Respect to Another Function"
+      ]
+    }
+  },
+  "Continuity and Differentiability of Functions": {
+    "Continuity of Functions": {
+      "adv": [
+        "Continuity on an Interval",
+        "Intermediate Value Theorem (IVT)"
+      ]
+    },
+    "Discontinuity and Its Types": {
+      "adv": [
+        "Removable Discontinuity",
+        "Nonremovable Discontinuity",
+        "Continuity and Discontinuity Under Algebraic Operations",
+        "Continuity and Discontinuity of Composite Functions"
+      ]
+    },
+    "Differentiability of Functions": {
+      "adv": [
+        "Differentiability: Definition"
+      ]
+    },
+    "Differentiability of Functions Involving Modulus and Algebraic Operations": {
+      "adv": [
+        "Differentiability of Functions Involving Modulus Function",
+        "Differentiability of Sum and Difference of Functions",
+        "Differentiability of Product and Quotient Functions"
+      ]
+    }
+  },
+  "Applications of Derivatives": {
+    "Tangents and Normals": {
+      "adv": [
+        "Tangent and Normal at a Point on Curve",
+        "Tangent and Normal with a Given Slope"
+      ]
+    },
+    "Applications of Tangents and Normals": {
+      "adv": [
+        "Angle Between Two Curves"
+      ]
+    },
+    "Derivative as Rate Measure": {
+      "adv": [
+        "Derivative as Rate Measure"
+      ]
+    },
+    "Mean Value Theorems": {
+      "adv": [
+        "Lagrange's Mean Value Theorem"
+      ]
+    }
+  },
+  "Monotonicity and Extrema of Functions": {
+    "Monotonicity of Functions": {
+      "adv": [
+        "Monotonic Functions",
+        "Non-monotonic Functions"
+      ]
+    },
+    "Applications of Monotonicity": {
+      "adv": [
+        "Function Analysis Using Monotonicity",
+        "Inequalities Using Monotonicity"
+      ]
+    },
+    "Extrema of Functions": {
+      "adv": [
+        "Extrema of Differentiable Functions",
+        "Extrema of Non-differentiable Functions"
+      ]
+    },
+    "Applications of Extrema in Optimization and Geometry": {
+      "adv": [
+        "Applications of Extrema in Optimization and Geometry"
+      ]
+    }
+  },
+  "Indefinite Integration": {
+    "Integration as Reverse Process of Differentiation": {
+      "adv": [
+        "Integration as Reverse Process of Differentiation"
+      ]
+    },
+    "Basic Integration Formulas and Rules": {
+      "adv": [
+        "Basic Integration Formulas and Rules"
+      ]
+    },
+    "Integration of Function of the Form f(ax + b)": {
+      "adv": [
+        "Integration of Function of the Form f(ax + b)"
+      ]
+    },
+    "Integration of Function of the Form (f(x))^n f'(x)": {
+      "adv": [
+        "Integration of Function of the Form (f(x))^n f'(x)"
+      ]
+    },
+    "Integration of Function of the Form f'(x)/f(x)": {
+      "adv": [
+        "Integration of Function of the Form f'(x)/f(x)"
+      ]
+    },
+    "General Substitution Methods": {
+      "adv": [
+        "Integration of Function of the Form f(g(x))g'(x)",
+        "Integration by Trigonometric Substitution",
+        "Integration of Reciprocal of Quadratic Expression",
+        "Integration of Linear Expression over Quadratic Expression",
+        "Integration with Quadratic Denominator Having sin x and cos x"
+      ]
+    },
+    "Integration by Partial Fractions": {
+      "adv": [
+        "Integration by Partial Fractions"
+      ]
+    }
+  },
+  "Definite Integration": {
+    "Definite Integration: Concepts and Theorems": {
+      "adv": [
+        "Definite Integration as Limit of Sums (Riemann Sums)",
+        "Fundamental Theorems of Calculus"
+      ]
+    },
+    "Definite Integration by Parts and Reduction Formula": {
+      "adv": [
+        "Definite Integration by Parts",
+        "Reduction Formula"
+      ]
+    },
+    "Reflection Property of Definite Integrals": {
+      "adv": [
+        "Reflection Property of Definite Integrals"
+      ]
+    },
+    "Definite Integration of Even and Odd Functions": {
+      "adv": [
+        "Definite Integration of Even and Odd Functions"
+      ]
+    },
+    "Definite Integration of Periodic Functions": {
+      "adv": [
+        "Definite Integration of Periodic Functions"
+      ]
+    }
+  },
+  "Area Under Curves": {
+    "Area Bounded by Curves with Coordinate Axes": {
+      "adv": [
+        "Area Using Integration with Respect to x",
+        "Area Using Integration with Respect to y"
+      ]
+    },
+    "Area Bounded by Curves": {
+      "adv": [
+        "Area Bounded By Curves"
+      ]
+    }
+  },
+  "Differential Equations": {
+    "Differential Equations: Order, Degree, and Formation": {
+      "adv": [
+        "Order and Degree of a Differential Equation",
+        "Formation of Differential Equations"
+      ]
+    },
+    "Variable Separable Type": {
+      "adv": [
+        "Differential Equations Reducible to Variable Separable Type"
+      ]
+    },
+    "Homogeneous Differential Equations": {
+      "adv": [
+        "Homogeneous Differential Equations"
+      ]
+    },
+    "Linear Differential Equations": {
+      "adv": [
+        "Linear Differential Equations in y",
+        "Linear Differential Equations in x"
+      ]
+    }
+  },
+  "Three-dimensional Geometry": {
+    "Three-dimensional Coordinate System": {
+      "adv": [
+        "Three-dimensional Coordinate System"
+      ]
+    },
+    "Understanding Coordinates of a Point": {
+      "adv": [
+        "Understanding Coordinates of a Point in Three-dimensional System"
+      ]
+    },
+    "Distance Formula": {
+      "adv": [
+        "Distance Formula in 3D"
+      ]
+    },
+    "Section Formula": {
+      "adv": [
+        "Internal Section Formula",
+        "External Section Formula"
+      ]
+    },
+    "Sphere": {
+      "adv": [
+        "Equation of a Sphere in Centre-Radius Form",
+        "General Equation of a Sphere"
+      ]
+    }
+  },
+  "Introduction to Vectors": {
+    "Vectors Definition": {
+      "adv": [
+        "Types of Vectors",
+        "Angle Between Vectors",
+        "Addition of Vectors",
+        "Section Formula"
+      ]
+    },
+    "Vectors in Components Form": {
+      "adv": [
+        "Direction Cosines of a Vector",
+        "Angle Between Two Vectors",
+        "Vector Addition in Component Form",
+        "Bisector of Angle Between Two Vectors"
+      ]
+    }
+  },
+  "Products of Vectors": {
+    "Dot (Scalar) Product of Vectors": {
+      "adv": [
+        "Definition of Dot Product",
+        "Properties of Dot Product",
+        "Component of One Vector in the Direction of Another",
+        "Square of the Sum of Vectors",
+        "Applications of Dot Product in Geometry"
+      ]
+    },
+    "Cross (Vector) Product of Vectors": {
+      "adv": [
+        "Definition of Cross Product",
+        "Properties of Cross Product",
+        "Solving Vector Equations Using Cross Product",
+        "Applications of Cross Product in Geometry",
+        "Area of a Triangle and a Quadrilateral Using Cross Product"
+      ]
+    },
+    "Scalar Triple Product": {
+      "adv": [
+        "Definition of the Scalar Triple Product",
+        "Properties of Scalar Triple Product",
+        "Volume of Parallelepiped"
+      ]
+    }
+  },
+  "Line and Plane": {
+    "Line in Space": {
+      "adv": [
+        "Direction Ratios of a Line",
+        "Equation of a Line Through a Given Point Having a Given Direction",
+        "Equation of a Line Passing Through Two Points"
+      ]
+    },
+    "Angle Between Lines and Distance of a Point From a Line": {
+      "adv": [
+        "Angle Between Lines",
+        "Distance of a Point From a Line"
+      ]
+    },
+    "Coplanar and Non-Coplanar Lines": {
+      "adv": [
+        "Coplanar Lines"
+      ]
+    },
+    "Plane in Space": {
+      "adv": [
+        "Equation of Plane in Point-Normal Form",
+        "Equation of Plane Passing Through Three Given Points",
+        "Equation of Plane in Intercepts Form",
+        "Equation of Plane in Normal Form"
+      ]
+    },
+    "Distance of a Point From a Plane": {
+      "adv": [
+        "Distance Between Two Parallel Planes"
+      ]
+    },
+    "Line and Plane": {
+      "adv": [
+        "Line Lies in the Plane",
+        "Line Parallel to the Plane",
+        "Line Perpendicular to the Plane",
+        "Line Intersecting the Plane Obliquely"
+      ]
+    }
+  }
+}

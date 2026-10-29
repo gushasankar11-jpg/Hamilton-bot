@@ -1,0 +1,193 @@
+# ==========================================================
+# c06a_test_advanced.py — Numerical, Multi-Correct, Matching
+# Handles inputs during test sessions.
+# ==========================================================
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import json
+
+def _check_numerical_answer(val_str, correct_val, exam):
+    try:
+        # Handle fraction inputs like "1/2"
+        if '/' in val_str:
+            num, den = val_str.split('/')
+            val = float(num) / float(den)
+        else:
+            val = float(val_str)
+            
+        if correct_val is None:
+            return False
+            
+        # JEE Adv = 2 decimals, Mains/others = integer rounding
+        if exam == "JEE_ADV":
+            return round(val, 2) == round(float(correct_val), 2)
+        else:
+            return round(val) == round(float(correct_val))
+    except Exception:
+        return False
+
+
+# ==========================================================
+# MATCHING QUESTION BUILDER
+# ==========================================================
+def send_matching_question(uid, q, q_id, exam):
+    """Sends a matching question with an interactive keyboard."""
+    meta = q.get("_meta", {})
+    # Format matching pairs (A-P, B-Q, etc.)
+    col_a = q.get("match_a", [])
+    col_b = q.get("match_b", [])
+    
+    # If AI didn't provide match_a/match_b, try to parse from question text or fallback
+    if not col_a or not col_b:
+        col_a = q.get("options", [])[:4]
+        col_b = ["P", "Q", "R", "S"]
+        
+    text = (
+        f"🧩 *Matching Question*\n"
+        f"📖 {meta.get('chapter')} → {meta.get('subtopic')}\n"
+        f"⏱️ Ideal: {q.get('ideal_time_sec', 120)}s\n\n"
+        f"*Column I:*\n"
+    )
+    for i, item in enumerate(col_a):
+        text += f"{chr(65+i)}. {item}\n"
+        
+    text += "\n*Column II:*\n"
+    for i, item in enumerate(col_b):
+        text += f"{chr(80+i)}. {item}\n"
+        
+    text += "\n👇 *Tap to match A → P, B → Q, etc.*"
+    
+    # State: { "A": None, "B": None, ... }
+    match_state = {chr(65+i): None for i in range(len(col_a))}
+    bot._match_sessions[uid] = {"q": q, "q_id": q_id, "state": match_state, "exam": exam}
+    
+    kb = _build_match_kb(match_state, len(col_a), len(col_b))
+    safe_send(uid, text, parse_mode="Markdown", reply_markup=kb)
+
+
+def _build_match_kb(state, num_a, num_b):
+    kb = InlineKeyboardMarkup(row_width=4)
+    # Draw rows for A, B, C, D
+    for i in range(num_a):
+        row = []
+        letter_a = chr(65 + i)
+        for j in range(num_b):
+            letter_b = chr(80 + j)
+            is_selected = (state.get(letter_a) == letter_b)
+            btn_text = f"{letter_a}→{letter_b}" if is_selected else f"{letter_a} {letter_b}"
+            cb_data = f"match_set:{letter_a}:{letter_b}"
+            row.append(InlineKeyboardButton(btn_text, callback_data=cb_data))
+        kb.row(*row)
+    
+    # Add Submit button
+    kb.add(InlineKeyboardButton("✅ Submit Match", callback_data="match_submit"))
+    return kb
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("match_set:"))
+def _cb_match_set(call):
+    uid = call.from_user.id
+    sess = bot._match_sessions.get(uid)
+    if not sess:
+        bot.answer_callback_query(call.id, "Session expired")
+        return
+        
+    _, a, b = call.data.split(":")
+    sess["state"][a] = b  # toggle logic — if same, clear
+    if sess["state"][a] == b and sess["state"].get(a) == b:
+        sess["state"][a] = None
+    
+    num_a = len([k for k in sess["state"].keys()])
+    num_b = len(sess["q"].get("match_b", [])) or 4
+    
+    try:
+        bot.edit_message_reply_markup(
+            uid, call.message.message_id, 
+            reply_markup=_build_match_kb(sess["state"], num_a, num_b)
+        )
+    except Exception:
+        pass
+    bot.answer_callback_query(call.id, f"Set {a} to {b}")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "match_submit")
+def _cb_match_submit(call):
+    uid = call.from_user.id
+    sess = bot._match_sessions.pop(uid, None)
+    if not sess:
+        return
+        
+    # Correct answers format: {"A": "P", "B": "R", ...}
+    correct_map = sess["q"].get("correct_match", {})
+    score = 0
+    total = len(sess["state"])
+    for a, b in sess["state"].items():
+        if correct_map.get(a) == b:
+            score += 1
+            
+    is_correct = (score == total)
+    try:
+        bot.edit_message_text(
+            f"🧩 *Match Submitted*\n\nYou got *{score}/{total}* pairs correct.",
+            chat_id=uid, message_id=call.message.message_id
+        )
+    except Exception:
+        pass
+        
+    # Log to test engine
+    q_id = sess["q_id"]
+    if hasattr(exam_engine, "record_test_answer"):
+        exam_engine.record_test_answer(uid, q_id, "match", is_correct)
+    else:
+        safe_send(uid, "✅ Answer recorded.")
+
+
+# ==========================================================
+# NUMERICAL HANDLER (Invoked by test engine when numerical q sent)
+# ==========================================================
+def handle_test_numerical(uid, text):
+    """Called from c09 free_text if PENDING_NUMERICAL with is_test=True"""
+    pending = globals().get("PENDING_NUMERICAL", {}).get(uid)
+    if not pending:
+        return False
+        
+    q = pending["q"]
+    exam = load_profile(uid).get("_test_exam", "JEE_MAIN")
+    
+    correct_val = q.get("correct_value")
+    is_correct = _check_numerical_answer(text, correct_val, exam)
+    
+    # Rounding info for JEE Adv
+    if exam == "JEE_ADV":
+        ans_msg = f"Answer: {round(float(correct_val), 2)}"
+    else:
+        ans_msg = f"Answer: {round(float(correct_val))}"
+        
+    safe_send(uid, f"📝 Recorded: *{text}* ({ans_msg})", parse_mode="Markdown")
+    globals().get("PENDING_NUMERICAL", {}).pop(uid, None)
+    
+    # Advance test
+    sess = exam_engine.get_session(uid)
+    if sess:
+        sess["plan_index"] += 1
+        
+    _send_next_test_q(uid)
+    return True
+
+print("c06a_test_advanced: loaded.")
+
+
+@bot.message_handler(commands=['test_matching'])
+def cmd_test_matching(message):
+    uid = message.chat.id
+    # Dummy matching question
+    q = {
+        "question": "Match the following:",
+        "match_a": ["Newton's 2nd Law", "Kirchhoff's Law", "Faraday's Law"],
+        "match_b": ["F = ma", "Conservation of charge", "EMF induction"],
+        "correct_match": {"A": "P", "B": "Q", "C": "R"},
+        "ideal_time_sec": 120,
+        "_meta": {"chapter": "Physics Basics", "subtopic": "Laws"}
+    }
+    send_matching_question(uid, q, "99", "JEE_ADV")
+
+print("c06a_test_advanced: loaded (with /test_matching).")

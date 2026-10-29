@@ -1,0 +1,422 @@
+# ==========================================================
+# c30n_broadcast.py — Broadcast + Personal Message + Selection
+# ==========================================================
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import admin_auth as auth
+
+# Per-admin selection state
+_SELECTION = {}   # {admin_uid: set(recipient_uid)}
+_BC_CUR_PAGE = {}
+
+
+def _panel_users_sorted():
+    users = []
+    if not os.path.isdir(PROFILE_DIR):
+        return users
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            uid = int(fname.replace(".json", ""))
+        except ValueError:
+            continue
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured"):
+            continue
+        users.append((uid, p))
+    users.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+    return users
+
+
+def _build_selection_keyboard(admin_uid, page=0, per_page=8):
+    users = _panel_users_sorted()
+    selected = _SELECTION.setdefault(admin_uid, set())
+    kb = InlineKeyboardMarkup(row_width=1)
+    start = page * per_page
+    end = start + per_page
+    for uid, p in users[start:end]:
+        name = (p.get("name") or "?")[:18]
+        hku = p.get("hku_id") or "—"
+        check = "✅" if uid in selected else "⬜"
+        kb.add(InlineKeyboardButton(
+            f"{check} {hku} · {name}",
+            callback_data=f"bc_toggle:{uid}"
+        ))
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️", callback_data=f"bc_page:{page-1}"))
+    if end < len(users):
+        nav.append(InlineKeyboardButton("➡️", callback_data=f"bc_page:{page+1}"))
+    if nav:
+        kb.row(*nav)
+    kb.add(InlineKeyboardButton("✅ Select All", callback_data="bc_all"),
+           InlineKeyboardButton("❌ Deselect All", callback_data="bc_none"))
+    kb.add(InlineKeyboardButton(f"➡️ Continue ({len(selected)} selected)", callback_data="bc_continue"))
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="admin_back"))
+    return kb
+
+
+def _show_selection(admin_uid, page=0, message_id=None):
+    _BC_CUR_PAGE[admin_uid] = page
+    users = _panel_users_sorted()
+    kb = _build_selection_keyboard(admin_uid, page)
+    text = (
+        f"📢 *BROADCAST — Step 1/3*\n\n"
+        f"Tap to toggle users. Or use Select All.\n"
+        f"Total users: *{len(users)}*\n"
+        f"Selected: *{len(_SELECTION.get(admin_uid, set()))}*"
+    )
+    if message_id:
+        try:
+            bot.edit_message_text(text, chat_id=admin_uid, message_id=message_id,
+                                   reply_markup=kb, parse_mode="Markdown")
+            return
+        except Exception:
+            pass
+    bot.send_message(admin_uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_broadcast")
+def _cb_broadcast_start(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    _SELECTION[uid] = set()
+    _cur = globals().get("_BC_CUR_PAGE", {})
+    _show_selection(uid, _cur.get(uid, 0), call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("bc_toggle:"))
+def _cb_bc_toggle(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    sel = _SELECTION.setdefault(uid, set())
+    if target in sel:
+        sel.remove(target)
+    else:
+        sel.add(target)
+    _cur_page = _BC_CUR_PAGE.get(uid, 0)
+    _show_selection(uid, _cur_page, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("bc_page:"))
+def _cb_bc_page(call):
+    uid = call.message.chat.id
+    try:
+        page = int(call.data.split(":")[1])
+    except Exception:
+        page = 0
+    _show_selection(uid, page, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "bc_all")
+def _cb_bc_all(call):
+    uid = call.message.chat.id
+    _SELECTION[uid] = {u for u, _ in _panel_users_sorted()}
+    _show_selection(uid, 0, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "bc_none")
+def _cb_bc_none(call):
+    uid = call.message.chat.id
+    _SELECTION[uid] = set()
+    _show_selection(uid, 0, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "bc_continue")
+def _cb_bc_continue(call):
+    uid = call.message.chat.id
+    sel = _SELECTION.get(uid, set())
+    if not sel:
+        bot.answer_callback_query(call.id, "No users selected")
+        return
+    # Set pending text-capture via c09's PENDING_ADMIN_FLOW
+    try:
+        import importlib
+        c09 = None
+        for mod_name, mod in __import__("sys").modules.items():
+            if hasattr(mod, "PENDING_ADMIN_FLOW"):
+                mod.PENDING_ADMIN_FLOW[uid] = {
+                    "action": "broadcast_text",
+                    "data": {"recipients": list(sel)},
+                    "at": __import__("time").time(),
+                }
+                break
+    except Exception as e:
+        print(f"[bc_continue] {e}")
+    try:
+        bot.edit_message_text(
+            "📢 *BROADCAST — Step 2/3*\n\nNow type the message text.",
+            chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+    except Exception:
+        safe_send(uid, "📢 Step 2/3: type the message text.")
+
+
+# ---- Confirm actions ----
+@bot.callback_query_handler(func=lambda c: c.data == "bc_send")
+def _cb_bc_send(call):
+    uid = call.from_user.id
+    try:
+        bot.answer_callback_query(call.id, "Sending...")
+    except Exception:
+        pass
+    try:
+        pf = None
+        for _mn, _mo in __import__("sys").modules.items():
+            if hasattr(_mo, "PENDING_ADMIN_FLOW") and uid in _mo.PENDING_ADMIN_FLOW:
+                pf = _mo.PENDING_ADMIN_FLOW[uid]
+                _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+                break
+        if not pf:
+            safe_send(uid, "No pending broadcast.")
+            return
+        data = pf.get("data", {})
+        recipients = data.get("recipients", [])
+        file_type = data.get("file_type")
+        file_id = data.get("file_id")
+        text = (data.get("text") or "").strip()
+
+        if not recipients:
+            safe_send(uid, "No recipients selected.")
+            return
+
+        HEADER = "\U0001f4e2 <b>Announcement from Admin</b>"
+        FOOTER = (
+            "\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+            "\U0001f468\u200d\U0001f4bb <i>Developed by Vishnavi Gokarnam</i>\n"
+            "H&amp;K Publications"
+        )
+
+        success = 0
+        failed = 0
+        errs = []
+
+        _pause_g = globals().get("_PAUSE_TRACKING")
+        if _pause_g is not None:
+            _pause_g["active"] = True
+        for rid in recipients:
+            try:
+                # Part 1: header + text (skip if no text and no file)
+                if text or file_type:
+                    hdr_text = HEADER + (("\n\n" + text) if text else "")
+                    bot.send_message(rid, hdr_text, parse_mode="HTML")
+                # Part 2: file
+                if file_type == "photo" and file_id:
+                    bot.send_photo(rid, file_id)
+                elif file_type == "video" and file_id:
+                    bot.send_video(rid, file_id)
+                elif file_type == "audio" and file_id:
+                    bot.send_audio(rid, file_id)
+                elif file_type == "voice" and file_id:
+                    bot.send_voice(rid, file_id)
+                elif file_type == "video_note" and file_id:
+                    bot.send_video_note(rid, file_id)
+                elif file_type == "document" and file_id:
+                    bot.send_document(rid, file_id)
+                # Part 3: footer
+                bot.send_message(rid, FOOTER, parse_mode="HTML")
+                success += 1
+                print(f"[bc-ok] {rid} type={file_type or 'text'}")
+            except Exception as e:
+                failed += 1
+                errs.append(f"{rid}: {str(e)[:80]}")
+                print(f"[bc-fail] {rid}: {e}")
+
+        if _pause_g is not None:
+            _pause_g["active"] = False
+        try:
+            auth.log_broadcast(text or file_type or "file", success)
+        except Exception:
+            pass
+
+        summary = f"\u2705 Broadcast delivered: *{success}*\n\u274c Failed: *{failed}*"
+        if errs:
+            summary += "\n\n_First errors:_\n" + "\n".join(errs[:3])
+        _sum_msg = bot.send_message(uid, summary, parse_mode="Markdown")
+        _trk = globals().get("track_admin_msg")
+        if _trk:
+            try: _trk(uid, _sum_msg.message_id)
+            except Exception: pass
+
+        try:
+            bot.delete_message(uid, call.message.message_id)
+        except Exception:
+            pass
+
+        # Clear panel cache so _show_admin_panel sends FRESH (not stale edit)
+        _sm = globals().get("_STATS_MSGS")
+        if _sm is not None:
+            try: _sm.pop(uid, None)
+            except Exception: pass
+        _bm = globals().get("_BTN_MSGS")
+        if _bm is not None:
+            try: _bm.pop(uid, None)
+            except Exception: pass
+
+        _sp = globals().get("_show_admin_panel")
+        if _sp:
+            try:
+                _sp(uid)
+                print(f"[bc-panel-reopen] {uid}")
+            except Exception as _e:
+                print(f"[bc-panel-reopen-fail] {_e}")
+    except Exception as e:
+        print(f"[bc_send_outer_fail] {e}")
+        try:
+            safe_send(uid, f"Broadcast error: {e}")
+        except Exception:
+            pass
+
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "bc_sched")
+def _cb_bc_sched(call):
+    uid = call.message.chat.id
+    data = None
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW") and uid in mod.PENDING_ADMIN_FLOW:
+            data = mod.PENDING_ADMIN_FLOW[uid]["data"]
+            break
+    if not data:
+        bot.answer_callback_query(call.id, "No pending broadcast")
+        return
+    # NEW: ask for a title first
+    _file_type = data.get("file_type") or "text"
+    data["_schedule_type"] = _file_type
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "broadcast_title",
+                "data": data,
+                "at": __import__("time").time(),
+            }
+            break
+    safe_send(uid,
+        "🏷 *Give this schedule a short title* (max 40 chars):\n\n"
+        "_Example: `Weekly test reminder` or `Physics Ch 5 notes`_",
+        parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "bc_cancel")
+def _cb_bc_cancel(call):
+    uid = call.message.chat.id
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW.pop(uid, None)
+            break
+    try:
+        bot.edit_message_text("❌ Broadcast cancelled.", chat_id=uid,
+                               message_id=call.message.message_id)
+    except Exception:
+        pass
+
+
+# ==========================================================
+# PERSONAL MESSAGE
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pmsg:"))
+def _cb_pmsg(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "personal_text",
+                "data": {"target_uid": target},
+                "at": __import__("time").time(),
+            }
+            break
+    p = load_profile(target) or {}
+    name = p.get("name", "?")
+    safe_send(uid, f"📩 Type your message for *{name}* (`{target}`):", parse_mode="Markdown")
+
+
+print("c30n_broadcast: loaded.")
+
+
+# ==========================================================
+# FILE BROADCAST HANDLER (photo/video/audio/document)
+# ==========================================================
+
+@bot.message_handler(content_types=['photo', 'video', 'audio', 'document', 'voice', 'video_note'])
+def _handle_broadcast_file(message):
+    uid = message.chat.id
+    if not auth.get_session(uid):
+        return
+        
+    pf = None
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            pf = mod.PENDING_ADMIN_FLOW.get(uid)
+            break
+            
+    # Accept both states
+    if not pf or pf.get("action") not in ("broadcast_text", "broadcast_confirm"):
+        return
+        
+    _dat = pf.get("data", {})
+    
+    file_type, file_id = None, None
+    if message.photo:
+        file_type, file_id = "photo", message.photo[-1].file_id
+    elif message.video:
+        file_type, file_id = "video", message.video.file_id
+    elif message.audio:
+        file_type, file_id = "audio", message.audio.file_id
+    elif message.document:
+        file_type, file_id = "document", message.document.file_id
+    elif message.voice:
+        file_type, file_id = "voice", message.voice.file_id
+    elif message.video_note:
+        file_type, file_id = "video_note", message.video_note.file_id
+        
+    if not file_type:
+        safe_send(uid, "❌ Unsupported file type.")
+        return
+        
+    _dat["file_type"] = file_type
+    _dat["file_id"] = file_id
+    if message.caption:
+        _dat["text"] = message.caption
+        
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "broadcast_confirm",
+                "data": _dat,
+                "at": __import__("time").time(),
+            }
+            break
+            
+    from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    _kb = InlineKeyboardMarkup(row_width=1)
+    _kb.add(
+        InlineKeyboardButton("✅ Send Now", callback_data="bc_send"),
+        InlineKeyboardButton("⏰ Schedule", callback_data="bc_sched"),
+        InlineKeyboardButton("❌ Cancel", callback_data="bc_cancel"),
+    )
+    safe_send(uid,
+        f"📢 *Broadcast Preview (File)*\n\n"
+        f"Type: `{file_type}`\n"
+        f"Caption: _{_dat.get('text', '')}_\n\n"
+        f"Recipients: *{len(_dat.get('recipients', []))} users*",
+        parse_mode="Markdown")
+    bot.send_message(uid, "Choose action:", reply_markup=_kb)

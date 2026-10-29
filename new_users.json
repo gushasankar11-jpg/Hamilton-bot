@@ -1,0 +1,53 @@
+{
+  "queue": [
+    {
+      "uid": 5586609986,
+      "name": "Krishna Vamsi",
+      "phone": "8074231426",
+      "joined_at": "2026-10-19T12:57:00.749286"
+    },
+    {
+      "uid": 5483091877,
+      "name": "Krishna Vamsi",
+      "phone": "9030577246",
+      "joined_at": "2026-10-20T07:04:18.849369"
+    },
+    {
+      "uid": 8857708587,
+      "name": "HK PRIMARY ADMIN ACCESS CODE HEMANTH KRI",
+      "phone": "9876543210",
+      "joined_at": "2026-10-24T21:47:30.085722"
+    },
+    {
+      "uid": 8117874254,
+      "name": "Oruganti Yeseswin",
+      "phone": "8179635019",
+      "joined_at": "2026-10-25T11:56:45.886261"
+    },
+    {
+      "uid": 6498439107,
+      "name": "Sarath",
+      "phone": "9573867749",
+      "joined_at": "2026-10-25T13:59:38.731827"
+    },
+    {
+      "uid": 6941930186,
+      "name": "Angel Gupta",
+      "phone": "9125712019",
+      "joined_at": "2026-10-25T18:54:27.804493"
+    },
+    {
+      "uid": 8831627667,
+      "name": "Karu Akshay",
+      "phone": "9398432414",
+      "joined_at": "2026-10-26T20:43:26.547527"
+    },
+    {
+      "uid": 5912714882,
+      "name": "D.ariharsha",
+      "phone": "6305011921",
+      "joined_at": "2026-10-28T21:25:38.895926"
+    }
+  ],
+  "last_panel_open": null
+}

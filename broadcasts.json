@@ -1,0 +1,124 @@
+{
+  "broadcasts": [
+    {
+      "ts": "2026-10-18T08:37:40.404908",
+      "text": "",
+      "recipients": 11,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T13:51:07.198909",
+      "text": "",
+      "recipients": 11,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T17:37:58.330361",
+      "text": "Testing message",
+      "recipients": 10,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T22:40:03.445948",
+      "text": "",
+      "recipients": 11,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T22:51:02.302635",
+      "text": "photo",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:07:20.531554",
+      "text": "photo",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:13:27.740687",
+      "text": "photo",
+      "recipients": 4,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:19:30.839646",
+      "text": "photo",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:20:04.453986",
+      "text": "Hi",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:20:38.274244",
+      "text": "Hi Hamilton",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:21:17.252289",
+      "text": "document",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-18T23:22:59.654780",
+      "text": "Vj",
+      "recipients": 1,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-19T15:50:11.515376",
+      "text": "photo",
+      "recipients": 8,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-20T18:21:52.414632",
+      "text": "Test message",
+      "recipients": 12,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-21T06:52:44.522940",
+      "text": "Hello everyone this is a testing message but informing up to everyone that the preference were ending the next 4 days please restart your key by doing the payment present price 200 if you still don't ",
+      "recipients": 12,
+      "scheduled_at": "2026-10-21 07:00"
+    },
+    {
+      "ts": "2026-10-21T07:00:09.711138",
+      "text": "Hello everyone this is a testing message but informing up to everyone that the preference were ending the next 4 days please restart your key by doing the payment present price 200 if you still don't ",
+      "recipients": 12,
+      "scheduled_at": "2026-10-21 07:00"
+    },
+    {
+      "ts": "2026-10-25T12:32:31.019933",
+      "text": "\ud83d\udcdd Trigonometric Equations \u2014 Page 7/7 (.md)",
+      "recipients": 14,
+      "scheduled_at": null
+    },
+    {
+      "ts": "2026-10-25T12:35:28.803744",
+      "text": "",
+      "recipients": 1,
+      "scheduled_at": "2026-10-25 12:37"
+    },
+    {
+      "ts": "2026-10-25T12:37:14.904880",
+      "text": "",
+      "recipients": 1,
+      "scheduled_at": "2026-10-25 12:37"
+    },
+    {
+      "ts": "2026-10-27T06:19:07.495367",
+      "text": "photo",
+      "recipients": 16,
+      "scheduled_at": null
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "timestamp": "2026-10-11T15:44:52.567676",
+    "subject": "Chemistry",
+    "chapter": "Chemical Equilibrium",
+    "subtopic": "Equilibrium in Chemical Processes",
+    "question": "At 500 °C the gas‑phase reaction N₂(g) + 3H₂(g) ⇌ 2NH₃(g) has a equilibrium constant Kₚ = 0.005. A rigid container initially contains 10 atm N₂ and 30 atm H₂, with no NH₃ present. The temperature is kept constant and the volume does not change. What is the equilibrium partial pressure of NH₃?",
+    "options": [
+      "9.7 atm",
+      "8.5 atm",
+      "7.2 atm",
+      "5.0 atm"
+    ],
+    "correct_index": 0,
+    "explanation": "Step 1 – Set up an ICE table. Let ξ be the extent (in atm) of reaction such that:\n   N₂: 10 − ξ\n   H₂: 30 − 3ξ\n   NH₃: 2ξ\nStep 2 – Write the expression for Kₚ:\n   Kₚ = (p_{NH₃})² / (p_{N₂}·(p_{H₂})³) = (2ξ)² / [(10 − ξ)(30 − 3ξ)³] = 0.005\nStep 3 – Solve for ξ. Rearranging gives the equation\n   4ξ² = 0.005(10 − ξ)(30 − 3ξ)³.\nBecause (30 − 3ξ) = 3(10 − ξ), the RHS simplifies to 0.135(10 − ξ)⁴, so\n   4ξ² = 0.135(10 − ξ)⁴.\nTake square‑roots:\n   2ξ = √0.135·(10 − ξ)² ≈ 0.367(10 − ξ)².\nLet y = 10 − ξ. Then 2(10 − y) = 0.367y² → 0.367y² + 2y − 20 = 0.\nSolving the quadratic gives y ≈ 5.15 atm, so ξ = 10 − 5.15 ≈ 4.85 atm.\nStep 4 – The equilibrium p_{NH₃} = 2ξ ≈ 2×4.85 ≈ 9.7 atm.\nThus the correct answer is 9.7 atm."
+  }
+]
