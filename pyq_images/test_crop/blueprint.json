@@ -1,0 +1,23 @@
+[
+  {
+    "q_num": 17,
+    "page": 6,
+    "y_top": 147.82286875000003,
+    "y_bottom": 404.07285833333333,
+    "img_path": "pyq_images/test_crop/q17.png"
+  },
+  {
+    "q_num": 18,
+    "page": 6,
+    "y_top": 404.07285833333333,
+    "y_bottom": 946.2603354166667,
+    "img_path": "pyq_images/test_crop/q18.png"
+  },
+  {
+    "q_num": 19,
+    "page": 6,
+    "y_top": 946.2603354166667,
+    "y_bottom": 1654,
+    "img_path": "pyq_images/test_crop/q19.png"
+  }
+]

@@ -13,6 +13,8 @@ def _b(): return sys.modules['__main__'].bot
 
 def clean_math(text):
     if not text: return ""
+    text = text.replace('#', '').replace('*', '')
+    if not text: return ""
     t = str(text)
     t = html.unescape(t).replace("*", "").replace("_", " ")
     t = t.replace("\\alpha", "α").replace("\\beta", "β").replace("\\theta", "θ").replace("\\pi", "π")
@@ -38,9 +40,6 @@ def _extract_chapters(raw_data):
                 if ch: chapters.add(ch)
     return sorted(list(chapters))
 
-# ==========================================
-# FLOATING TIMER & ANIMATION
-# ==========================================
 def _animate_gen(uid, msg_id, count):
     elapsed = 0
     while True:
@@ -57,9 +56,8 @@ def _run_floating_timer(uid, timer_msg_id, question_msg_id):
         time.sleep(1)
         elapsed += 1
         state = _state.get(uid, {})
-        # Stop if user answered, stopped, or question changed
         if state.get("question_msg_id") != question_msg_id or state.get("processing") or not state.get("active"):
-            try: _b().delete_message(uid, timer_msg_id) # Delete timer when done
+            try: _b().delete_message(uid, timer_msg_id)
             except: pass
             return
         try: 
@@ -74,9 +72,6 @@ def _strip_old_buttons(uid):
         except: pass
     state["msg_id"] = None
 
-# ==========================================
-# MENUS
-# ==========================================
 @bot.message_handler(commands=['exam'])
 def cmd_exam(message):
     _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
@@ -118,9 +113,6 @@ def _show_chapters(uid, msg_id):
     try: _b().edit_message_text(f"📚 <b>Select Chapter:</b>\n(Showing {start+1}-{min(end, len(chapters))} of {len(chapters)})", chat_id=uid, message_id=msg_id, parse_mode="HTML", reply_markup=kb)
     except: pass
 
-# ==========================================
-# ROUTER
-# ==========================================
 @bot.callback_query_handler(func=lambda c: c.data.startswith("f_"))
 def handle_buttons(call):
     try: _b().answer_callback_query(call.id)
@@ -144,7 +136,6 @@ def handle_buttons(call):
                     InlineKeyboardButton("📝 Previous Paper Test", callback_data="f_pyq:papers")
                 )
                 kb.add(InlineKeyboardButton("🚧 JEE Adv (Coming Soon)", callback_data="f_soon"))
-                kb.add(InlineKeyboardButton("🚧 EAPCET (Coming Soon)", callback_data="f_soon"))
                 kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
                 _b().edit_message_text("🔍 <b>PYQ Explorer</b>\nSelect type:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
                 return
@@ -160,20 +151,101 @@ def handle_buttons(call):
 
         elif data == "f_soon":
             _b().answer_callback_query(call.id, "Coming Soon!", show_alert=True)
-            
+
         elif data.startswith("f_pyq:"):
             ptype = data.split(":")[1]
+            import json
+            try:
+                with open("data/pyq_db.json") as f: db = json.load(f)
+            except: db = {"practice": {}, "papers": {}}
+
             if ptype == "practice":
                 kb = InlineKeyboardMarkup(row_width=3)
-                kb.add(
-                    InlineKeyboardButton("Physics", callback_data="f_sub:Physics"),
-                    InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"),
-                    InlineKeyboardButton("Maths", callback_data="f_sub:Maths")
-                )
+                for subj in db.get("practice", {}).keys():
+                    kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_sub:{subj}"))
                 kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
                 _b().edit_message_text("📖 <b>PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-            else:
-                _b().edit_message_text("📝 <b>Previous Paper Test</b>\n(Paper selection UI coming in next patch)", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
+            
+            elif ptype == "papers":
+                kb = InlineKeyboardMarkup(row_width=3)
+                years = list(db.get("papers", {}).keys())
+                if not years:
+                    _b().answer_callback_query(call.id, "No papers uploaded yet.")
+                    return
+                for yr in years:
+                    kb.add(InlineKeyboardButton(yr, callback_data=f"f_pyq_yr:{yr}"))
+                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
+                _b().edit_message_text("📝 <b>Previous Paper Test</b>\nSelect Year:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+
+        elif data.startswith("f_pyq_sub:"):
+            subj = data.split(":")[1]
+            state["pyq_subj"] = subj
+            import json, re
+            with open("data/pyq_db.json") as f: db = json.load(f)
+            chapters = list(db.get("practice", {}).get(subj, {}).keys())
+
+            # --- Syllabus-order anchor map (PDF coarse chapter -> syllabus fine chapter) ---
+            _PYQ_OVERRIDES = {
+                "Atoms and Nuclei": "Atomic Physics",
+                "Capacitor": "Capacitor and Capacitance",
+                "Center of Mass and Collision": "System of Particles and Centre of Mass",
+                "Current Electricity": "Electric Current and Circuits",
+                "Dual Nature of Radiation": "Dual Nature of Radiation and Matter",
+                "Electrostatics": "Coulomb's Law and Electric Field",
+                "Geometrical Optics": "Geometrical Optics: Part 1",
+                "Heat and Thermodynamics": "Thermodynamics",
+                "Laws of Motion": "Newton's Laws of Motion (Without Friction)",
+                "Magnetic Effect of Current": "Magnetic Field and Magnetic Forces",
+            }
+
+            _syl_list = []
+            try:
+                _syl = json.load(open(f"data/jee_main_{subj.lower()}.json"))
+                _syl_list = list(_syl.keys())
+            except Exception:
+                _syl_list = []
+
+            def _pyq_pos(ch):
+                if not _syl_list: return (2, 9999)
+                if ch in _syl_list: return (0, _syl_list.index(ch))
+                mapped = _PYQ_OVERRIDES.get(ch)
+                if mapped and mapped in _syl_list: return (1, _syl_list.index(mapped))
+                words = [w.lower() for w in re.findall(r"[A-Za-z]+", ch) if len(w) > 4]
+                best_score, best_pos = 0, 9999
+                for i, sc in enumerate(_syl_list):
+                    s = sum(1 for w in words if w in sc.lower())
+                    if s > best_score or (s == best_score and s > 0 and i < best_pos):
+                        best_score, best_pos = s, i
+                return (1, best_pos) if best_score > 0 else (2, 9999)
+
+            chapters.sort(key=_pyq_pos)
+
+            kb = InlineKeyboardMarkup(row_width=1)
+            for ch in chapters:
+                kb.add(InlineKeyboardButton(ch[:30], callback_data=f"f_pyq_ch:{ch}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
+            _b().edit_message_text(f"📖 <b>{subj} - PYQ Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+
+        elif data.startswith("f_pyq_ch:"):
+            ch = data.split(":", 1)[1]
+            subj = state.get("pyq_subj")
+            import json, os
+            with open("data/pyq_db.json") as f: db = json.load(f)
+            folder = db["practice"][subj][ch]["path"]
+            pages = db["practice"][subj][ch]["pages"]
+            
+            _b().edit_message_text(f"⏳ Sending {pages} pages for <b>{ch}</b>...", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
+            
+            for i in range(1, pages + 1):
+                possible = [f"page-{i:02d}.png", f"page-{i}.png", f"page-{i:03d}.png"]
+                for p_name in possible:
+                    p_path = os.path.join(folder, p_name)
+                    if os.path.exists(p_path):
+                        _b().send_photo(uid, open(p_path, "rb"))
+                        time.sleep(1)
+                        break
+            _b().send_message(uid, "✅ All pages sent. Now solve them on paper.")
+            cmd_exam(call.message)
 
         elif data.startswith("f_back:"):
             target = data.split(":")[1]
@@ -378,17 +450,13 @@ def _generate_next(uid, msg_id=None):
     
     try:
         _b().delete_message(uid, loader_msg)
-        # 1. Send Question
         msg = _b().send_message(uid, body, parse_mode="HTML", reply_markup=kb)
         state["msg_id"] = msg.message_id
         state["question_msg_id"] = msg.message_id
         
-        # 2. Send Floating Timer Message
         timer_msg = _b().send_message(uid, "⏱️ <b>Time Taken:</b> 0s", parse_mode="HTML")
-        
-        # 3. Start Timer Thread editing ONLY the timer message
         threading.Thread(target=_run_floating_timer, args=(uid, timer_msg.message_id, msg.message_id), daemon=True).start()
     except Exception as e:
         print(f"[SEND-ERR] {e}")
 
-print("✅ c04_exam: SEPARATE FLOATING TIMER & PYQ MENU LOADED.")
+print("✅ c04_exam: FINAL PYQ & EXAM ENGINE LOADED.")

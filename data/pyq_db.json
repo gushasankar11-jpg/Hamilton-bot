@@ -1,0 +1,878 @@
+{
+  "practice": {
+    "Physics": {
+      "Alternating Current": {
+        "pages": 59,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Alternating_Current"
+      },
+      "Atoms and Nuclei": {
+        "pages": 70,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Atoms_and_Nuclei"
+      },
+      "Capacitor": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Capacitor"
+      },
+      "Center of Mass and Collision": {
+        "pages": 47,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Center_of_Mass_and_Collision"
+      },
+      "Circular Motion": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Circular_Motion"
+      },
+      "Current Electricity": {
+        "pages": 127,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Current_Electricity"
+      },
+      "Dual Nature of Radiation": {
+        "pages": 59,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Dual_Nature_of_Radiation"
+      },
+      "Electromagnetic Induction": {
+        "pages": 5,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Electromagnetic_Induction"
+      },
+      "Electromagnetic Waves": {
+        "pages": 48,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Electromagnetic_Waves"
+      },
+      "Electrostatics": {
+        "pages": 106,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Electrostatics"
+      },
+      "Geometrical Optics": {
+        "pages": 86,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Geometrical_Optics"
+      },
+      "Gravitation": {
+        "pages": 58,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Gravitation"
+      },
+      "Heat and Thermodynamics": {
+        "pages": 139,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Heat_and_Thermodynamics"
+      },
+      "Laws of Motion": {
+        "pages": 58,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Laws_of_Motion"
+      },
+      "Magnetic Effect of Current": {
+        "pages": 87,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Magnetic_Effect_of_Current"
+      },
+      "Magnetic Properties of Matter": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Magnetic_Properties_of_Matter"
+      },
+      "Motion in a Straight Line": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Motion_in_a_Straight_Line"
+      },
+      "Properties of Matter": {
+        "pages": 86,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Properties_of_Matter"
+      },
+      "Rotational Motion": {
+        "pages": 52,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Rotational_Motion"
+      },
+      "Semiconductor": {
+        "pages": 138,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Semiconductor"
+      },
+      "Simple Harmonic Motion": {
+        "pages": 60,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Simple_Harmonic_Motion"
+      },
+      "Units & Measurements": {
+        "pages": 36,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Units_&_Measurements"
+      },
+      "Wave Optics": {
+        "pages": 47,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Wave_Optics"
+      },
+      "Waves": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Waves"
+      },
+      "Work Power & Energy": {
+        "pages": 45,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Physics/Work_Power_&_Energy"
+      }
+    },
+    "Chemistry": {
+      "Alcohols, Phenols and Ethers": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Alcohols,_Phenols_and_Ethers"
+      },
+      "Basics of Organic Chemistry": {
+        "pages": 70,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Basics_of_Organic_Chemistry"
+      },
+      "Biomolecules": {
+        "pages": 79,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Biomolecules"
+      },
+      "Chemical Bonding & Molecular Structure": {
+        "pages": 3,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Chemical_Bonding_&_Molecular_Structure"
+      },
+      "Chemical Equilibrium": {
+        "pages": 37,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Chemical_Equilibrium"
+      },
+      "Chemical Kinetics and Nuclear Chemistry": {
+        "pages": 74,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Chemical_Kinetics_and_Nuclear_Chemistry"
+      },
+      "Compounds Containing Nitrogen": {
+        "pages": 34,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Compounds_Containing_Nitrogen"
+      },
+      "Coordination Compounds": {
+        "pages": 89,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Coordination_Compounds"
+      },
+      "Electrochemistry": {
+        "pages": 64,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Electrochemistry"
+      },
+      "Haloalkanes and Haloarenes": {
+        "pages": 8,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Haloalkanes_and_Haloarenes"
+      },
+      "Hydrocarbons": {
+        "pages": 115,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Hydrocarbons"
+      },
+      "Ionic Equilibrium": {
+        "pages": 39,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Ionic_Equilibrium"
+      },
+      "Periodic Table & Periodicity": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Periodic_Table_&_Periodicity"
+      },
+      "Practical Organic Chemistry": {
+        "pages": 41,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Practical_Organic_Chemistry"
+      },
+      "Redox Reactions": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Redox_Reactions"
+      },
+      "Salt Analysis": {
+        "pages": 19,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Salt_Analysis"
+      },
+      "Solutions": {
+        "pages": 14,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Solutions"
+      },
+      "Some Basic Concepts of Chemistry": {
+        "pages": 48,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Some_Basic_Concepts_of_Chemistry"
+      },
+      "Structure of Atom": {
+        "pages": 7,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Structure_of_Atom"
+      },
+      "Thermodynamics": {
+        "pages": 68,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/Thermodynamics"
+      },
+      "d and f Block Elements": {
+        "pages": 17,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/d_and_f_Block_Elements"
+      },
+      "p-Block Elements": {
+        "pages": 64,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Chemistry/p-Block_Elements"
+      }
+    },
+    "Maths": {
+      "3D Geometry": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/3D_Geometry"
+      },
+      "Application of Derivatives": {
+        "pages": 49,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Application_of_Derivatives"
+      },
+      "Area Under The Curves": {
+        "pages": 1,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Area_Under_The_Curves"
+      },
+      "Binomial Theorem": {
+        "pages": 44,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Binomial_Theorem"
+      },
+      "Circle": {
+        "pages": 14,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Circle"
+      },
+      "Complex Numbers": {
+        "pages": 39,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Complex_Numbers"
+      },
+      "Definite Integration": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Definite_Integration"
+      },
+      "Differential Equations": {
+        "pages": 48,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Differential_Equations"
+      },
+      "Differentiation": {
+        "pages": 3,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Differentiation"
+      },
+      "Ellipse": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Ellipse"
+      },
+      "Functions": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Functions"
+      },
+      "Hyperbola": {
+        "pages": 20,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Hyperbola"
+      },
+      "Indefinite Integrals": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Indefinite_Integrals"
+      },
+      "Inverse Trigonometric Functions": {
+        "pages": 20,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Inverse_Trigonometric_Functions"
+      },
+      "Limits, Continuity and Differentiability": {
+        "pages": 2,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Limits,_Continuity_and_Differentiability"
+      },
+      "Logarithm": {
+        "pages": 5,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Logarithm"
+      },
+      "Matrices and Determinants": {
+        "pages": 94,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Matrices_and_Determinants"
+      },
+      "Parabola": {
+        "pages": 29,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Parabola"
+      },
+      "Permutations and Combinations": {
+        "pages": 13,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Permutations_and_Combinations"
+      },
+      "Probability": {
+        "pages": 46,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Probability"
+      },
+      "Quadratic Equation and Inequalities": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Quadratic_Equation_and_Inequalities"
+      },
+      "Sequences and Series": {
+        "pages": 56,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Sequences_and_Series"
+      },
+      "Sets and Relations": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Sets_and_Relations"
+      },
+      "Statistics": {
+        "pages": 16,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Statistics"
+      },
+      "Straight Lines and Pair of Straight Lines": {
+        "pages": 37,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Straight_Lines_and_Pair_of_Straight_Lines"
+      },
+      "Trigonometric Ratio and Identites": {
+        "pages": 14,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Trigonometric_Ratio_and_Identites"
+      },
+      "Vector Algebra": {
+        "pages": 9,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/practice/Maths/Vector_Algebra"
+      }
+    }
+  },
+  "papers": {
+    "2020": {
+      "2nd September Evening Slot": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_2nd_September_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "2nd September Morning Slot": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_2nd_September_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "3rd September Evening Slot": {
+        "pages": 1,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_3rd_September_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "3rd September Morning Slot": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_3rd_September_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "4th September Evening Slot": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_4th_September_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "4th September Morning Slot": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_4th_September_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "5th September Evening Slot": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_5th_September_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "5th September Morning Slot": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_5th_September_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "6th September Evening Slot": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_6th_September_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "6th September Morning Slot": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_6th_September_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "7th January Evening Slot": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_7th_January_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "7th January Morning Slot": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_7th_January_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "8th January Evening Slot": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_8th_January_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "8th January Morning Slot": {
+        "pages": 17,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_8th_January_Morning_Slot_Question_Paper_with_Answer_Key"
+      },
+      "9th January Evening Slot": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_9th_January_Evening_Slot_Question_Paper_with_Answer_Key"
+      },
+      "9th January Morning Slot": {
+        "pages": 19,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2020_(Online)_9th_January_Morning_Slot_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2021": {
+      "16th March Evening Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_16th_March_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "16th March Morning Shift": {
+        "pages": 16,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_16th_March_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "17th March Evening Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_17th_March_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "17th March Morning Shift": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_17th_March_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "18th March Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_18th_March_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "18th March Morning Shift": {
+        "pages": 11,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_18th_March_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "1st September Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_1st_September_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "20th July Evening Shift": {
+        "pages": 11,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_20th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "20th July Morning Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_20th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "22th July Evening Shift": {
+        "pages": 8,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_22th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th February Evening Shift": {
+        "pages": 29,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_24th_February_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th February Morning Shift": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_24th_February_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th February Evening Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_25th_February_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th February Morning Shift": {
+        "pages": 6,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_25th_February_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th July Evening Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_25th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th July Morning Shift": {
+        "pages": 7,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_25th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th August Evening Shift": {
+        "pages": 31,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_26th_August_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th August Morning Shift": {
+        "pages": 10,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_26th_August_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th February Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_26th_February_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th February Morning Shift": {
+        "pages": 8,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_26th_February_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th July Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_27th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th August Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_27th_August_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th August Morning Shift": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_27th_August_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th July Evening Shift": {
+        "pages": 32,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_27th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st August Evening Shift": {
+        "pages": 19,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_31st_August_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st August Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2021_(Online)_31st_August_Morning_Shift_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2022": {
+      "24th June Evening Shift": {
+        "pages": 9,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_24th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th July Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_25th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th June Morning Shift": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_25th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th July Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_26th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th July Morning Shift": {
+        "pages": 12,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_27th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th June Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_27th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th July Evening Shift": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_28th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th June Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_28th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th July Evening Shift": {
+        "pages": 13,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_29th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th July Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_30th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th June Morning Shift": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_24th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th July Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_25th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th June Evening Shift": {
+        "pages": 20,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_25th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th July Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_26th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th June Evening Shift": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_26th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "26th June Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_26th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th July Evening Shift": {
+        "pages": 20,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_27th_July_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th June Morning Shift": {
+        "pages": 29,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_27th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th July Morning Shift": {
+        "pages": 19,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_28th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th June Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_28th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th July Morning Shift": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_29th_July_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th June Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_29th_June_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th June Morning Shift": {
+        "pages": 13,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_29th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th June Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2022_(Online)_30th_June_Morning_Shift_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2023": {
+      "12th April Morning Shift": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_12th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "13th April Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_13th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "15th April Morning Shift": {
+        "pages": 18,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_15th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "1st February Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_1st_February_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th January Morning Shift": {
+        "pages": 16,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_24th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th January Evening Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_25th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th January Evening Shift": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_30th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st January Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_31st_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "6th April Evening Shift": {
+        "pages": 10,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_6th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "10th April Evening Shift": {
+        "pages": 17,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_10th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "10th April Morning Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_10th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "11th April Evening Shift": {
+        "pages": 15,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_11th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "11th April Morning Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_11th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "13th April Evening Shift": {
+        "pages": 16,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_13th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "1st February Evening Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_1st_February_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th January Evening Shift": {
+        "pages": 20,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_24th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "25th January Morning Shift": {
+        "pages": 30,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_25th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th January Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_29th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th January Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_29th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th January Morning Shift": {
+        "pages": 30,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_30th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st January Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_31st_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "6th April Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_6th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_8th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2023_(Online)_8th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2024": {
+      "1st February Evening Shift": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_1st_February_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th January Evening Shift": {
+        "pages": 5,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_27th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "27th January Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_27th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th January Evening Shift": {
+        "pages": 5,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_29th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th January Morning Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_29th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th January Evening Shift": {
+        "pages": 5,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_30th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st January Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_31st_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Evening Shift": {
+        "pages": 9,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_4th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "5th April Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_5th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Evening Shift": {
+        "pages": 9,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_8th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_8th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "9th April Morning Shift": {
+        "pages": 14,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_9th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "1st February Morning Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_1st_February_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "30th January Morning Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_30th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "31st January Morning Shift": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_31st_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Morning Shift": {
+        "pages": 29,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_4th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "5th April Evening Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2024_(Online)_5th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2025": {
+      "7th April Morning Shift": {
+        "pages": 27,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_7th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "22nd January Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_22nd_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "22nd January Morning Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_22nd_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "23rd January Morning Shift": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_23rd_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "29th January Morning Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_29th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "3rd April Morning Shift": {
+        "pages": 30,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_3rd_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Evening Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_4th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th January Evening Shift": {
+        "pages": 28,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_24th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th January Morning Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_28th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "3rd April Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_3rd_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_8th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Morning Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_4th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "7th April Evening Shift": {
+        "pages": 26,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2025_(Online)_7th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      }
+    },
+    "2026": {
+      "23rd January Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_23rd_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "6th April Evening Shift": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_6th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "21st January Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_21st_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "21st January Morning Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_21st_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "5th April Morning Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_5th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "6th April Morning Shift": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_6th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "22nd January Evening Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_22nd_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "22nd January Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_22nd_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th January Evening Shift": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_24th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "24th January Morning Shift": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_24th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th January Morning Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_28th_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "2nd April Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_2nd_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "2nd April Morning Shift": {
+        "pages": 21,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_2nd_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Morning Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_4th_April_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "23rd January Morning Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_23rd_January_Morning_Shift_Question_Paper_with_Answer_Key"
+      },
+      "28th January Evening Shift": {
+        "pages": 24,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_28th_January_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "4th April Evening Shift": {
+        "pages": 25,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_4th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "5th April Evening Shift": {
+        "pages": 22,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_5th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      },
+      "8th April Evening Shift": {
+        "pages": 23,
+        "path": "/data/data/com.termux/files/home/hamilton/pyq_images/jee_main/papers/JEE_Main_2026_(Online)_8th_April_Evening_Shift_Question_Paper_with_Answer_Key"
+      }
+    }
+  }
+}
