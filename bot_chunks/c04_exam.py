@@ -341,7 +341,11 @@ def handle_buttons(call):
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
             state["selected"] = None
             state["processing"] = False
-            threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
+            if state.get("mode") == "pyq":
+                state["pyq_index"] += 1
+                send_pyq_q(uid, call.message.message_id)
+            else:
+                threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
 
         elif data == "f_stop":
             state["active"] = False
@@ -460,3 +464,39 @@ def _generate_next(uid, msg_id=None):
         print(f"[SEND-ERR] {e}")
 
 print("✅ c04_exam: FINAL PYQ & EXAM ENGINE LOADED.")
+
+
+def send_pyq_q(uid, msg_id=None):
+    state = _state[uid]
+    if state.get("mode") != "pyq": return
+    q_list = state.get("pyq_questions", [])
+    idx = state.get("pyq_index", 0)
+    if idx >= len(q_list):
+        _b().send_message(uid, "🏁 <b>Chapter Complete!</b> All PYQs finished.")
+        state["mode"] = "practice"
+        return
+
+    q = q_list[idx]
+    state["q"] = q
+    state["selected"] = None
+    state["q_start_time"] = time.time()
+    state["processing"] = False
+
+    # Metadata overlay (Ideal Time & Difficulty)
+    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)}</b>\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {q.get('difficulty', 'Medium')}"
+    
+    # Your exact 9-Type button UI
+    kb = InlineKeyboardMarkup(row_width=4)
+    kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
+    kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+
+    if msg_id:
+        try: _b().delete_message(uid, msg_id)
+        except: pass
+    
+    try:
+        with open(q["img"], "rb") as f:
+            msg = _b().send_photo(uid, f, caption=caption, parse_mode="HTML", reply_markup=kb)
+            state["pyq_msg_id"] = msg.message_id
+    except Exception as e:
+        _b().send_message(uid, f"❌ Image not found: {q['img']}")
