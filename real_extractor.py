@@ -7,9 +7,9 @@ IMG_PRACTICE = os.path.join(BASE_DIR, "pyq_images", "jee_main", "practice")
 DB_FILE = os.path.join(BASE_DIR, "data", "pyq_master.json")
 
 master_db = {"practice": {}, "papers": {}}
-MAX_QS = 60 # Cap the number of questions per chapter
+CORE_LIMIT = 60  # First 60 go to 'eligible', rest go to 'skipped'
 
-print(f"🚀 Starting SMART Extraction (Max {MAX_QS} per chapter)...")
+print(f"🚀 Starting FULL Extraction (Splitting at {CORE_LIMIT})...")
 
 for subj in os.listdir(PDF_PRACTICE):
     subj_dir = os.path.join(PDF_PRACTICE, subj)
@@ -21,14 +21,12 @@ for subj in os.listdir(PDF_PRACTICE):
         chapter_name = pdf.replace("JEE Main ", "").replace(" Previous Year Questions with Answer Key.pdf", "").strip()
         pdf_path = os.path.join(subj_dir, pdf)
         
-        # 1. Get total pages
         try:
             info = subprocess.run(["pdfinfo", pdf_path], capture_output=True, text=True).stdout
             total_pages = int(re.search(r'Pages:\s+(\d+)', info).group(1))
         except:
             continue
             
-        # 2. Extract Answer Key
         text = subprocess.run(["pdftotext", pdf_path, "-"], capture_output=True, text=True).stdout
         ak_start = text.rfind("Answer Key")
         answers = {}
@@ -42,14 +40,12 @@ for subj in os.listdir(PDF_PRACTICE):
                     try: answers[int(q)] = {"type": "numerical", "correct_value": float(a)}
                     except: pass
 
-        # 3. Find Questions, Crop, and extract Metadata
         out_dir = os.path.join(IMG_PRACTICE, subj, chapter_name.replace(" ", "_"))
         os.makedirs(out_dir, exist_ok=True)
-        q_list = []
+        
+        all_qs = []
         
         for page in range(1, total_pages + 1):
-            if len(q_list) >= MAX_QS: break # Stop scanning if we hit the cap
-
             img_base = os.path.join(out_dir, f"tmp_page_{page}")
             subprocess.run(["pdftoppm", "-png", "-r", "150", "-f", str(page), "-l", str(page), "-singlefile", pdf_path, img_base], check=True)
             img_path = img_base + ".png"
@@ -65,8 +61,6 @@ for subj in os.listdir(PDF_PRACTICE):
             scale = 150.0 / 72.0
             
             for i, (y_str, q_num) in enumerate(q_matches):
-                if len(q_list) >= MAX_QS: break
-
                 q_num = int(q_num)
                 y_min = float(y_str) * scale
                 y_max = float(q_matches[i+1][0]) * scale - 15 if i+1 < len(q_matches) else foot_y * scale - 15
@@ -86,7 +80,7 @@ for subj in os.listdir(PDF_PRACTICE):
                 
                 ans_data = answers.get(q_num, {"type": "mcq", "correct_index": -1})
                 
-                q_list.append({
+                all_qs.append({
                     "q_num": q_num,
                     "img": q_filename,
                     "type": ans_data["type"],
@@ -99,11 +93,15 @@ for subj in os.listdir(PDF_PRACTICE):
                 })
             os.remove(img_path)
             
-        if q_list:
-            q_list.sort(key=lambda x: x["q_num"])
-            master_db["practice"][subj][chapter_name] = q_list
-            print(f"✅ {subj} / {chapter_name}: Extracted {len(q_list)} questions")
+        if all_qs:
+            all_qs.sort(key=lambda x: x["q_num"])
+            # Split into eligible (first 60) and skipped (rest)
+            master_db["practice"][subj][chapter_name] = {
+                "eligible": all_qs[:CORE_LIMIT],
+                "skipped": all_qs[CORE_LIMIT:]
+            }
+            print(f"✅ {subj} / {chapter_name}: {len(all_qs[:CORE_LIMIT])} eligible, {len(all_qs[CORE_LIMIT:])} skipped")
 
 with open(DB_FILE, "w") as f:
     json.dump(master_db, f, indent=2)
-print(f"✅ Saved SMART DB to {DB_FILE}")
+print(f"✅ Saved TWO-PHASE DB to {DB_FILE}")
