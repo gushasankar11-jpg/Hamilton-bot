@@ -1,10 +1,7 @@
-__pycache__/
-bot.log
-pdf_out/
-pdf_tmp/
-pdf_builder_tmp/
+pyq_images/
 pyq_pdfs/
-*.bak
-*.bak*
-*.pyc
-.env
+*.png
+*.pdf
+bot.log
+pdf_process.log
+__pycache__/
