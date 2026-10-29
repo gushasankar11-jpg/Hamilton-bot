@@ -65,7 +65,9 @@ for subj in os.listdir(PDF_PRACTICE):
                 y_min = float(y_str) * scale
                 y_max = float(q_matches[i+1][0]) * scale - 15 if i+1 < len(q_matches) else foot_y * scale - 15
                 
-                crop_top, crop_bottom = max(0, y_min - 20), min(h, y_max)
+                crop_top = max(0, y_min - 20)
+                # SAFETY: Ensure crop_bottom is always at least 50px below crop_top
+                crop_bottom = max(crop_top + 50, min(h, y_max)) 
                 q_img = img.crop((0, int(crop_top), w, int(crop_bottom)))
                 q_filename = os.path.join(out_dir, f"q{q_num}.png")
                 q_img.save(q_filename)
