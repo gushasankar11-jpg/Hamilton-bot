@@ -1,0 +1,185 @@
+# ==========================================================
+# c30s_admin_cleanup.py — v2
+# - Auto-tracks ALL bot->admin messages during admin session
+# - Auto-close after 5 min inactivity
+# ==========================================================
+import threading, time as _t
+from datetime import datetime
+import admin_auth as auth
+
+_ADMIN_MSGS = {}
+_ADMIN_MSG_TYPES = {}
+_PAUSE_TRACKING = {"active": False}
+
+def track_admin_msg(uid, msg_id, mtype="panel"):
+    if not uid or not msg_id: return
+    try:
+        _ADMIN_MSGS.setdefault(int(uid), []).append(int(msg_id))
+        _ADMIN_MSG_TYPES[int(msg_id)] = mtype
+        if len(_ADMIN_MSGS[int(uid)]) > 500:
+            _ADMIN_MSGS[int(uid)] = _ADMIN_MSGS[int(uid)][-500:]
+    except Exception:
+        pass
+
+
+def clear_tracked(uid):
+    try:
+        _ADMIN_MSGS.pop(int(uid), None)
+    except Exception:
+        pass
+
+
+def delete_all_admin_msgs(uid):
+    deleted = 0; failed = 0
+    try:
+        ids = list(_ADMIN_MSGS.get(int(uid), []))
+        for mid in ids:
+            try:
+                bot.delete_message(uid, mid)
+                deleted += 1
+            except Exception:
+                failed += 1
+        _ADMIN_MSGS[int(uid)] = []
+    except Exception as e:
+        print(f"[cleanup] delete err: {e}")
+    return deleted, failed
+
+
+# ---- Auto-track every bot->admin send while session active ----
+def _has_pending_auth(uid):
+    try:
+        for _mn, _mo in __import__("sys").modules.items():
+            if hasattr(_mo, "PENDING_AUTH_FLOW") and uid in _mo.PENDING_AUTH_FLOW:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+try:
+    _orig_send = bot.send_message
+    def _tracking_send(chat_id, *args, **kwargs):
+        r = _orig_send(chat_id, *args, **kwargs)
+        try:
+            if _PAUSE_TRACKING.get("active"):
+                return r
+            if isinstance(chat_id, int):
+                if (auth.get_session(chat_id)
+                        or _has_pending_auth(chat_id)
+                        or _ADMIN_MSGS.get(int(chat_id))):
+                    track_admin_msg(chat_id, r.message_id)
+        except Exception:
+            pass
+        return r
+    bot.send_message = _tracking_send
+    print("[cleanup] bot.send_message auto-track installed (v3)")
+except Exception as _e:
+    print(f"[cleanup] wrapper fail: {_e}")
+
+
+# ---- Auto-close after 5 min inactivity ----
+def _autoclose_loop():
+    print("[cleanup] autoclose thread started (5 min idle)")
+    while True:
+        try:
+            for uid in list(auth._SESSIONS.keys()):
+                s = auth._SESSIONS.get(uid)
+                if not s: continue
+                la = s.get("last_activity")
+                if not la: continue
+                try:
+                    diff = (datetime.now() - datetime.fromisoformat(la)).total_seconds()
+                except Exception:
+                    continue
+                if diff > 300:
+                    print(f"[autoclose] {uid} idle {int(diff)}s — refreshing panel")
+                    # Refresh instead of delete — keep current device alive
+                    try:
+                        _sp = globals().get("_show_admin_panel")
+                        if _sp:
+                            _sp(uid)
+                            print(f"[autoclose] {uid} panel refreshed")
+                            # Bump activity so no re-trigger
+                            s["last_activity"] = __import__("datetime").datetime.now().isoformat()
+                            continue
+                    except Exception as _e:
+                        print(f"[autoclose] refresh err: {_e}")
+                    # Fallback: delete if refresh fails
+                    dc, _ = delete_all_admin_msgs(uid)
+                    try: auth._SESSIONS.pop(uid, None)
+                    except Exception: pass
+                    for gname in ("_STATS_MSGS", "_BTN_MSGS"):
+                        g = globals().get(gname)
+                        if g is not None:
+                            try: g.pop(uid, None)
+                            except Exception: pass
+                    try:
+                        unreg = globals().get("unregister_panel")
+                        if unreg: unreg(uid)
+                    except Exception: pass
+                    try:
+                        m = bot.send_message(uid,
+                            f"⏰ Auto-closed after 5 min idle. {dc} messages cleared.")
+                        def _dn(mid=m.message_id, u=uid):
+                            _t.sleep(5)
+                            try: bot.delete_message(u, mid)
+                            except Exception: pass
+                        threading.Thread(target=_dn, daemon=True).start()
+                    except Exception as e:
+                        print(f"[autoclose] notice fail: {e}")
+        except Exception as e:
+            print(f"[autoclose] loop err: {e}")
+        _t.sleep(5)
+
+
+threading.Thread(target=_autoclose_loop, daemon=True).start()
+print("c30s_admin_cleanup: loaded (v2, auto-close + auto-track).")
+
+
+def maybe_watch_lock(uid):
+    """Called after any strike. If user is watched, apply 10-day lock."""
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+        import os as _o, json as _j
+        pdir = globals().get("PROFILE_DIR") or "profiles"
+        path = _o.path.join(pdir, f"{uid}.json")
+        if not _o.path.exists(path):
+            return False
+        with open(path) as f:
+            p = _j.load(f)
+        if not p.get("watched"):
+            return False
+        beh = p.get("behavior", {})
+        if beh.get("watch_lock"):
+            return False
+        now = _dt.now()
+        until = now + _td(days=10)
+        p.setdefault("behavior", {})
+        p["behavior"]["blocked_until"] = until.isoformat()
+        p["behavior"]["watch_lock"] = True
+        p["behavior"]["watch_locked_at"] = now.isoformat()
+        with open(path, "w") as f:
+            _j.dump(p, f, indent=2)
+        _ss = globals().get("safe_send")
+        if _ss:
+            try:
+                _ss(uid,
+                    f"\U0001f512 *WATCHED ACCOUNT LOCKED*\n\n"
+                    f"You are on the admin watchlist.\n"
+                    f"Any strike results in an automatic 10-day lock.\n\n"
+                    f"\U0001f513 Unlock via *lock-in code* from admin.\n\n"
+                    f"Locked until: {until.strftime('%Y-%m-%d %H:%M')}",
+                    parse_mode="Markdown")
+            except Exception: pass
+        if _ss:
+            try:
+                _ss(8857708587,
+                    f"\u26a0\ufe0f *Watch-lock triggered*\n\n"
+                    f"User {uid} ({p.get('name') or '?'}) got a strike.\n"
+                    f"Locked 10 days until {until.strftime('%Y-%m-%d %H:%M')}")
+            except Exception: pass
+        print(f"[watch-lock] {uid} locked until {until.isoformat()}")
+        return True
+    except Exception as e:
+        print(f"[watch-lock] err: {e}")
+        return False

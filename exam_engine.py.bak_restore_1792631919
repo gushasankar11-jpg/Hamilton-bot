@@ -1,0 +1,147 @@
+# ==========================================================
+# exam_engine.py — AI Generation Engine (Real Models Only)
+# ==========================================================
+import json
+import re
+import time
+import random
+import ai_client
+import health
+import pyq_manager
+
+SESSIONS = {}
+PRELOAD_QUEUE = {}
+
+def build_question_prompt(exam, subject, chapter, subtopic, mode="practice", difficulty="medium"):
+    # This prompt forces the AI to use its massive memory to pull a REAL model
+    base = f"You are a senior NTA paper setter for {exam}.\n"
+    base += f"Subject: {subject}\nTopic: {chapter}\nSubtopic: {subtopic}\n"
+    base += f"Mode: {mode}\nDifficulty: {difficulty}\n\n"
+    
+    base += (
+        "YOUR MANDATE:\n"
+        "You have access to the memory of all past JEE/NEET/EAMCET papers and standard coaching materials (Cengage, DC Pandey, HC Verma).\n"
+        "You MUST generate a question that EXACTLY mimics a REAL question from these sources. "
+        "Do not make up a simple question. It must feel like a genuine exam problem.\n\n"
+        
+        "STRICT RULES:\n"
+        "1. ALL math MUST be in LaTeX ($ ... $ for inline, $$ ... $$ for block).\n"
+        "2. Output ONLY raw JSON. No markdown, no text outside the JSON.\n"
+        "3. JSON Schema:\n"
+        '{"question":"...", "options":["$...$", "$...$", "$...$", "$...$"], '
+        '"correct_index":0, "explanation":"...", "ideal_time_sec":60, '
+        '"source":"Name of the Book or Exam this mimics (e.g. Cengage, JEE Adv 2021 Pattern)"}\n'
+    )
+    return base
+
+def generate_question(exam, subject, chapter, subtopic, q_type="mcq", difficulty="medium", **kwargs):
+    mode = kwargs.get("mode", q_type)
+    prompt = build_question_prompt(exam, subject, chapter, subtopic, mode, difficulty)
+    
+    raw = ai_client._orig_ask_raw(exam, prompt)
+    if not raw:
+        return None
+        
+    # Clean Markdown
+    raw = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
+    
+    # Find the JSON braces
+    start_idx = raw.find("{")
+    end_idx = raw.rfind("}")
+    if start_idx == -1 or end_idx == -1:
+        return None
+        
+    json_str = raw[start_idx:end_idx+1]
+    
+    try:
+        # Try normal parse first
+        return json.loads(json_str)
+    except Exception:
+        try:
+            # Fallback: replace bad newlines inside strings
+            json_str = json_str.replace("\n", "\\n")
+            # Sometimes AI forgets to escape quotes inside the question/explanation
+            # We fix this by using regex to find specific fields
+            q_match = re.search(r'"question"\s*:\s*"(.*?)"(?=\s*,\s*"options")', json_str, re.DOTALL)
+            opt_match = re.search(r'"options"\s*:\s*\[(.*?)\]', json_str, re.DOTALL)
+            ans_match = re.search(r'"correct_index"\s*:\s*(\d+)', json_str)
+            exp_match = re.search(r'"explanation"\s*:\s*"(.*?)"(?=\s*,\s*"ideal_time_sec"|\s*\}|$)', json_str, re.DOTALL)
+            
+            if not q_match or not opt_match or not ans_match:
+                return None
+                
+            question = q_match.group(1).replace('"', '')
+            options = json.loads("[" + opt_match.group(1) + "]")
+            correct_index = int(ans_match.group(1))
+            explanation = exp_match.group(1).replace('"', '') if exp_match else ""
+            
+            return {
+                "question": question,
+                "options": options,
+                "correct_index": correct_index,
+                "explanation": explanation,
+                "ideal_time_sec": 60,
+                "source": "AI Pattern"
+            }
+        except Exception as e:
+            print(f"[engine] Fallback parse failed: {e}")
+            return None
+
+
+def pick_next_concept(profile, subject, exam, chapter=None):
+    data = health.load_subject_data(subject, exam)
+    if not data: return None
+    concept_stats = profile.get("concept_stats", {})
+    candidates = []
+    chapters = [chapter] if chapter else list(data.keys())
+    for ch in chapters:
+        if not health.is_chapter_selected(profile, subject, ch): continue
+        subs = data[ch]
+        for sub, concepts in subs.items():
+            if isinstance(concepts, dict) and "adv" in concepts: concepts = concepts["adv"]
+            for concept in concepts:
+                key = f"{subject}::{ch}::{sub}"
+                stat = concept_stats.get(key, {}).get(concept)
+                if stat and stat.get("attempts", 0) > 0:
+                    h = health.concept_health(stat["attempts"], stat["correct"], stat.get("avg_time", 60), stat.get("ideal_time", 60))
+                    candidates.append((h if h is not None else 999, subject, ch, sub, concept))
+                else:
+                    candidates.append((0, subject, ch, sub, concept))
+    if not candidates: return None
+    candidates.sort(key=lambda x: x[0])
+    top_pool = candidates[:min(5, len(candidates))]
+    _, subj, ch, sub, concept = random.choice(top_pool)
+    return (subj, ch, sub, concept)
+
+def new_test_session(uid, exam, q_count=75, mode="test"):
+    SESSIONS[uid] = {"mode": mode, "exam": exam, "started_at": time.time(), "questions_done": 0, "total_q": q_count, "correct": 0, "wrong": 0, "skipped": 0, "current_q": None}
+    return SESSIONS[uid]
+
+def start_conceptual_test(uid, subject, chapter, total_q): return True
+def start_exceptional_test(uid, subject, chapter, total_q): return True
+def start_pyq_test(uid, subject, chapter): return True
+
+def get_session(uid): return SESSIONS.get(uid)
+def end_session(uid): return SESSIONS.pop(uid, None)
+
+def preload_for_user(uid, profile, exam, count=2):
+    import threading
+    def _job():
+        queue = PRELOAD_QUEUE.setdefault(uid, [])
+        while len(queue) < count:
+            try:
+                subj = "Maths"
+                pick = pick_next_concept(profile, subj, exam)
+                if not pick: return
+                _, ch, sub, concept = pick
+                q = generate_question(exam, subj, ch, sub, q_type="practice", uid=uid)
+                if q:
+                    q["_meta"] = {"subject": subj, "chapter": ch, "subtopic": sub, "concept": concept}
+                    queue.append(q)
+            except Exception:
+                return
+    threading.Thread(target=_job, daemon=True).start()
+
+def pop_preloaded(uid):
+    queue = PRELOAD_QUEUE.get(uid, [])
+    return queue.pop(0) if queue else None

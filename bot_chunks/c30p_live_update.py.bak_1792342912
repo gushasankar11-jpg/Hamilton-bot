@@ -1,0 +1,138 @@
+# ==========================================================
+# c30p_live_update.py — Live tracking for Admin Panel (v3)
+# ==========================================================
+import threading, time
+import admin_auth as auth
+
+ACTIVE_PANELS = {}
+
+def _touch_panel_viewer(uid):
+    try:
+        import os as _tpo, json as _tpj
+        from datetime import datetime as _tpdt
+        pdir = globals().get("PROFILE_DIR") or "profiles"
+        path = _tpo.path.join(pdir, f"{uid}.json")
+        if not _tpo.path.exists(path):
+            return
+        with open(path) as _f:
+            p = _tpj.load(_f)
+        if not p.get("secured"):
+            return
+        p["last_seen"] = _tpdt.now().isoformat()
+        with open(path, "w") as _f:
+            _tpj.dump(p, _f, indent=2)
+    except Exception:
+        pass
+
+
+def register_panel(uid, message_id, text):
+    ACTIVE_PANELS[uid] = (message_id, text)
+
+
+def unregister_panel(uid):
+    ACTIVE_PANELS.pop(uid, None)
+
+
+def _get_live_text(uid):
+    try:
+        import os as _go, json as _gj
+        from datetime import datetime as _gdt, timedelta as _gtd
+        session = auth.get_session(uid)
+        if not session:
+            return None
+        pdir = globals().get("PROFILE_DIR") or "profiles"
+        today = _gdt.now().date()
+        week_ago = _gdt.now() - _gtd(days=7)
+        now = _gdt.now()
+        today_users = 0
+        total_users = 0
+        online_count = 0
+        _week_set = set()
+        try:
+            for fn in _go.listdir(pdir):
+                if not fn.endswith(".json"):
+                    continue
+                try:
+                    uid_f = int(fn.replace(".json", ""))
+                    with open(_go.path.join(pdir, fn)) as _f:
+                        p = _gj.load(_f)
+                except Exception:
+                    continue
+                if not p.get("secured"):
+                    continue
+                total_users += 1
+                ls = p.get("last_seen")
+                if ls:
+                    try:
+                        dt = _gdt.fromisoformat(ls)
+                        if dt.date() == today:
+                            today_users += 1
+                        if dt >= week_ago:
+                            _week_set.add(uid_f)
+                        if (now - dt) < _gtd(minutes=5):
+                            online_count += 1
+                    except Exception:
+                        pass
+        except Exception as _e:
+            print(f"[live] scan err: {_e}")
+        week_users = len(_week_set)
+        total_calls = 0
+        today_calls = 0
+        try:
+            with open("data/lifetime_stats.json") as _lf:
+                _lts = _gj.load(_lf)
+                total_calls = _lts.get("total_calls", 0)
+                today_calls = _lts.get("daily_calls", {}).get(today.isoformat(), 0)
+        except Exception:
+            pass
+        role = session.get("role", "sub")
+        print(f"[live-dbg] {uid}: online={online_count} today_calls={today_calls} total_calls={total_calls} users={total_users}")
+        if role == "primary":
+            return (
+                f"🛠 *HAMILTON ADMIN PANEL* `[PRIMARY]`\n\n"
+                f"📊 *LIVE SNAPSHOT* (updates every 2s)\n"
+                f"  Today: *{today_calls}* calls · *{today_users}* users\n"
+                f"  Week:  *{week_users}* users\n"
+                f"  Total: *{total_calls}* calls · *{total_users}* users\n\n"
+                f"🟢 *ONLINE NOW:* *{online_count}* users\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━"
+            )
+        return (
+            f"🛡 *HAMILTON ADMIN PANEL* `[READ-ONLY]`\n\n"
+            f"  Today: *{today_calls}* calls · *{today_users}* users\n"
+            f"  Total: *{total_calls}* calls\n\n"
+            f"🟢 *ONLINE NOW:* *{online_count}* users\n"
+        )
+    except Exception as e:
+        print(f"[live] text gen error: {e}")
+        return None
+
+
+def _live_loop():
+    print("[live] Live panel updater started")
+    while True:
+        try:
+            for uid, (msg_id, last_text) in list(ACTIVE_PANELS.items()):
+                _touch_panel_viewer(uid)
+                new_text = _get_live_text(uid)
+                if new_text and new_text != last_text:
+                    try:
+                        bot.edit_message_text(
+                            chat_id=uid,
+                            message_id=msg_id,
+                            text=new_text,
+                            parse_mode="Markdown"
+                        )
+                        ACTIVE_PANELS[uid] = (msg_id, new_text)
+                    except Exception as e:
+                        if "message is not modified" in str(e).lower():
+                            pass
+                        else:
+                            print(f"[live] edit err {uid}: {e}")
+        except Exception:
+            pass
+        time.sleep(2)
+
+
+threading.Thread(target=_live_loop, daemon=True).start()
+print("c30p_live_update: loaded.")

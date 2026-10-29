@@ -1,0 +1,483 @@
+# ==========================================================
+# exam_engine.py — Hamilton Study AI
+# Question generation + session management + paper planner.
+# ==========================================================
+
+import json
+import re
+import time
+import random
+
+import ai_client
+import health
+from config import MATERIAL_NAMES, PAPER_PATTERN, DURATION_MIN
+
+
+SESSIONS = {}
+
+
+# ==========================================================
+# SOURCE HINT
+# ==========================================================
+def _source_hint():
+    roll = random.random()
+    if roll < 0.50:
+        return "Material-style: " + random.choice(MATERIAL_NAMES)
+    if roll < 0.80:
+        year = random.choice([2019, 2020, 2021, 2022, 2023, 2024])
+        exam = random.choice(["JEE Mains", "JEE Advanced", "EAMCET"])
+        return f"PYQ-style from {exam} {year}"
+    return "AI-generated conceptual twist"
+
+
+# ==========================================================
+# QUESTION PROMPT BUILDER
+# ==========================================================
+def _build_question_prompt(exam, subject, chapter, subtopic, q_type="mcq", difficulty="medium", source_hint=""):
+    base = f"Generate a {difficulty} level question for {exam} (Subject: {subject}, Chapter: {chapter}, Subtopic: {subtopic}).\n"
+    
+    if q_type == "conceptual":
+        base += "CRITICAL: This MUST be a theoretical / conceptual question. NO NUMERICALS. Ask about the underlying principles, laws, or theoretical reasoning.\n"
+    elif q_type == "exceptional":
+        base += "CRITICAL: This MUST be an exceptional case / edge case question. Focus on traps, exceptions to the rule, or highly specific rare scenarios. Do NOT generate standard textbook questions.\n"
+    elif q_type == "test":
+        base += "This is a standard exam-level question. It should be challenging.\n"
+    else:
+        base += "This is a standard practice question.\n"
+        
+    base += f"\nSource hint: {source_hint}\n\n"
+    base += "STRICT RULES:\n"
+    base += "1. ALL mathematical formulas, symbols, variables, and equations MUST be written in LaTeX.\n"
+    base += "   - Use $ ... $ for inline math (e.g., $v = u + at$).\n"
+    base += "   - Use $$ ... $$ for display math.\n"
+    base += "   - Apply this to the question text AND all options.\n"
+    base += "2. NEVER use plain Unicode for math. Use \\theta, ^2, \\sqrt, \\pi.\n"
+    base += "3. Output strictly as JSON:\n"
+    base += '{"question":"...","options":["$...$","$...$","$...$","$...$"],"correct_index":0,"explanation":"...","ideal_time_sec":60,"concept_tested":"..."}'
+    return base
+
+def generate_custom_question(exam, subject, chapter, subtopic, mode="practice", difficulty="medium"):
+    """Generates a question with mode-specific rules."""
+    # Re-use the existing generate_question but pass the mode as q_type
+    q_type = mode if mode in ("conceptual", "exceptional", "test") else "mcq"
+    return generate_question(exam, subject, chapter, subtopic, q_type=q_type, difficulty=difficulty)
+
+def generate_question(exam, subject, chapter, subtopic,
+                       q_type="mcq", difficulty="medium"):
+    # Normalize q_type — PAPER_PATTERN uses uppercase keys
+    q_type = str(q_type).lower()
+    if isinstance(q_type, str):
+        q_type = q_type.lower()
+    if isinstance(q_type, str):
+        q_type = q_type.lower()
+    if isinstance(q_type, str):
+        q_type = q_type.lower()
+    """
+    Returns a validated question dict or None.
+    Retries up to 3 times if Gemini returns bad JSON.
+    """
+    simple_system = (
+        "You are a question generator. Output ONLY valid JSON. "
+        "No prose, no markdown fences, no explanations. Just the JSON object. "
+        "Use real Unicode symbols (θ, τ, π, √, ²) — never LaTeX."
+    )
+
+    for attempt in range(3):
+        prompt = _build_question_prompt(exam, subject, chapter, subtopic,
+                                         q_type, difficulty, _source_hint())
+        raw = ai_client.ask_hamilton_raw(exam, prompt, system_override=simple_system)
+        if not raw:
+            continue
+
+        text = raw.strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text)
+            text = re.sub(r"\s*```\s*$", "", text)
+
+        first = text.find("{")
+        last = text.rfind("}")
+        if first == -1 or last == -1 or last <= first:
+            continue
+
+        json_str = text[first:last+1]
+
+        try:
+            data = json.loads(json_str)
+        except Exception:
+            try:
+                cleaned = re.sub(r",\s*}", "}", json_str)
+                cleaned = re.sub(r",\s*]", "]", cleaned)
+                data = json.loads(cleaned)
+            except Exception:
+                continue
+
+        if not data.get("question"):
+            continue
+
+        # Defaults
+        data.setdefault("ideal_time_sec", 60 if q_type == "mcq" else 90)
+        data.setdefault("logic_type", "calc" if q_type == "numerical" else "logic")
+        data.setdefault("min_realistic_sec", 15 if q_type == "mcq" else 45)
+        data.setdefault("difficulty", difficulty)
+        data.setdefault("source_type", "AI-Generated")
+        data.setdefault("source_detail", "")
+        data.setdefault("traps", [])
+        data.setdefault("shortcut", "")
+        data.setdefault("explanation", "(no explanation)")
+
+        # Validate MCQ
+        if q_type == "mcq":
+            if not data.get("options") or data.get("correct_index") is None:
+                continue
+            if len(data["options"]) < 4:
+                continue
+
+        # Validate numerical
+        if q_type == "numerical":
+            if data.get("correct_value") is None:
+                continue
+
+        # Validate multi
+        if q_type == "multi":
+            if not data.get("options") or not data.get("correct_indices"):
+                continue
+
+        # Validate match
+        if q_type == "match":
+            if not data.get("options") or data.get("correct_index") is None:
+                continue
+
+        return data
+
+    return None
+
+
+# ==========================================================
+# PICK NEXT SUBTOPIC (weakest first from selected/all chapters)
+# ==========================================================
+def pick_next_subtopic(profile, subject, exam, allowed_chapters=None):
+    """
+    Returns (subject, chapter, subtopic) or None.
+    If allowed_chapters is provided (list), restrict to those.
+    Otherwise use profile.selected_chapters.
+    """
+    data = health.load_subject_data(subject, exam)
+    if not data:
+        return None
+
+    if allowed_chapters is None:
+        allowed_chapters = profile.get("selected_chapters", {}).get(subject, [])
+
+    allowed_set = set(allowed_chapters) if allowed_chapters else None
+
+    candidates = []
+    for chapter, subs in data.items():
+        if allowed_set and chapter not in allowed_set:
+            continue
+        for sub in subs.keys():
+            h = health.subtopic_health(profile, subject, chapter, sub)
+            score = h if h is not None else 0.0
+            candidates.append((score, chapter, sub))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda x: x[0])
+    top_pool = candidates[:min(8, len(candidates))]
+    _, ch, sub = random.choice(top_pool)
+    return (subject, ch, sub)
+
+
+# ==========================================================
+# TEST PAPER PLANNER
+# ==========================================================
+def build_test_plan(exam, subjects, allowed_chapters):
+    """
+    subjects: list of subject names (must include all 3 for a real paper)
+    allowed_chapters: dict {subject: [chapter1, chapter2, ...]}
+    Returns list of (subject, chapter, subtopic, q_type, difficulty) tuples.
+    """
+    pattern = PAPER_PATTERN.get(exam, {})
+    plan = []
+
+    for subject in subjects:
+        subject_pattern = pattern.get(subject, {})
+        chapters = allowed_chapters.get(subject, [])
+        if not chapters:
+            continue
+
+        # Get all subtopics in allowed chapters
+        subj_data = health.load_subject_data(subject, exam)
+        if not subj_data:
+            continue
+
+        all_subtopics = []
+        for ch in chapters:
+            if ch not in subj_data:
+                continue
+            for sub in subj_data[ch].keys():
+                all_subtopics.append((ch, sub))
+
+        if not all_subtopics:
+            continue
+
+        for q_type, count in subject_pattern.items():
+            for i in range(count):
+                ch, sub = random.choice(all_subtopics)
+                # Simple difficulty mix: 30% easy, 50% medium, 20% hard
+                r = random.random()
+                if r < 0.30:
+                    diff = "easy"
+                elif r < 0.80:
+                    diff = "medium"
+                else:
+                    diff = "hard"
+                plan.append((subject, ch, sub, q_type, diff))
+
+    random.shuffle(plan)
+    return plan
+
+
+# ==========================================================
+# PRACTICE SESSION
+# ==========================================================
+def new_practice_session(uid, exam=None, subject=None, chapter=None):
+    SESSIONS[uid] = {
+        "mode": "practice",
+        "exam": exam,
+        "subject": subject,
+        "chapter": chapter,
+        "started_at": time.time(),
+        "questions_done": 0,
+        "correct": 0,
+        "wrong": 0,
+        "skipped": 0,
+        "total_time": 0,
+        "current_q": None,
+        "current_meta": None,
+        "current_started": None,
+        "answers_log": [],
+        "last_q": None,
+        "last_meta": None,
+    }
+    return SESSIONS[uid]
+
+
+def new_test_session(uid, exam, subjects, allowed_chapters, papers=1):
+    plan = build_test_plan(exam, subjects, allowed_chapters)
+    SESSIONS[uid] = {
+        "mode": "test",
+        "exam": exam,
+        "subjects": subjects,
+        "allowed_chapters": allowed_chapters,
+        "papers": papers,
+        "current_paper": 1,
+        "plan": plan,
+        "plan_index": 0,
+        "started_at": time.time(),
+        "questions_done": 0,
+        "correct": 0,
+        "wrong": 0,
+        "skipped": 0,
+        "total_time": 0,
+        "current_q": None,
+        "current_meta": None,
+        "current_started": None,
+        "answers_log": [],
+        "awaiting_paper2": False,
+    }
+    return SESSIONS[uid]
+
+
+def start_conceptual_test(uid, subject, chapter, total_q, test_type="general"):
+    profile = health.load_profile(uid) or {}
+    exam = health.exam_of(profile) or "JEE_MAIN"
+    data = health.load_subject_data(subject, exam)
+    if not data or chapter not in data:
+        return None
+
+    subs = data[chapter]
+    all_subtopics = list(subs.keys())
+    if not all_subtopics:
+        return None
+
+    plan = []
+    if total_q >= len(all_subtopics):
+        plan = list(all_subtopics)
+        extra = total_q - len(all_subtopics)
+        for _ in range(extra):
+            plan.append(random.choice(all_subtopics))
+    else:
+        plan = random.sample(all_subtopics, total_q)
+    random.shuffle(plan)
+
+    SESSIONS[uid] = {
+        "mode": "conceptual",
+        "test_type": test_type,
+        "exam": exam,
+        "subject": subject,
+        "chapter": chapter,
+        "plan": plan,
+        "index": 0,
+        "total_q": total_q,
+        "started_at": time.time(),
+        "questions_done": 0,
+        "correct": 0,
+        "wrong": 0,
+        "skipped": 0,
+        "total_time": 0,
+        "subtopic_stats": {},
+        "current_q": None,
+        "current_meta": None,
+        "current_started": None,
+        "last_q": None,
+        "last_meta": None,
+    }
+    return SESSIONS[uid]
+
+
+def get_session(uid):
+    return SESSIONS.get(uid)
+
+
+def end_session(uid):
+    return SESSIONS.pop(uid, None)
+
+
+# ==========================================================
+# RECORD CONCEPTUAL ATTEMPT
+# ==========================================================
+def record_conceptual_attempt(uid, subtopic, correct):
+    s = SESSIONS.get(uid)
+    if not s or s.get("mode") != "conceptual":
+        return
+    st = s["subtopic_stats"].setdefault(subtopic, {"attempted": 0, "correct": 0})
+    st["attempted"] += 1
+    if correct:
+        st["correct"] += 1
+
+
+# ==========================================================
+# CONCEPTUAL REPORT
+# ==========================================================
+def conceptual_report(uid):
+    s = SESSIONS.get(uid)
+    if not s or s.get("mode") != "conceptual":
+        return "No conceptual test running."
+
+    subj = s["subject"]
+    chapter = s["chapter"]
+    data = health.load_subject_data(subj, s["exam"])
+    total_subtopics = len(data.get(chapter, {})) if data and chapter in data else 0
+    tested = len(s["subtopic_stats"])
+
+    lines = [
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        f"   🧠 CONCEPTUAL TEST — {s.get('test_type','general').upper()}",
+        f"   {subj} → {chapter}",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "",
+    ]
+
+    if s["questions_done"] == 0:
+        lines.append("No questions attempted.")
+        return "\n".join(lines)
+
+    acc = round(100 * s["correct"] / s["questions_done"], 1)
+    coverage = round(100 * tested / total_subtopics, 1) if total_subtopics else 0
+
+    lines.append(f"🎯 Score: {s['correct']}/{s['questions_done']}")
+    lines.append(f"✅ Accuracy: {acc}%")
+    lines.append(f"📊 Coverage: {coverage}% of subtopics")
+    lines.append(f"⏱️ Time: {round(s['total_time']/60, 1)} min")
+    lines.append("")
+    lines.append(f"✅ Correct: {s['correct']}")
+    lines.append(f"❌ Wrong: {s['wrong']}")
+    lines.append(f"🚪 Skipped: {s['skipped']}")
+    lines.append("")
+    lines.append("━━━ SUBTOPIC BREAKDOWN ━━━")
+    for sub, stat in sorted(s["subtopic_stats"].items(),
+                            key=lambda x: x[1]["correct"] / max(1, x[1]["attempted"])):
+        att = stat["attempted"]
+        cor = stat["correct"]
+        pct = round(100 * cor / att, 1) if att else 0
+        emoji = "🟢" if pct >= 70 else "🟡" if pct >= 50 else "🔴"
+        lines.append(f"{emoji} {sub[:30]:<32} {cor}/{att} ({pct}%)")
+    return "\n".join(lines)
+
+
+# ==========================================================
+# SESSION REPORT (practice / test)
+# ==========================================================
+def session_report(uid):
+    s = SESSIONS.get(uid)
+    if not s:
+        return "No active session."
+    lines = [
+        "🏁 SESSION COMPLETE",
+        "",
+        f"📝 Questions: {s['questions_done']}",
+        f"   ✅ Correct: {s['correct']}",
+        f"   ❌ Wrong: {s['wrong']}",
+        f"   🚪 Skipped: {s['skipped']}",
+    ]
+    if s["questions_done"] > 0:
+        acc = round(100 * s["correct"] / s["questions_done"], 1)
+        lines.append(f"🎯 Accuracy: {acc}%")
+    lines.append(f"⏱️ Total time: {round(s['total_time']/60, 1)} min")
+    return "\n".join(lines)
+
+
+# ==========================================================
+# TEST PAPER SCORE
+# ==========================================================
+def test_paper_score(exam, correct, wrong, skipped):
+    from config import MARKING
+    m = MARKING.get(exam, {"MCQ": 4, "MCQ_wrong": -1})
+    mcq_c = m.get("MCQ", 4)
+    mcq_w = m.get("MCQ_wrong", -1)
+    score = correct * mcq_c + wrong * mcq_w
+    max_score = (correct + wrong + skipped) * mcq_c
+    return score, max_score
+
+
+# ==========================================================
+# SELF TEST
+# ==========================================================
+if __name__ == "__main__":
+    print("exam_engine.py OK")
+    print("Functions:")
+    print("  generate_question(exam, subject, chapter, subtopic, q_type, difficulty)")
+    print("  pick_next_subtopic(profile, subject, exam, allowed_chapters)")
+    print("  build_test_plan(exam, subjects, allowed_chapters)")
+    print("  new_practice_session, new_test_session, start_conceptual_test")
+    print("  conceptual_report, session_report, test_paper_score")
+
+
+def generate_quick_question(exam, subject, chapter, difficulty="medium", mode="practice"):
+    """Fast generation with strict mode enforcement."""
+    import random
+    prompt = f"Generate 1 {difficulty} level {exam} {subject} question from chapter '{chapter}'.\n"
+    if mode == "conceptual":
+        prompt += "This MUST be a theoretical question about the fundamental concept. No numerical calculations.\n"
+    elif mode == "exceptional":
+        prompt += "This MUST be an exceptional case / boundary condition / trap question. Do not ask standard textbook problems.\n"
+    else:
+        prompt += "This should be a standard competitive exam style question.\n"
+        
+    prompt += "Output strictly as JSON: {\"question\":\"...\", \"options\":[\"A\",\"B\",\"C\",\"D\"], \"correct_index\":0, \"explanation\":\"...\", \"ideal_time_sec\":90}"
+    
+    system = "You are a JSON API. Output ONLY valid JSON. Do not include markdown formatting like ```json. Start directly with { and end with }."
+    import ai_client
+    raw = ai_client._call_groq(0, system, prompt, max_tokens=800, temperature=0.6)
+    if not raw: return None
+    
+    import json, re
+    try:
+        txt = raw.strip()
+        if txt.startswith("```"): txt = re.sub(r"^```(?:json)?\s*", "", txt); txt = re.sub(r"\s*```\s*$", "", txt)
+        data = json.loads(txt)
+        data["type"] = "mcq"
+        return data
+    except:
+        return None

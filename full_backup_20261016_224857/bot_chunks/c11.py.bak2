@@ -1,0 +1,424 @@
+# ==========================================================
+# bot.py — Chunk 11 (REBUILT): smart send + notes + free-text
+# ==========================================================
+
+# ==========================================================
+# SMART SEND — converts LaTeX, uses rich message, falls back
+# ==========================================================
+def _send_smart(uid, text, edit_msg_id=None, reply_markup=None):
+    """Convert matrix/det/cases to Unicode, then send rich message. Fallback to plain."""
+    import ai_client as _aic
+
+    print(f"[SMART] in len={len(text)}")
+
+    # Step 1: matrix/det/cases → Unicode art code block
+    try:
+        text = _aic.convert_latex_envs(text)
+        print(f"[SMART] after env-convert len={len(text)}")
+    except Exception as e:
+        print(f"[SMART-CONV-FAIL] {e}")
+
+    # Step 2: Decide rich vs plain
+    # Rich if any $ or common LaTeX commands remain
+    has_math = (
+        "$" in text or
+        "\\frac" in text or "\\sqrt" in text or
+        "\\sum" in text or "\\int" in text or
+        "\\theta" in text or "\\alpha" in text or
+        "\\vec" in text or "\\lim" in text
+    )
+
+    if has_math:
+        try:
+            rm = telebot.types.InputRichMessage(markdown=text)
+            if edit_msg_id:
+                try:
+                    bot.delete_message(uid, edit_msg_id)
+                    print(f"[SMART] deleted thinking {edit_msg_id}")
+                except Exception as e:
+                    print(f"[SMART-DEL-FAIL] {e}")
+            result = bot.send_rich_message(chat_id=uid, rich_message=rm)
+            print(f"[SMART] rich OK id={result.message_id}")
+            return
+        except Exception as e:
+            print(f"[SMART-RICH-FAIL] {type(e).__name__} {e}")
+
+    # Step 3: Fallback to plain Markdown
+    try:
+        if edit_msg_id:
+            safe_edit(uid, edit_msg_id, text, parse_mode="Markdown",
+                      reply_markup=reply_markup)
+        else:
+            safe_send(uid, text, parse_mode="Markdown",
+                      reply_markup=reply_markup)
+        print("[SMART] plain OK")
+    except Exception as e:
+        print(f"[SMART-PLAIN-FAIL] {e}")
+        safe_send(uid, text)
+
+
+
+# ==========================================================
+# NOTES — full chapter in parts, auto-forwarded
+# ==========================================================
+def _generate_notes_begin(uid, subject, chapter):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    data = health.load_subject_data(subject, exam)
+    if not data or chapter not in data:
+        safe_send(uid, "❌ No data for chapter.")
+        return
+
+    subs = data[chapter]
+    concepts = []
+    for sub, val in subs.items():
+        cl = val.get("adv", []) if isinstance(val, dict) else val
+        for c in cl:
+            concepts.append(f"{sub}: {c}")
+
+    if not concepts:
+        safe_send(uid, "❌ No concepts in chapter.")
+        return
+
+    p["_notes_state"] = {
+        "subject": subject,
+        "chapter": chapter,
+        "exam": exam,
+        "concepts": concepts,
+        "offset": 0,
+        "batch": 1,
+        "total_concepts": len(concepts),
+    }
+    save_profile(uid, p)
+
+    safe_send(uid,
+        f"📝 *Generating notes for {chapter}...*\n\n"
+        f"Concepts: *{len(concepts)}*\n"
+        f"_Parts will arrive one by one._",
+        parse_mode="Markdown")
+
+    _send_next_notes_batch(uid)
+
+
+def _send_next_notes_batch(uid):
+    """Stream: generate ONE part, send it, next. User sees progress."""
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        return
+
+    subject = state["subject"]
+    chapter = state["chapter"]
+    exam = state["exam"]
+    concepts = state["concepts"]
+    offset = state["offset"]
+    batch = state["batch"]
+
+    BATCH_CAP = 10
+    PER_PART = 3
+
+    remaining = concepts[offset:]
+    if not remaining:
+        p.pop("_notes_state", None)
+        save_profile(uid, p)
+        safe_send(uid, f"✅ *{chapter} complete.* {state['total_concepts']} concepts covered.")
+        return
+
+    needed = (len(remaining) + PER_PART - 1) // PER_PART
+    use_parts = min(needed, BATCH_CAP)
+    consumed = 0
+
+    for part_num in range(1, use_parts + 1):
+        group = remaining[consumed:consumed + PER_PART]
+        if not group:
+            break
+        consumed += len(group)
+
+        timer_manager.start_generating_timer(
+            bot, uid, f"notes p{part_num}/{use_parts}"
+        )
+
+        concepts_str = "\n".join(f"- {c}" for c in group)
+        prompt = (
+            f"Write EXHAUSTIVE short notes for '{chapter}' ({subject}, {exam}). "
+            f"Part {part_num} of {use_parts}.\n\n"
+            f"Concepts:\n{concepts_str}\n\n"
+            "LaTeX math:\n"
+            "- $\\frac{a}{b}$  $$\\int_0^\\infty e^{-x} dx$$\n"
+            "- Matrices: $$\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$$\n"
+            "- Determinants: $$\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}$$\n"
+            "- Cases: $$\\begin{cases} x^2 & x \\geq 0 \\\\ -x^2 & x < 0 \\end{cases}$$\n\n"
+            "Per concept: definition + formulas + 2-3 traps + shortcut + JEE pattern.\n"
+            "12-15 lines per concept. NO compression. NO code fences.\n"
+            "Output ONLY this part's notes."
+        )
+
+        raw = ai_client.ask_hamilton(exam, prompt)
+        timer_manager.stop_generating_timer(bot, uid)
+
+        if not raw:
+            safe_send(uid, f"⚠️ Part {part_num} failed. Continuing...")
+            continue
+
+        header = f"**{chapter}** — Part {part_num}/{use_parts}\n\n"
+        footer = ""
+        if part_num == use_parts and consumed >= len(remaining):
+            footer = _countdown_footer(uid)
+
+        svg, clean = svg_renderer.detect_svg_in_text(raw)
+        _send_smart(uid, header + clean + footer)
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name=f"notes_{uid}_{batch}_{part_num}")
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        time.sleep(0.3)
+
+    state["offset"] = offset + consumed
+    state["batch"] = batch + 1
+    p["_notes_state"] = state
+    save_profile(uid, p)
+
+    has_more = state["offset"] < len(concepts)
+    if has_more:
+        left = len(concepts) - state["offset"]
+        safe_send(uid,
+            f"📚 *Batch {batch} done* — {use_parts} parts.\n"
+            f"{left} concepts left.\n\nContinue now or later?",
+            parse_mode="Markdown",
+            reply_markup=_notes_continue_buttons())
+    else:
+        p.pop("_notes_state", None)
+        save_profile(uid, p)
+        safe_send(uid,
+            f"✅ *{chapter} complete.* All {state['total_concepts']} concepts covered.",
+            parse_mode="Markdown")
+
+
+def _notes_continue_buttons():
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(
+        telebot.types.InlineKeyboardButton("▶️ Now", callback_data="notes_now"),
+        telebot.types.InlineKeyboardButton("⏸ Later", callback_data="notes_later"),
+    )
+    return markup
+
+
+@bot.callback_query_handler(func=lambda c: c.data in ("notes_now", "notes_later"))
+def _notes_callback(call):
+    uid = call.message.chat.id
+    try:
+        bot.edit_message_reply_markup(chat_id=uid,
+                                       message_id=call.message.message_id,
+                                       reply_markup=None)
+    except Exception:
+        pass
+    if call.data == "notes_now":
+        _send_next_notes_batch(uid)
+    else:
+        safe_send(uid, "⏸ Got it. Type /continue whenever ready.")
+
+
+@bot.message_handler(commands=['continue'])
+def cmd_continue(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        safe_send(uid, "No notes in progress. Type /notes to start.")
+        return
+    safe_send(uid, "▶️ Continuing notes...")
+    _send_next_notes_batch(uid)
+
+
+# ==========================================================
+# FREE-TEXT HANDLER
+# ==========================================================
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def free_text_handler(message):
+    uid = message.chat.id
+    text = (message.text or "").strip()
+    if not text:
+        return
+
+    p = get_or_create_profile(uid)
+
+    # Admin unblock
+    if text.strip() == ADMIN_UNBLOCK_CODE:
+        p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+        p["behavior"]["strikes"] = 0
+        p["behavior"]["blocked_until"] = None
+        save_profile(uid, p)
+        bot.reply_to(message, "🔓 Admin unblock successful. Strikes reset.")
+        return
+
+    # Blocked
+    blocked, time_left = check_blocked(uid)
+    if blocked:
+        safe_send(uid,
+            f"⛔ *Blocked*\n\nTry again in: *{time_left}*" + _countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # Activation
+    if not p.get("secured"):
+        if is_valid_key(text):
+            allowed, reason = _check_key_binding(uid, text.strip())
+            if not allowed:
+                safe_send(uid, "❌ This key is already activated on another device.")
+                return
+            p["secured"] = True
+            p["activation_key"] = text.strip()
+            p["key_expired"] = False
+            p["onboarding_step"] = "name"
+            if not p.get("hku_id"):
+                p["hku_id"] = allocate_user_id(uid)
+            save_profile(uid, p)
+            if not p.get("story_shown"):
+                safe_send(uid, _hamilton_story(), parse_mode="Markdown")
+                p["story_shown"] = True
+                save_profile(uid, p)
+                time.sleep(1)
+            bot.reply_to(message, "✅ Key confirmed. Let's set up your profile.")
+            _run_onboarding(uid)
+        else:
+            p.setdefault("no_key_attempts", 0)
+            p["no_key_attempts"] += 1
+            save_profile(uid, p)
+            if p["no_key_attempts"] <= 2:
+                safe_send(uid, _no_key_message(short=False), parse_mode="Markdown")
+            else:
+                safe_send(uid, _no_key_message(short=True), parse_mode="Markdown")
+        return
+
+    if _check_key_expired(uid, p):
+        return
+
+    if not p.get("hku_id"):
+        p["hku_id"] = allocate_user_id(uid)
+        save_profile(uid, p)
+
+    if p.get("onboarding_step") and p["onboarding_step"] != "done":
+        _run_onboarding(uid)
+        return
+
+    if not p.get("exams"):
+        bot.reply_to(message, "🎯 Set exams with /mode first.")
+        return
+
+    # Session borders
+    sess = exam_engine.get_session(uid)
+
+    if sess and sess.get("mode") == "test":
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="test_stop"))
+        safe_send(uid,
+            f"📝 *Test in progress* — Q{sess.get('questions_done',0)}/{len(sess.get('plan',[]))}\n\n"
+            "I can't answer during the test.",
+            parse_mode="Markdown", reply_markup=markup)
+        return
+
+    if sess and sess.get("mode") == "conceptual":
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="concept_stop"))
+        safe_send(uid,
+            f"🧠 *Conceptual test in progress* — Q{sess.get('questions_done',0)}/{len(sess.get('plan',[]))}\n\n"
+            "I can't answer during the test.",
+            parse_mode="Markdown", reply_markup=markup)
+        return
+
+    # NUMERICAL PENDING CHECK — MUST come first
+    if uid in PENDING_NUMERICAL:
+        pending = PENDING_NUMERICAL.get(uid)
+        if pending and pending.get("is_test"):
+            _handle_test_numerical(uid, text)
+        else:
+            _handle_numerical_answer(uid, text)
+        return
+
+    if p.get("_practice_active") and sess and sess.get("mode") == "practice":
+        exam = sess.get("exam") or health.exam_of(p) or "JEE_MAIN"
+        timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+        intent, answer = ai_client.classify_and_answer(exam, text)
+        timer_manager.stop_thinking_timer(uid)
+        if not answer:
+            _send_smart(uid, "⚠️ Retry or Continue.",
+                        edit_msg_id=timer_manager.get_thinking_msg_id(uid))
+            return
+        svg, clean = svg_renderer.detect_svg_in_text(answer)
+        full = "💬 *Your doubt answered:*\n\n" + clean + _countdown_footer(uid)
+        _send_smart(uid, full, edit_msg_id=timer_manager.get_thinking_msg_id(uid),
+                    reply_markup=_doubt_continue_buttons())
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name=f"doubt_{uid}")
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        return
+
+    if p.get("_practice_active") and not sess:
+        p["_practice_active"] = False
+        save_profile(uid, p)
+
+    # Notes continuation
+    if p.get("_notes_state"):
+        low = text.lower().strip()
+        if low in ("continue", "next", "next part", "go on", "cont"):
+            _send_next_notes_part(uid)
+            return
+        if low in ("stop", "exit", "done", "end"):
+            p.pop("_notes_state", None)
+            save_profile(uid, p)
+            safe_send(uid, "✅ Notes session ended.")
+            return
+
+    # ============================================
+    # NORMAL FREE-TEXT — 1 call (classify + answer)
+    # ============================================
+    exam = health.exam_of(p) or "JEE_MAIN"
+
+    timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+    intent, answer = ai_client.classify_and_answer(exam, text)
+    timer_manager.stop_thinking_timer(uid)
+
+    if not answer:
+        _send_smart(uid, "⚠️ Hamilton is momentarily overloaded. Please try again.",
+                    edit_msg_id=timer_manager.get_thinking_msg_id(uid))
+        return
+
+    if intent == "OFF_TOPIC":
+        blocked_now, mins = register_strike(uid)
+        if blocked_now:
+            msg = f"⛔ Block mode activated for {mins} minutes." + _countdown_footer(uid)
+            _send_smart(uid, msg, edit_msg_id=timer_manager.get_thinking_msg_id(uid))
+            return
+
+    svg, clean = svg_renderer.detect_svg_in_text(answer)
+    final = clean + _countdown_footer(uid)
+    _send_smart(uid, final, edit_msg_id=timer_manager.get_thinking_msg_id(uid))
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name=f"ai_{uid}")
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+
+# ==========================================================
+# BOOT
+# ==========================================================
+print("🚀 Hamilton Study AI is live.")
+
+while True:
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except KeyboardInterrupt:
+        print("\n🛑 Stopped.")
+        break
+    except Exception as e:
+        print(f"⚠️ Polling crashed: {e}")
+        print("🔄 Restarting in 3 seconds...")
+        time.sleep(3)
+        continue

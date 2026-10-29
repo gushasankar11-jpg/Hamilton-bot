@@ -1,0 +1,581 @@
+# ==========================================================
+# c30b_admin.py — Admin panel (role-aware)
+# Integrates with admin_auth. All destructive actions require
+# privacy-code re-confirmation via c30e's _auth_text_router.
+# ==========================================================
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import admin_auth as auth
+
+
+# ----------------------------------------------------------
+# User helpers
+# ----------------------------------------------------------
+def _list_all_users():
+    users = []
+    if not os.path.isdir(PROFILE_DIR):
+        return users
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            uid = int(fname.replace(".json", ""))
+        except ValueError:
+            continue
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured"):
+            continue
+        users.append((uid, p))
+    users.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+    return users
+
+
+def _days_since(iso_str):
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        return (datetime.now() - dt).days
+    except Exception:
+        return "?"
+
+
+def _user_stats_line(uid, p):
+    st = p.get("strikes_total", 0)
+    bt = p.get("blocks_total", 0)
+    ac = p.get("api_calls_total", 0)
+    return f"⚠️ {st} strikes · 🚫 {bt} blocks · 📱 {ac} calls"
+
+
+# ----------------------------------------------------------
+# Main panel (role-aware)
+# ----------------------------------------------------------
+def _show_admin_panel(chat_id, page=0, message_id=None):
+    session = auth.get_session(chat_id)
+    if not session:
+        safe_send(chat_id, "🔒 Session expired. Re-enter the admin code.")
+        return
+
+    role = session["role"]
+    users = _list_all_users()
+    total = len(users)
+    total_pages = max(1, (total + 7) // 8)
+
+    header = (
+        f"🛠 *ADMIN PANEL*" + (" `[PRIMARY]`" if role == "primary" else " `[READ-ONLY]`") + "\n\n"
+        f"👤 {config.ADMIN_NAME}\n"
+        f"📊 Total users: *{total}*\n"
+        f"📄 Page {page+1} / {total_pages}\n\n"
+    )
+    if role == "primary":
+        header += "Full access — every action requires your privacy code.\n"
+    else:
+        header += "⚠️ _Read-only. You cannot delete, block or transfer._\n"
+
+    kb = InlineKeyboardMarkup(row_width=1)
+
+    # User rows with stats
+    start = page * 8
+    end = start + 8
+    for uid, p in users[start:end]:
+        name = (p.get("name") or "Unknown")[:18]
+        hku  = p.get("hku_id") or "—"
+        days = _days_since(p.get("created_at", ""))
+        label = f"{hku} · {name} · {days}d · ⚠️{p.get('strikes_total',0)}"
+        cb = f"admin_view:{uid}" if role == "sub" else f"admin_del_prompt:{uid}"
+        kb.add(InlineKeyboardButton(label, callback_data=cb))
+
+    # Pagination
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"admin_page:{page-1}"))
+    if end < total:
+        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"admin_page:{page+1}"))
+    if nav:
+        kb.row(*nav)
+
+    # Primary-only extra buttons
+    if role == "primary":
+        kb.add(InlineKeyboardButton("🛡️ Sub-Admins", callback_data="admin_subs"))
+        kb.add(InlineKeyboardButton("🟢 Online Now", callback_data="admin_online"))
+    kb.add(InlineKeyboardButton("🔍 Search user", callback_data="admin_search_hint"))
+    # Primary admin gets all action buttons
+    if role == "primary":
+        kb.add(
+            InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+            InlineKeyboardButton("💬 Personal Msg", callback_data="admin_pmsg_hint"),
+        )
+        kb.add(
+            InlineKeyboardButton("📱 Devices", callback_data="admin_devices"),
+            InlineKeyboardButton("🆕 New Users", callback_data="admin_newusers"),
+        )
+        kb.add(InlineKeyboardButton("🔑 Generate Lock-in Code", callback_data="admin_lockin_btn"))
+    kb.add(InlineKeyboardButton("🚪 /exit", callback_data="admin_close"))
+
+    text = header
+    if message_id:
+        try:
+            bot.edit_message_text(text, chat_id=chat_id, message_id=message_id,
+                                   reply_markup=kb, parse_mode="Markdown")
+            return
+        except Exception:
+            pass
+    bot.send_message(chat_id, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ----------------------------------------------------------
+# Sub-admin panel (read-only, no destructive buttons)
+# ----------------------------------------------------------
+def _show_sub_admin_panel(uid):
+    _show_admin_panel(uid)
+
+
+# ----------------------------------------------------------
+# Callbacks: pagination, close
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_page:"))
+def _cb_page(call):
+    if not auth.get_session(call.message.chat.id):
+        return
+    try:
+        page = int(call.data.split(":")[1])
+    except Exception:
+        page = 0
+    _show_admin_panel(call.message.chat.id, page=page,
+                      message_id=call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_close")
+def _cb_close(call):
+    uid = call.message.chat.id
+    auth.end_session(uid)
+    try:
+        bot.delete_message(uid, call.message.message_id)
+    except Exception:
+        pass
+
+
+# ----------------------------------------------------------
+# Delete prompt (primary only) — now REQUIRES privacy re-entry
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_del_prompt:"))
+def _cb_del_prompt(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Read-only access")
+        return
+
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+
+    p = load_profile(target)
+    if not p:
+        bot.answer_callback_query(call.id, "User not found")
+        return
+
+    name = (p.get("name") or "Unknown")[:30]
+    hku  = p.get("hku_id") or "—"
+    days = _days_since(p.get("created_at", ""))
+    st   = p.get("strikes_total", 0)
+    bt   = p.get("blocks_total", 0)
+    ac   = p.get("api_calls_total", 0)
+
+    text = (
+        f"🗑 *DELETE REQUEST*\n\n"
+        f"👤 {name}\n"
+        f"🆔 {hku}\n"
+        f"📱 UID: `{target}`\n"
+        f"📅 Registered: {days} days ago\n"
+        f"⚠️ Strikes: {st} · Blocks: {bt} · API calls: {ac}\n\n"
+        f"Type your *privacy code* to confirm deletion."
+    )
+    auth.set_pending_action(uid, {"action": "delete_user", "target": target})
+    auth.set_pending_action and None  # ensure exists
+    # Set pending text flow
+    try:
+        import importlib
+        c30e = importlib.import_module("bot_chunks.c30e_admin_auth") if False else None
+    except Exception:
+        c30e = None
+    # Instead of cross-module state, use our own pending hook
+    from sys import modules as _mods
+    for name_, mod in _mods.items():
+        if hasattr(mod, "_set_pending"):
+            mod._set_pending(uid, "confirm_action",
+                             action="delete_user", target=target)
+            break
+
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="admin_close"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# Legacy confirm button is now disabled — privacy code path is used
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_del_confirm:"))
+def _cb_del_confirm_legacy(call):
+    bot.answer_callback_query(call.id, "Please type your privacy code to confirm.")
+
+
+# ----------------------------------------------------------
+# View user (sub-admin read-only view)
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_view:"))
+def _cb_view_user(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    p = load_profile(target)
+    if not p:
+        bot.answer_callback_query(call.id, "Not found")
+        return
+    name = (p.get("name") or "Unknown")[:40]
+    hku  = p.get("hku_id") or "—"
+    days = _days_since(p.get("created_at", ""))
+    text = (
+        f"👤 *{name}*\n"
+        f"🆔 `{hku}`\n"
+        f"📱 UID `{target}`\n"
+        f"📅 {days} days registered\n"
+        f"🎓 Level: {p.get('level', '—')}\n"
+        f"📚 Exams: {', '.join(p.get('exams', [])) or '—'}\n\n"
+        f"📊 *Usage stats*\n"
+        f"  • Strikes total: *{p.get('strikes_total', 0)}*\n"
+        f"  • Blocks total: *{p.get('blocks_total', 0)}*\n"
+        f"  • API calls: *{p.get('api_calls_total', 0)}*\n"
+    )
+    bot.send_message(uid, text, parse_mode="Markdown")
+
+
+# ----------------------------------------------------------
+# Sub-admins list (primary only)
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data == "admin_subs")
+def _cb_subs(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary admin only")
+        return
+
+    subs = auth.list_sub_admins()
+    if not subs:
+        text = "🛡️ *Sub-Admins*\n\n_No sub-admins registered yet._"
+    else:
+        lines = [f"🛡️ *Sub-Admins* — {len(subs)} registered\n"]
+        for sub_id, info in subs:
+            name = info.get("name", "?")
+            first = info.get("first_seen", "")[:10]
+            last  = info.get("last_seen", "")
+            online = "🟢 online" if auth.is_user_online(last) else "⚪ offline"
+            lines.append(f"• *{name}*  (`{sub_id}`)\n  Registered: {first} · {online}")
+        text = "\n".join(lines)
+
+    kb = InlineKeyboardMarkup(row_width=1)
+    for sub_id, info in subs:
+        kb.add(InlineKeyboardButton(f"🗑 Revoke {info.get('name','?')}",
+                                     callback_data=f"admin_revoke:{sub_id}"))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_revoke:"))
+def _cb_revoke(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    if auth.revoke_sub_admin(target):
+        bot.answer_callback_query(call.id, f"Revoked {target}")
+    else:
+        bot.answer_callback_query(call.id, "Not found")
+
+
+# ----------------------------------------------------------
+# Online now (primary only)
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data == "admin_online")
+def _cb_online(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+
+    users = _list_all_users()
+    online = []
+    for u_id, p in users:
+        # use created_at as fallback; true "last_seen" would need tracking
+        last = p.get("last_active_at") or p.get("created_at")
+        if auth.is_user_online(last):
+            online.append((u_id, p))
+
+    if not online:
+        text = "🟢 *Online Now*\n\n_No users online in the last 5 minutes._"
+    else:
+        text = f"🟢 *Online Now — {len(online)} users*\n\n"
+        for u_id, p in online[:30]:
+            name = (p.get("name") or "?")[:20]
+            hku  = p.get("hku_id") or "—"
+            text += f"• `{hku}` {name}  (`{u_id}`)\n"
+
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_back")
+def _cb_back(call):
+    _show_admin_panel(call.message.chat.id, page=0,
+                      message_id=call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_search_hint")
+def _cb_search_hint(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    safe_send(uid, "🔍 Use `/find <name or UID>` to search.")
+
+
+# ----------------------------------------------------------
+# Actual delete executor (called by auth router after privacy OK)
+# ----------------------------------------------------------
+def _do_delete_user(uid, target):
+    path = os.path.join(PROFILE_DIR, f"{target}.json")
+    existed = os.path.exists(path)
+    try:
+        if existed:
+            os.remove(path)
+    except Exception:
+        pass
+    bm = os.path.join(BOOKMARK_DIR, f"{target}.json")
+    if os.path.exists(bm):
+        try:
+            os.remove(bm)
+        except Exception:
+            pass
+    auth.audit("user_deleted", uid, {"target": target, "existed": existed})
+    safe_send(uid, f"✅ User `{target}` deleted." if existed
+                   else f"⚠️ User `{target}` not found.")
+
+
+# ----------------------------------------------------------
+# /find and /findkey (existing, role-gated)
+# ----------------------------------------------------------
+@bot.message_handler(commands=['find'])
+def _cmd_find(message):
+    uid = message.chat.id
+    if not auth.get_session(uid):
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: `/find <name or UID>`", parse_mode="Markdown")
+        return
+    q = parts[1].strip().lower()
+    users = _list_all_users()
+    matches = [(u, p) for u, p in users
+               if q in (p.get("name") or "").lower() or q in str(u)]
+    if not matches:
+        bot.reply_to(message, f"❌ No matches for `{q}`", parse_mode="Markdown")
+        return
+    text = f"🔍 *{len(matches)} match(es)*\n\n"
+    session = auth.get_session(uid)
+    role = session["role"]
+    kb = InlineKeyboardMarkup(row_width=1)
+    for u, p in matches[:20]:
+        name = (p.get("name") or "?")[:18]
+        hku  = p.get("hku_id") or "—"
+        text += f"• `{hku}` {name} · ⚠️{p.get('strikes_total',0)} · 📱{p.get('api_calls_total',0)}\n"
+        cb = f"admin_view:{u}" if role == "sub" else f"admin_del_prompt:{u}"
+        kb.add(InlineKeyboardButton(f"→ {hku} · {name}", callback_data=cb))
+    kb.add(InlineKeyboardButton("❌ Close", callback_data="admin_close"))
+    bot.reply_to(message, text, reply_markup=kb, parse_mode="Markdown")
+
+
+print("c30b_admin: loaded (role-aware).")
+
+# ----------------------------------------------------------
+# Generate lock-in code button (primary only)
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data == "admin_lockin_btn")
+def _cb_lockin_btn(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary admin only")
+        return
+    # Ask privacy code
+    from sys import modules as _mods
+    for name_, mod in _mods.items():
+        if hasattr(mod, "_set_pending"):
+            mod._set_pending(uid, "primary_gen_lockin")
+            break
+    safe_send(uid,
+        "🔑 *Generate Lock-in Code*\n\n"
+        "Enter your *privacy code* to authorize.",
+        parse_mode="Markdown")
+
+# ==========================================================
+# DEVICES PANEL
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "admin_devices")
+def _cb_devices(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    entries = auth.list_admin_devices(40)
+    if not entries:
+        text = "📱 *Admin Device History*\n\n_No logins recorded._"
+    else:
+        text = f"📱 *Admin Device History* — last {len(entries)}\n\n"
+        for e in entries:
+            ts = e.get("ts", "")[:16].replace("T", " ")
+            role = e.get("role", "?")
+            cid = e.get("chat_id", "?")
+            text += f"• `{cid}` · {role} · {ts}\n"
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# NEW USERS PANEL
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "admin_newusers")
+def _cb_newusers(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    users = auth.list_new_users()
+    if not users:
+        text = "🆕 *New Users Queue*\n\n_All verified. No pending users._"
+    else:
+        text = f"🆕 *New Users* — {len(users)} pending verification\n\n"
+        for e in users:
+            name = e.get("name", "?")
+            phone = e.get("phone", "?")
+            joined = e.get("joined_at", "")[:10]
+            text += f"• *{name}* · 📱 `{phone}` · {joined}\n"
+    kb = InlineKeyboardMarkup(row_width=1)
+    for e in users[:8]:
+        target = e.get("uid")
+        name = e.get("name", "?")[:18]
+        kb.add(InlineKeyboardButton(
+            f"✅ Verify · {name}",
+            callback_data=f"newuser_verify:{target}"
+        ))
+        kb.add(InlineKeyboardButton(
+            f"❌ Reject · {name}",
+            callback_data=f"newuser_reject:{target}"
+        ))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("newuser_verify:"))
+def _cb_newuser_verify(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    auth.verify_new_user(target)
+    bot.answer_callback_query(call.id, f"✅ Verified {target}")
+    # Refresh panel
+    _cb_newusers(call)
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("newuser_reject:"))
+def _cb_newuser_reject(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    auth.reject_new_user(target)
+    # Send rejection message to user
+    try:
+        safe_send(target,
+            "⚠️ *Verification failed*\n\n"
+            "The phone number you provided could not be verified.\n"
+            "Please contact admin to resolve.",
+            parse_mode="Markdown")
+    except Exception:
+        pass
+    bot.answer_callback_query(call.id, f"❌ Rejected {target}")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_pmsg_hint")
+def _cb_pmsg_hint(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    safe_send(uid, "💬 Tap a user from the panel and choose 'Message' to send them a personal message.")
+
+
+# ----------------------------------------------------------
+# Personal message button on user detail
+# ----------------------------------------------------------
+@bot.callback_query_handler(func=lambda c: c.data.startswith("user_pmsg:"))
+def _cb_user_pmsg(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "personal_text",
+                "data": {"target_uid": target},
+                "at": __import__("time").time(),
+            }
+            break
+    p = load_profile(target) or {}
+    safe_send(uid, f"📩 Type your message for *{p.get('name', '?')}* (`{target}`):",
+              parse_mode="Markdown")
+
+

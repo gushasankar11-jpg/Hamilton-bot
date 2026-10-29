@@ -1,0 +1,85 @@
+# ==========================================================
+# c30u_subadmin_reg.py — sub-admin registration continuation
+# Handles: name → privacy → registration
+# Registers as priority text handler; only fires if PENDING_AUTH_FLOW
+# ==========================================================
+import admin_auth as _sar_auth
+
+def _sar_get_pending(uid):
+    for _mn, _mo in __import__("sys").modules.items():
+        if hasattr(_mo, "PENDING_AUTH_FLOW"):
+            return _mo.PENDING_AUTH_FLOW
+    return None
+
+
+@bot.message_handler(func=lambda m: _sar_pending_action(m) is not None, content_types=['text'])
+def _sar_text_router(message):
+    uid = message.chat.id
+    pf = _sar_get_pending(uid)
+    if not pf:
+        return
+    act = pf[uid].get("action") if uid in pf else None
+    txt = (message.text or "").strip()
+    if not txt:
+        return
+    if txt.startswith("/"):
+        return
+
+    if act == "sub_new_name":
+        if len(txt) < 2:
+            safe_send(uid, "Name too short (min 2 chars). Try again:")
+            return
+        pf[uid] = {
+            "action": "sub_new_privacy",
+            "name": txt[:60],
+            "at": __import__("time").time(),
+        }
+        safe_send(uid,
+            "🔐 *Set your privacy code*\\n\\n"
+            "This is your login password. Type it below (min 4 chars):",
+            parse_mode="Markdown")
+        return
+
+    if act == "sub_new_privacy":
+        if len(txt) < 4:
+            safe_send(uid, "Privacy code too short (min 4 chars). Try again:")
+            return
+        name = pf[uid].get("name", "Sub-Admin")
+        try:
+            _sar_auth.register_sub_admin(uid, name, txt)
+            _sar_auth.start_session(uid, "sub")
+            _sar_auth.update_sub_admin_last_seen(uid)
+            _sar_auth.audit("sub_login_ok", uid, {"name": name})
+            pf.pop(uid, None)
+            safe_send(uid,
+                "✅ *Sub-admin registered!*\\n\\n"
+                f"👤 {name}\\n"
+                "🛡 Read-only observer access\\n\\n"
+                "Opening panel...",
+                parse_mode="Markdown")
+            _show_sub = globals().get("_show_sub_admin_panel")
+            if _show_sub:
+                _show_sub(uid)
+            print(f"[sar] registered sub-admin {uid} name={name}")
+        except Exception as e:
+            print(f"[sar] register fail: {e}")
+            safe_send(uid, f"⚠️ Registration error: {str(e)[:100]}")
+        return
+
+
+def _sar_pending_action(message):
+    """Predicate — True only if this uid is in sub-admin name/privacy flow."""
+    try:
+        uid = message.chat.id
+        pf = _sar_get_pending(uid)
+        if not pf or uid not in pf:
+            return None
+        act = pf[uid].get("action")
+        if act in ("sub_new_name", "sub_new_privacy"):
+            return act
+        return None
+    except Exception:
+        return None
+
+
+print("c30u_subadmin_reg: loaded.")

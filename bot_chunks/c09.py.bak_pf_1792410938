@@ -1,0 +1,1517 @@
+PENDING_AUTH_FLOW = {}
+
+# ==========================================================
+# bot.py — Chunk 9 (FINAL): notes, free-text, admin, leaderboard, find, boot
+# ==========================================================
+
+# ==========================================================
+# NOTES — main command
+# ==========================================================
+@bot.message_handler(commands=['notes'])
+def cmd_notes(message):
+    uid = message.chat.id
+    ready, reason = _profile_ready(uid)
+    if not ready:
+        _send_setup_prompt(uid, reason)
+        return
+    p = load_profile(uid)
+    sel = p.get("selected_chapters", {})
+    subjects = [s for s in ["Maths", "Physics", "Chemistry"] if sel.get(s)]
+    if not subjects:
+        subjects = health.available_subjects()
+    if not subjects:
+        bot.send_message(uid, "❌ No subjects available.")
+        return
+    if len(subjects) == 1:
+        _notes_ask_chapter(uid, subjects[0])
+        return
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    for s in subjects:
+        markup.add(s)
+    msg = bot.send_message(uid, "📝 *Which subject?*",
+                           reply_markup=markup, parse_mode="Markdown")
+    bot.register_next_step_handler(msg, _notes_pick_subject)
+
+
+def _notes_pick_subject(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    subj = (message.text or "").strip().capitalize()
+    if subj not in health.available_subjects():
+        bot.reply_to(message, "❌ Invalid subject.")
+        return
+    _notes_ask_chapter(uid, subj)
+
+
+def _notes_ask_chapter(uid, subj):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    sel_ch = p.get("selected_chapters", {}).get(subj, [])
+    if sel_ch:
+        ch_list = sel_ch
+    else:
+        data = health.load_subject_data(subj, exam)
+        if not data:
+            bot.send_message(uid, f"❌ No data for {subj}.")
+            return
+        ch_list = list(data.keys())
+
+    numbered = "\n".join(f"{i+1}. {c}" for i, c in enumerate(ch_list))
+    header = f"📝 *{subj}* — pick a chapter:\n\n{numbered}\n\nReply with number."
+    if len(header) > 4000:
+        safe_send(uid, f"📝 *{subj}* chapters:", parse_mode="Markdown")
+        safe_send(uid, numbered[:3900])
+        msg = bot.send_message(uid, "Reply with the number.")
+        bot.register_next_step_handler(msg, _notes_capture_chapter, subj, ch_list)
+    else:
+        msg = bot.send_message(uid, header, parse_mode="Markdown")
+        bot.register_next_step_handler(msg, _notes_capture_chapter, subj, ch_list)
+
+
+def _notes_capture_chapter(message, subj, ch_list):
+    uid = message.chat.id
+    try:
+        idx = int((message.text or "").strip()) - 1
+        if idx < 0 or idx >= len(ch_list):
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message, "❌ Invalid number.")
+        return
+    chapter = ch_list[idx]
+    _generate_notes_begin(uid, subj, chapter)
+
+
+# ==========================================================
+# NOTES — begin generation with part state
+# ==========================================================
+# def _generate_notes_begin(uid, subject, chapter):
+    p = load_profile(uid)
+    exam = health.exam_of(p) or "JEE_MAIN"
+    data = health.load_subject_data(subject, exam)
+    if not data or chapter not in data:
+        safe_send(uid, "❌ No data for chapter.")
+        return
+
+    subs = data[chapter]
+    subtopics_list = []
+    for sub, val in subs.items():
+        cl = val.get("adv", []) if isinstance(val, dict) else val
+        subtopics_list.append({"name": sub, "concepts": list(cl)})
+
+    total_concepts = sum(len(s["concepts"]) for s in subtopics_list)
+
+    # Group subtopics so each part covers ~6 subtopics
+    groups = []
+    current = []
+    for st in subtopics_list:
+        current.append(st)
+        if len(current) >= 6:
+            groups.append(current)
+            current = []
+    if current:
+        groups.append(current)
+    if not groups:
+        groups = [subtopics_list]
+
+    total_parts = len(groups)
+
+    # Save notes state in profile
+    p["_notes_state"] = {
+        "subject": subject,
+        "chapter": chapter,
+        "exam": exam,
+        "groups": groups,
+        "current_part": 0,
+        "total_parts": total_parts,
+        "last_notes": "",
+        "waiting_continue": False,
+    }
+    save_profile(uid, p)
+
+    safe_send(uid,
+        f"📝 *Generating short notes: {chapter}*\n\n"
+        f"Subtopics: {len(subtopics_list)}\n"
+        f"Concepts: {total_concepts}\n"
+        f"Parts: {total_parts}\n\n"
+        "_Sending Part 1 now..._",
+        parse_mode="Markdown")
+    time.sleep(0.5)
+
+    _send_next_notes_batch(uid)
+
+
+# def _send_next_notes_batch(uid):
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        safe_send(uid, "No notes session.")
+        return
+
+    current = state.get("current_part", 0)
+    total = state.get("total_parts", 1)
+
+    if current >= total:
+        p.pop("_notes_state", None)
+        save_profile(uid, p)
+        safe_send(uid,
+            f"✅ *All {total} parts of {state['chapter']} notes delivered.*\n\n"
+            "_Ask me anything about it, or /notes for another chapter._",
+            parse_mode="Markdown")
+        return
+
+    group = state["groups"][current]
+    part_num = current + 1
+
+    topics_text = ""
+    for st in group:
+        topics_text += f"\n*{st['name']}*\n"
+        for c in st["concepts"]:
+            topics_text += f"  • {c}\n"
+
+    timer_manager.start_generating_timer(bot, uid, f"notes {part_num}/{total}")
+
+    prompt = (
+        f"You are writing SHORT NOTES for a JEE Advanced student.\n\n"
+        f"Chapter: {state['chapter']} ({state['subject']})\n"
+        f"Part {part_num} of {total}.\n\n"
+        f"Subtopics to cover in this part:\n{topics_text}\n\n"
+        "FORMATTING RULES:\n"
+        "- Talk like a friendly senior — warm, encouraging\n"
+        "- Open with a warm line like 'Let\\'s dive into...' or 'Here\\'s the cool part...'\n"
+        "- Use real Unicode math symbols: θ τ π √ ² ³ ⁻ ⁺ ½ → × ·\n"
+        "- For chemistry: proper subscripts — H₂O, CO₂, C₆H₁₂O₆, CH₃COOH\n"
+        "- NEVER use LaTeX\n"
+        "- Bold key terms with *asterisks*\n"
+        "- For each concept: one-line definition + key formula + 1-2 traps\n"
+        "- Include numeric values where relevant\n"
+        "- For EVERY structure (Fischer, Haworth, Chair, benzene, ray diagrams), "
+        "include a fenced SVG block:\n"
+        "```svg\n<svg>...</svg>\n```\n"
+        "The SVG must show the structure accurately.\n"
+        "- Cover EVERY listed subtopic — no skipping\n"
+        "- End with a line saying 'Type /continue for the next part' if not last part."
+    )
+
+    bump_api_calls(uid)
+
+    notes = ai_client.ask_hamilton(state["exam"], prompt)
+    timer_manager.stop_generating_timer(bot, uid)
+
+    if not notes:
+        safe_send(uid, f"⚠️ Could not generate Part {part_num}. Type /continue to retry.")
+        return
+
+    svg, notes_clean = svg_renderer.detect_svg_in_text(notes)
+
+    header = f"📝 *{state['chapter']} — Part {part_num}/{total}*\n\n"
+    final = header + notes_clean
+
+    if part_num < total:
+        final += f"\n\n━━━━━━━━━━━━━━━\n_Type /continue for Part {part_num+1}_"
+    else:
+        final += "\n\n━━━━━━━━━━━━━━━\n✅ _All parts delivered._"
+
+    safe_send(uid, final + _countdown_footer(uid), parse_mode="Markdown")
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name=f"notes_{uid}_{part_num}")
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+    state["current_part"] = part_num
+    state["last_notes"] = notes_clean[:500]
+    state["waiting_continue"] = True
+    p["_notes_state"] = state
+    save_profile(uid, p)
+
+
+@bot.message_handler(commands=['continue'])
+def cmd_continue(message):
+    uid = message.chat.id
+    p = load_profile(uid)
+    state = p.get("_notes_state")
+    if not state:
+        safe_send(uid, "No notes in progress. Type /notes to start.")
+        return
+    _send_next_notes_batch(uid)
+
+
+# ==========================================================
+# LEADERBOARD
+# ==========================================================
+def _compute_leaderboard(level_filter=None):
+    entries = []
+    if not os.path.exists(PROFILE_DIR):
+        return entries
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        uid_str = fname.replace(".json", "")
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured") or not p.get("name"):
+            continue
+        if not p.get("leaderboard_optin", True):
+            continue
+        if not p.get("exams"):
+            continue
+
+        lvl = (p.get("level") or "").lower()
+        if level_filter == "junior" and lvl != "junior":
+            continue
+        if level_filter == "senior" and lvl not in ("senior", "dropper"):
+            continue
+
+        summary = health.attempts_summary(p)
+        if summary["attempted"] < 20:
+            continue
+
+        r = health.overall_health(p)
+        h = r.get("overall") or 0
+        pct = health.predict_percentile(h)
+        score = 0.4 * h + 0.4 * pct + 0.2 * min(100, summary["attempted"] / 5)
+
+        entries.append({
+            "uid": uid_str,
+            "hku": p.get("hku_id", "—"),
+            "name": p.get("name"),
+            "institute": p.get("institute", "—"),
+            "level": p.get("level", "—"),
+            "health": round(h, 1),
+            "percentile": pct,
+            "attempted": summary["attempted"],
+            "accuracy": summary["accuracy"],
+            "score": round(score, 1),
+        })
+    entries.sort(key=lambda x: x["score"], reverse=True)
+    return entries
+
+
+@bot.message_handler(commands=['leaderboard'])
+def cmd_leaderboard(message):
+    uid = message.chat.id
+    parts = message.text.split()
+    filt = None
+    if len(parts) > 1:
+        a = parts[1].lower()
+        if "jun" in a:
+            filt = "junior"
+        elif "sen" in a or "drop" in a:
+            filt = "senior"
+    entries = _compute_leaderboard(filt)
+    if not entries:
+        bot.reply_to(message, "📭 No qualifying users yet (min 20 attempts).")
+        return
+    title = "🏆 *Leaderboard*"
+    if filt == "junior":
+        title += " — Juniors"
+    elif filt == "senior":
+        title += " — Seniors & Droppers"
+    lines = [title + "\n"]
+    for i, e in enumerate(entries[:20], 1):
+        m = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+        lines.append(f"{m} {e['name']} ({e['hku']})")
+        lines.append(f"   Health {e['health']} · %ile {e['percentile']} · {e['attempted']} attempts")
+    lines.append("")
+    lines.append("Filters: /leaderboard junior · /leaderboard senior")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+
+@bot.message_handler(func=lambda m: m.text and m.text.lower().startswith("top "))
+def cmd_top(message):
+    uid = message.chat.id
+    try:
+        n = int(message.text.split()[1])
+        if n < 1 or n > 20:
+            raise ValueError
+    except Exception:
+        bot.reply_to(message, "Usage: top 3")
+        return
+    entries = _compute_leaderboard()
+    if not entries or n > len(entries):
+        bot.reply_to(message, "No data.")
+        return
+    e = entries[n - 1]
+    safe_send(uid,
+        f"🏆 *Rank #{n}*\n\n"
+        f"👤 {e['name']}\n"
+        f"🆔 {e['hku']}\n"
+        f"🏫 {e['institute']}\n"
+        f"🎓 {e['level']}\n\n"
+        f"📊 Health: {e['health']}\n"
+        f"🎯 %ile: {e['percentile']}\n"
+        f"📝 Attempts: {e['attempted']}\n"
+        f"🎯 Accuracy: {e['accuracy']}%",
+        parse_mode="Markdown")
+
+
+# ==========================================================
+# /find HKU-XXXXXX
+# ==========================================================
+@bot.message_handler(commands=['find'])
+def cmd_find(message):
+    uid = message.chat.id
+    parts = message.text.strip().split()
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /find HKU-000001")
+        return
+    hku = parts[1].strip().upper()
+    found_uid = find_user_by_hku_id(hku)
+    if not found_uid:
+        bot.reply_to(message, f"❌ No user found with ID {hku}.")
+        return
+    try:
+        target = load_profile(int(found_uid))
+    except Exception:
+        target = load_profile(found_uid)
+    if not target or not target.get("secured"):
+        bot.reply_to(message, "❌ User not available.")
+        return
+
+    r = health.overall_health(target)
+    summary = health.attempts_summary(target)
+    pct = health.predict_percentile(r.get("overall"))
+    _, tier = health.estimate_rank(target)
+
+    board = _compute_leaderboard()
+    lb_rank = None
+    for i, e in enumerate(board, 1):
+        if str(e.get("uid")) == str(found_uid):
+            lb_rank = i
+            break
+
+    lines = [
+        f"🔍 *Search Result*\n",
+        f"👤 {target.get('name','—')}",
+        f"🆔 {hku}",
+        f"🏫 {target.get('institute','—')}",
+        f"🎓 {target.get('level','—')}",
+        f"📚 {', '.join(EXAM_NAMES.get(e,e) for e in target.get('exams',[]))}",
+        f"📅 Year: {target.get('target_year','—')}",
+        "",
+        "━━━ Attempts ━━━",
+        f"Total attempted: {summary['attempted']}",
+        f"✅ Correct: {summary['correct']}",
+        f"❌ Wrong: {summary['wrong']}",
+        f"🎯 Accuracy: {summary['accuracy']}%",
+        "",
+        f"📊 Overall Health: {r.get('overall') or 0}/100",
+        f"🎯 Predicted %ile: {pct}",
+        f"🏆 Rank tier: {tier}",
+    ]
+    if lb_rank:
+        lines.append(f"🥇 Leaderboard rank: #{lb_rank}")
+    safe_send(uid, "\n".join(lines), parse_mode="Markdown")
+
+    # 1 SVG only
+    if SVG_ENABLED and r.get("overall") is not None:
+        subj_data = {s: d["health"] for s, d in r["subjects"].items()}
+        svg = svg_templates.combined_progress(r["overall"], subj_data)
+        path = svg_renderer.render_svg(svg, name=f"find_{found_uid}")
+        if path:
+            safe_send_photo(uid, path, caption=f"{target.get('name','')} — Progress")
+            svg_renderer.cleanup_file(path)
+
+
+# ==========================================================
+# ADMIN — /genkey YY COUNT
+# ==========================================================
+@bot.message_handler(commands=['genkey'])
+def cmd_genkey(message):
+    uid = message.chat.id
+    if uid != ADMIN_CHAT_ID:
+        return
+    parts = message.text.strip().split()
+    if len(parts) < 3:
+        bot.reply_to(message, "Usage: /genkey YY COUNT\nExample: /genkey 27 5")
+        return
+    try:
+        yy = parts[1].zfill(2)
+        count = int(parts[2])
+    except Exception:
+        bot.reply_to(message, "Invalid args.")
+        return
+    year_full = 2000 + int(yy)
+    import string
+    keys = load_keys()
+    new_keys = []
+    for _ in range(count):
+        b1 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        b2 = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        k = f"HK-{yy}-{b1}-{b2}"
+        keys[k] = {
+            "year": year_full,
+            "bound_to": None,
+            "bound_at": None,
+            "created_at": datetime.now().isoformat(),
+        }
+        new_keys.append(k)
+    with open(KEYS_FILE, "w") as f:
+        json.dump(keys, f, indent=2)
+    safe_send(uid, f"✅ Generated {len(new_keys)} keys for year {year_full}:\n\n" +
+              "\n".join(new_keys))
+
+
+# ==========================================================
+# ADMIN — /shutdown MESSAGE
+# ==========================================================
+@bot.message_handler(commands=['shutdown'])
+def cmd_shutdown(message):
+    uid = message.chat.id
+    if uid != ADMIN_CHAT_ID:
+        return
+    text = message.text.replace("/shutdown", "").strip()
+    if not text:
+        text = ("⚠️ *Server maintenance in progress.*\n\n"
+                "Hamilton will be back soon.\n\n"
+                "Until then — revise a concept, do some bits, practice PYQs.\n"
+                "Don't waste your time.")
+    count = 0
+    if os.path.exists(PROFILE_DIR):
+        for fname in os.listdir(PROFILE_DIR):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                chat_id = int(fname.replace(".json", ""))
+            except Exception:
+                continue
+            try:
+                safe_send(chat_id, text, parse_mode="Markdown")
+                count += 1
+            except Exception:
+                pass
+    bot.reply_to(message, f"📢 Broadcast sent to {count} users. Shutting down...")
+    time.sleep(3)
+    os._exit(0)
+
+
+# ==========================================================
+# FREE-TEXT HANDLER (the main orchestrator)
+# ==========================================================
+@bot.message_handler(func=lambda m: True, content_types=['text'])
+def free_text_handler(message):
+    # ============================================================
+    # LOCKIN_PRIORITY_FIX
+    # This block runs FIRST — before lock check, before AI, before anything.
+    # Lock-in hex codes and /forgot bypass EVERYTHING.
+    # ============================================================
+    uid = message.chat.id
+    _prio_text = (message.text or "").strip()
+    # Track admin entry-code messages for cleanup
+    try:
+        if _prio_text and (_prio_text.startswith("HK ") or _prio_text.startswith("hk ")):
+            _trk_c09 = globals().get("track_admin_msg")
+            if _trk_c09:
+                _trk_c09(uid, message.message_id)
+    except Exception:
+        pass
+
+    # ---- A) 8-char hex lock-in code (bypasses lock) ----
+    try:
+        import admin_auth as _prio_aa
+        if _prio_aa.is_hex_lockin_code(_prio_text):
+            _ok, _entry = _prio_aa.verify_lockin_code(_prio_text, requester_uid=uid)
+            if _ok:
+                # Unlock everything
+                _prio_aa.unlock_primary()
+                _prio_aa.unlock_sub_admin(uid)
+                _prio_aa.clear_user_block(uid)
+                _prio_aa.audit("lockin_used", uid, {})
+                # Also clear any pending state
+                for _mn, _mo in __import__("sys").modules.items():
+                    if hasattr(_mo, "PENDING_AUTH_FLOW"):
+                        _mo.PENDING_AUTH_FLOW.pop(uid, None)
+                        break
+                safe_send(uid,
+                    "🔓 *Lock-in accepted.*\n"
+                    "Lockout cleared. You may now enter the admin code again.",
+                    parse_mode="Markdown")
+            else:
+                safe_send(uid, "❌ Invalid or expired lock-in code.")
+            return
+    except Exception as _e:
+        print(f"[lockin_priority] {_e}")
+
+    # ---- B) /forgot (bypasses lock) ----
+    if _prio_text == "/forgot":
+        try:
+            import admin_auth as _prio_aa
+            _prio_aa.audit("forgot_requested", uid, {})
+            for _mn, _mo in __import__("sys").modules.items():
+                if hasattr(_mo, "PENDING_AUTH_FLOW"):
+                    _mo.PENDING_AUTH_FLOW.pop(uid, None)
+                    _mo.PENDING_AUTH_FLOW[uid] = {
+                        "action": "primary_reset_key",
+                        "at": __import__("time").time(),
+                    }
+                    break
+            # Clear lock so reset can proceed
+            _cfg = _prio_aa._load_config()
+            if _cfg.get("primary"):
+                _cfg["primary"]["failed_attempts"] = 0
+                _cfg["primary"]["locked_until"] = None
+                _prio_aa._save_config(_cfg)
+            safe_send(uid,
+                "🔐 *Password Recovery*\n\n"
+                "Enter your *reset key* below.",
+                parse_mode="Markdown")
+            return
+        except Exception as _e:
+            print(f"[forgot_priority] {_e}")
+            return
+
+    # ============================================================
+    # ---- /end and /end_chat - close two-way chat, before AI ----
+    if _prio_text in ("/end", "/end_chat") or _prio_text.startswith("/end_chat "):
+        import sys as _sys_end
+        _closed_admin = False
+        _closed_student = False
+        _tgt_uid = None
+        if _prio_text.startswith("/end_chat "):
+            try:
+                _tgt_uid = int(_prio_text.split(" ", 1)[1].strip())
+            except Exception:
+                _tgt_uid = None
+        for _mn, _mo in _sys_end.modules.items():
+            if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+                if _mo.PENDING_ADMIN_FLOW.pop(uid, None):
+                    _closed_admin = True
+            if hasattr(_mo, "TWO_WAY_CHAT"):
+                if _tgt_uid and _tgt_uid in _mo.TWO_WAY_CHAT:
+                    _adm = _mo.TWO_WAY_CHAT.pop(_tgt_uid, {}).get("admin_uid")
+                    _closed_admin = True
+                    if _adm and _adm != uid:
+                        try: safe_send(_adm, "Chat closed by admin.")
+                        except Exception: pass
+                if uid in _mo.TWO_WAY_CHAT:
+                    _adm2 = _mo.TWO_WAY_CHAT[uid].get("admin_uid")
+                    _mo.TWO_WAY_CHAT.pop(uid, None)
+                    _closed_student = True
+                    if _adm2:
+                        try: safe_send(_adm2, "Student ended the chat.")
+                        except Exception: pass
+        if _closed_admin or _closed_student:
+            _del_e = globals().get("delete_all_admin_msgs")
+            _deleted_e = 0
+            if _del_e:
+                try: _deleted_e, _ = _del_e(uid)
+                except Exception as _e: print(f"[end_chat] del err: {_e}")
+            for _cn_e in ("_STATS_MSGS", "_BTN_MSGS", "_ALL_PANEL_MSGS"):
+                _cache_e = globals().get(_cn_e)
+                if _cache_e is not None:
+                    try: _cache_e.pop(uid, None)
+                    except Exception: pass
+            try:
+                _unreg_e = globals().get("unregister_panel")
+                if _unreg_e: _unreg_e(uid)
+            except Exception: pass
+            try:
+                import admin_auth as _ec_aa
+                _ec_sess = _ec_aa.get_session(uid)
+                if _ec_sess:
+                    _ec_sp = globals().get("_show_admin_panel")
+                    if _ec_sp:
+                        _ec_sp(uid)
+                        print(f"[end_chat] {uid} deleted={_deleted_e} fresh_panel_sent")
+                else:
+                    safe_send(uid, "Chat closed.")
+            except Exception as _ec_e:
+                print(f"[end_chat] reopen err: {_ec_e}")
+                safe_send(uid, "Chat closed.")
+        else:
+            safe_send(uid, "No active chat to close.")
+        return
+    # ---- /exit - close admin mode ----
+    if _prio_text == "/exit":
+        try:
+            import admin_auth as _prio_exit_aa
+            _sess_exit = _prio_exit_aa.get_session(uid)
+            if _sess_exit:
+                _del_fn = globals().get("delete_all_admin_msgs")
+                if _del_fn:
+                    try:
+                        _dc, _ = _del_fn(uid)
+                        print(f"[exit] {uid} deleted={_dc} msgs")
+                    except Exception: pass
+                _sm2 = globals().get("_STATS_MSGS")
+                if _sm2 is not None:
+                    try: _sm2.pop(uid, None)
+                    except Exception: pass
+                _bm2 = globals().get("_BTN_MSGS")
+                if _bm2 is not None:
+                    try: _bm2.pop(uid, None)
+                    except Exception: pass
+                try:
+                    _prio_exit_aa._SESSIONS.pop(uid, None)
+                except Exception:
+                    pass
+                for _mn_e, _mo_e in __import__("sys").modules.items():
+                    if hasattr(_mo_e, "unregister_panel"):
+                        try:
+                            _mo_e.unregister_panel(uid)
+                        except Exception:
+                            pass
+                safe_send(uid, "👋 *Admin mode closed.*\n\nYou are back to normal Hamilton chat.", parse_mode="Markdown")
+            else:
+                safe_send(uid, "ℹ️ You are not currently in admin mode.")
+        except Exception as _e_exit:
+            print(f"[exit_priority] {_e_exit}")
+            safe_send(uid, f"⚠️ Exit failed: {_e_exit}")
+        return
+    # End of priority block - rest of handler continues normally
+    # ============================================================
+
+
+
+
+    # ---- Two-way chat check (student replying to admin) ----
+    uid = message.chat.id
+    _twc = _is_in_two_way_chat(uid)
+    if _twc:
+        _twc["started"] = __import__("time").time()
+        try:
+            _admin_id = _twc["admin_uid"]
+            _pf = load_profile(uid) or {}
+            _name = _pf.get("name", "?")
+            _hku = _pf.get("hku_id", "?")
+            safe_send(_admin_id,
+                f"📨 *Reply from {_name}* (`{_hku}`)\n\n{(message.text or '')[:800]}\n\n"
+                f"_Reply via panel or type /end_chat {uid} to end._",
+                parse_mode="Markdown")
+            safe_send(uid, "✅ Message delivered to admin.")
+        except Exception as _e:
+            print(f"[two-way] forward failed: {_e}")
+        return
+
+    # ---- Extended pending admin flow (broadcast text, personal msg, etc.) ----
+    _pflow = PENDING_ADMIN_FLOW.get(uid)
+    if _pflow:
+        _now = __import__("time").time()
+        if _now - _pflow["at"] > 300:
+            PENDING_ADMIN_FLOW.pop(uid, None)
+        else:
+            _act = _pflow["action"]
+            _dat = _pflow["data"]
+
+            # ---- Broadcast message text ----
+            if _act == "broadcast_text":
+                _dat["text"] = message.text or ""
+                PENDING_ADMIN_FLOW[uid] = {
+                    "action": "broadcast_confirm",
+                    "data": _dat,
+                    "at": _now,
+                }
+                from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+                _kb = InlineKeyboardMarkup(row_width=1)
+                _kb.add(
+                    InlineKeyboardButton("✅ Send Now", callback_data="bc_send"),
+                    InlineKeyboardButton("⏰ Schedule", callback_data="bc_sched"),
+                    InlineKeyboardButton("❌ Cancel", callback_data="bc_cancel"),
+                )
+                safe_send(uid,
+                    f"📢 *Broadcast Preview*\n\nMessage:\n_{_dat['text']}_\n\n"
+                    f"Recipients: *{len(_dat.get('recipients', []))} users*",
+                    parse_mode="Markdown")
+                bot.send_message(uid, "Choose action:", reply_markup=_kb)
+                return
+
+            # ---- Admin Edit Name ----
+            if _act == "personal_edit_name":
+                _target = _dat["target_uid"]
+                _new_name = (message.text or "").strip()[:40]
+                _tp = load_profile(_target)
+                if _tp:
+                    _old_name = _tp.get("name", "?")
+                    _tp["name"] = _new_name
+                    save_profile(_target, _tp)
+                    safe_send(uid, f"✅ Name updated to *{_new_name}*.")
+                    try:
+                        safe_send(_target, f"✅ *Name Updated*\n\nYour name was updated to *{_new_name}* by Admin.", parse_mode="Markdown")
+                    except Exception:
+                        pass
+                PENDING_ADMIN_FLOW.pop(uid, None)
+                return
+
+            # ---- Personal message text ----
+            if _act == "personal_text":
+                _target = _dat["target_uid"]
+                _text = (message.text or "")[:800]
+                try:
+                    safe_send(_target,
+                        f"📩 *Personal message from Admin*\n\n{_text}\n\n"
+                        f"_Reply to continue. Type /end to close._",
+                        parse_mode="Markdown")
+                    safe_send(uid, f"✅ Message sent to {_target}.")
+                    # start two-way chat
+                    TWO_WAY_CHAT[_target] = {
+                        "admin_uid": uid,
+                        "started": __import__("time").time(),
+                    }
+                    try:
+                        safe_send(uid,
+                            f"🔗 *Chat opened with user {_target}*\n"
+                            f"Type `/end_chat {_target}` to close when done.",
+                            parse_mode="Markdown")
+                    except Exception:
+                        pass
+                except Exception as _e:
+                    safe_send(uid, f"⚠️ Send failed: {_e}")
+                # Keep personal_text flow alive so admin can send multiple messages
+                PENDING_ADMIN_FLOW[uid] = {
+                    "action": "personal_text",
+                    "data": _dat,
+                    "at": _now,
+                }
+                return
+
+            # ---- Broadcast schedule: date ----
+            if _act == "broadcast_date":
+                _t = (message.text or "").strip()
+                import re as _re
+                if not _re.match(r"^\d{4}-\d{2}-\d{2}$", _t):
+                    safe_send(uid, "❌ Format: YYYY-MM-DD. Try again.")
+                    return
+                _dat["date"] = _t
+                PENDING_ADMIN_FLOW[uid] = {
+                    "action": "broadcast_time",
+                    "data": _dat,
+                    "at": _now,
+                }
+                safe_send(uid, "⏰ *Enter time* — H:MM AM/PM\n_Example: 08:16 AM or 9:30 PM_\n_Indian Standard Time_", parse_mode="Markdown")
+                return
+
+            # ---- Broadcast schedule: time ----
+            if _act == "broadcast_time":
+                _t = (message.text or "").strip().upper()
+                import re as _re
+                # Accept: "08:16", "8:16 AM", "08:16 PM", "8:16AM", "0816"
+                _m = _re.match(r"^(\d{1,2})[:. ]?(\d{2})?\s*(AM|PM)?$", _t)
+                if not _m:
+                    safe_send(uid, "❌ Format: 8:16 AM, 9:30 PM, or 08:16. Try again.")
+                    return
+                _h = int(_m.group(1))
+                _mn = int(_m.group(2) or 0)
+                _ap = _m.group(3)
+                if _ap == "PM" and _h != 12:
+                    _h += 12
+                elif _ap == "AM" and _h == 12:
+                    _h = 0
+                elif not _ap:
+                    # No AM/PM — treat as 24h if 0-23, else error
+                    if _h > 23:
+                        safe_send(uid, "❌ Time out of range. Use AM/PM.")
+                        return
+                if _h < 0 or _h > 23 or _mn < 0 or _mn > 59:
+                    safe_send(uid, "❌ Invalid time. Try again.")
+                    return
+                _t24 = f"{_h:02d}:{_mn:02d}"
+                _dat["time"] = _t24
+                _dat["time_human"] = f"{_m.group(1)}:{_m.group(2) or '00'} {_ap or '(24h)'}"
+                _dt = f"{_dat['date']} {_dat.get('time', _t)}"  # always 24h format
+                _dat["scheduled_at"] = _dt
+                PENDING_ADMIN_FLOW.pop(uid, None)
+                safe_send(uid,
+                    f"✅ *Broadcast scheduled (IST)*\n"
+                    f"📅 Date: *{_dat['date']}*\n"
+                    f"🕐 Time: *{_dat.get('time_human', _dat['time'])}*\n"
+                    f"📩 Recipients: *{len(_dat.get('recipients', []))}*\n\n"
+                    f"_Scheduler will send automatically at that time._",
+                    parse_mode="Markdown")
+                # BC_RETURN_TO_PANEL — reopen admin panel
+                try:
+                    _show_p = globals().get("_show_admin_panel")
+                    if _show_p:
+                        _show_p(uid)
+                except Exception as _e:
+                    print(f"[bc_panel_return] {_e}")
+                try:
+                    import admin_auth as _aa
+                    _aa.log_broadcast(_dat.get("text", ""), len(_dat.get("recipients", [])), _dt)
+                except Exception:
+                    pass
+                # Save for scheduler
+                try:
+                    import json as _json
+                    _bpath = "scheduled_broadcasts.json"
+                    _existing = []
+                    import os as _os2
+                    if _os2.path.exists(_bpath):
+                        with open(_bpath) as _f:
+                            _existing = _json.load(_f)
+                    _existing.append({
+                        "scheduled_at": _dt,
+                        "text": _dat.get("text", ""),
+                        "file_type": _dat.get("file_type"),
+                        "file_id": _dat.get("file_id"),
+                        "recipients": _dat.get("recipients", []),
+                        "sent": False,
+                    })
+                    with open(_bpath, "w") as _f:
+                        _json.dump(_existing, _f, indent=2)
+                except Exception as _e:
+                    print(f"[sched save] {_e}")
+                return
+
+    # ---- Admin/Sub/Lockin codes (existing dispatch) ----
+    uid = message.chat.id
+    text = (message.text or "").strip()
+
+    # ============================================================
+    # INLINE DISPATCH — handles all admin/sub/lockin codes directly.
+    # Bypasses handler ordering issues.
+    # ============================================================
+    if text:
+        import admin_auth as _aa
+
+        # --- ADMIN entry ---
+        if text == getattr(config, "ADMIN_PANEL_CODE", None):
+            _aa.note_device(uid, "primary")
+            sess = _aa.get_session(uid)
+            if sess and sess.get("role") == "primary":
+                _show_admin_panel = globals().get("_show_admin_panel")
+                if _show_admin_panel:
+                    _show_admin_panel(uid)
+                return
+            locked, mins = _aa.is_locked(uid, "primary")
+            if locked:
+                safe_send(uid, f"🔒 Locked. Try again in {mins} min.", parse_mode="Markdown")
+                return
+            # Set pending state in c30a's _PENDING
+            _set_pending_global = None
+            try:
+                import sys as _sys
+                _c30a = _sys.modules.get("__main__")
+                if hasattr(_c30a, "_set_pending"):
+                    _c30a._set_pending(uid, "primary_priv")
+                else:
+                    _set_pending_global = None
+            except Exception:
+                pass
+            # Fallback: set our own pending dict
+            try:
+                _c30a_mod = __import__("bot_chunks.c30a_admin_auth", fromlist=["_set_pending"])
+                _c30a_mod._set_pending(uid, "primary_priv")
+            except Exception:
+                pass
+            PENDING_AUTH_FLOW[uid] = {"action": "primary_priv", "at": __import__("time").time()}
+            safe_send(uid,
+                f"👑 *Welcome Admin — {config.ADMIN_NAME}*\n\n"
+                "Please enter your *privacy code* to open the admin panel.\n\n"
+                "_Forgot your code? Type_ `/forgot`",
+                parse_mode="Markdown")
+            return
+
+        # --- SUB-ADMIN entry ---
+        if text == getattr(config, "SUB_ADMIN_CODE", None):
+            _aa.note_device(uid, "sub")
+            sess = _aa.get_session(uid)
+            if sess and sess.get("role") == "sub":
+                _show_sub = globals().get("_show_sub_admin_panel")
+                if _show_sub:
+                    _show_sub(uid)
+                return
+            locked, mins = _aa.is_locked(uid, "sub")
+            if locked:
+                safe_send(uid, f"🔒 Locked. Try again in {mins} min.", parse_mode="Markdown")
+                return
+            if _aa.is_sub_admin_registered(uid):
+                try:
+                    _c30a_mod = __import__("bot_chunks.c30a_admin_auth", fromlist=["_set_pending"])
+                    _c30a_mod._set_pending(uid, "sub_priv")
+                except Exception:
+                    pass
+                PENDING_AUTH_FLOW[uid] = {"action": "sub_priv", "at": __import__("time").time()}
+                safe_send(uid, "🛡️ *Welcome back, Sub-Admin*\n\nPlease enter your *privacy code*.",
+                          parse_mode="Markdown")
+            else:
+                from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+                kb = InlineKeyboardMarkup(row_width=2)
+                kb.add(
+                    InlineKeyboardButton("🆕 New Device", callback_data="sub_new"),
+                    InlineKeyboardButton("✅ Already Registered", callback_data="sub_reg"),
+                )
+                bot.send_message(uid,
+                    "🛡️ *Sub-Admin Entry*\n\nHave you registered on this device before?",
+                    reply_markup=kb, parse_mode="Markdown")
+            return
+
+        # --- LOCK-IN GENERATOR code ---
+        if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
+            code, mins = _aa.generate_lockin_code(target_uid=uid)
+            _aa.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+            safe_send(uid,
+                f"🔑 *Lock-in Generator Access*\n\n"
+                f"Your one-time code:\n\n"
+                f"`{code}`\n\n"
+                f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+                f"Type this code anywhere in the chat to unlock any lockout.",
+                parse_mode="Markdown")
+            return
+
+        # --- Hex lock-in code (8-char) ---
+        if _aa.is_hex_lockin_code(text):
+            ok, entry = _aa.verify_lockin_code(text, requester_uid=uid)
+            if ok:
+                _aa.unlock_primary()
+                _aa.unlock_sub_admin(uid)
+                _aa.clear_user_block(uid)
+                _aa.audit("lockin_used", uid, {})
+                safe_send(uid,
+                    "🔓 *Lock-in accepted.*\n"
+                    "Your lockout and any block have been cleared.\n"
+                    "Type the entry code to try again.",
+                    parse_mode="Markdown")
+            else:
+                safe_send(uid, "❌ Invalid or expired lock-in code.")
+            return
+
+    # ============================================================
+
+    uid = message.chat.id
+    text = (message.text or "").strip()
+    if not text:
+        return
+
+    p = get_or_create_profile(uid)
+    try:
+        p["last_seen"] = datetime.now().isoformat()
+        save_profile(uid, p)
+        import admin_auth as _aa_ls
+        _aa_ls.bump_api_calls(uid) # Trigger live update
+    except Exception: pass
+    try:
+        p["last_seen"] = datetime.now().isoformat()
+        save_profile(uid, p)
+    except Exception:
+        pass
+
+    # ============================================================
+    # PENDING AUTH FLOW — check if this message is a privacy code
+    # ============================================================
+    _pend = PENDING_AUTH_FLOW.get(uid)
+    if _pend:
+        # 2-minute expiry
+        if __import__("time").time() - _pend["at"] > 120:
+            PENDING_AUTH_FLOW.pop(uid, None)
+        else:
+            act = _pend["action"]
+            import admin_auth as _aa2
+
+            # ---- Primary forgot: reset key ----
+            if act == "primary_reset_key":
+                import admin_auth as _aa3
+                if _aa3.verify_primary_reset(text):
+                    # Clear + set new privacy
+                    PENDING_AUTH_FLOW[uid] = {
+                        "action": "primary_new_priv",
+                        "at": __import__("time").time(),
+                    }
+                    safe_send(uid,
+                        "✅ *Reset key verified.*\n\n"
+                        "Enter your *new privacy code* (6–20 chars):",
+                        parse_mode="Markdown")
+                else:
+                    _aa3.audit("primary_reset_fail", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid,
+                        "❌ Wrong reset key. Recovery cancelled.\n"
+                        "Type /forgot to try again.",
+                        parse_mode="Markdown")
+                return
+
+            # ---- Primary new privacy code ----
+            if act == "primary_new_priv":
+                if len(text) < 6 or len(text) > 20:
+                    safe_send(uid, "❌ Must be 6–20 characters. Try again:")
+                    return
+                import admin_auth as _aa4
+                _aa4.set_primary_privacy(text)
+                _aa4.reset_failed_attempts(uid, "primary")
+                _aa4.start_session(uid, "primary")
+                _aa4.audit("primary_priv_reset_ok", uid, {})
+                PENDING_AUTH_FLOW.pop(uid, None)
+                safe_send(uid, "✅ *Privacy code updated.* Opening panel…",
+                          parse_mode="Markdown")
+                _show_p = globals().get("_show_admin_panel")
+                if _show_p:
+                    _show_p(uid)
+                return
+
+            # ---- Primary forgot: reset key (FORGOT_FIX_V2) ----
+            if act == "primary_reset_key":
+                import admin_auth as _aa_rk
+                if _aa_rk.verify_primary_reset(text):
+                    PENDING_AUTH_FLOW[uid] = {
+                        "action": "primary_new_priv",
+                        "at": __import__("time").time(),
+                    }
+                    safe_send(uid,
+                        "✅ *Reset key verified.*\n\n"
+                        "Enter your *new privacy code* (6–20 chars):",
+                        parse_mode="Markdown")
+                else:
+                    _aa_rk.audit("primary_reset_fail", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid,
+                        "❌ Wrong reset key. Type /forgot to try again.",
+                        parse_mode="Markdown")
+                return
+
+            # ---- Primary new privacy code (FORGOT_FIX_V2) ----
+            if act == "primary_new_priv":
+                if len(text) < 6 or len(text) > 20:
+                    safe_send(uid, "❌ Must be 6–20 characters. Try again:")
+                    return
+                import admin_auth as _aa_np
+                _aa_np.set_primary_privacy(text)
+                _aa_np.reset_failed_attempts(uid, "primary")
+                _aa_np.start_session(uid, "primary")
+                _aa_np.audit("primary_priv_reset_ok", uid, {})
+                PENDING_AUTH_FLOW.pop(uid, None)
+                safe_send(uid, "✅ *Privacy code updated.* Opening panel…",
+                          parse_mode="Markdown")
+                _show_p = globals().get("_show_admin_panel")
+                if _show_p:
+                    _show_p(uid)
+                return
+
+            # ============================================================
+            # SUB_VERIFY_INLINE — Sub-admin registration flow in c09
+            # ============================================================
+
+            # ---- Sub-admin: verification code (new device) ----
+            if act == "sub_verify_code":
+                import admin_auth as _aa_sv
+                if _aa_sv.verify_sub_admin_verify_code(text):
+                    PENDING_AUTH_FLOW[uid] = {
+                        "action": "sub_new_name",
+                        "at": __import__("time").time(),
+                    }
+                    safe_send(uid,
+                        "✅ *Verification code accepted.*\n\n"
+                        "Enter your *name*:",
+                        parse_mode="Markdown")
+                else:
+                    _aa_sv.record_failed_attempt(uid, "sub")
+                    _aa_sv.audit("sub_verify_fail", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid,
+                        "❌ Wrong verification code. Entry cancelled.",
+                        parse_mode="Markdown")
+                return
+
+            # ---- Sub-admin: choose name ----
+            if act == "sub_new_name":
+                if not text or len(text.strip()) < 2:
+                    safe_send(uid, "❌ Please enter a valid name.")
+                    return
+                _name_pick = text.strip()[:60]
+                _dat = _pf.get("data", {}) if _pf else {}
+                _dat["name"] = _name_pick
+                PENDING_AUTH_FLOW[uid] = {
+                    "action": "sub_new_privacy",
+                    "data": _dat,
+                    "at": __import__("time").time(),
+                }
+                safe_send(uid,
+                    f"✅ Hi *{_name_pick}*.\n\n"
+                    "Now set your *privacy code* (6–20 chars):",
+                    parse_mode="Markdown")
+                return
+
+            # ---- Sub-admin: choose privacy code ----
+            if act == "sub_new_privacy":
+                if len(text) < 6 or len(text) > 20:
+                    safe_send(uid, "❌ Must be 6–20 characters. Try again:")
+                    return
+                import admin_auth as _aa_sp
+                _name_pick = _pflow.get("data", {}).get("name", "Sub-Admin")
+                _aa_sp.register_sub_admin(uid, _name_pick, text)
+                _aa_sp.start_session(uid, "sub")
+                _aa_sp.audit("sub_login_ok", uid, {"name": _name_pick})
+                PENDING_AUTH_FLOW.pop(uid, None)
+                safe_send(uid,
+                    "✅ *Sub-admin registered. Opening panel…*",
+                    parse_mode="Markdown")
+                _show_sub = globals().get("_show_sub_admin_panel")
+                if _show_sub:
+                    _show_sub(uid)
+                return
+
+            # ---- Primary privacy code ----
+            if act == "primary_priv":
+                locked, mins = _aa2.is_locked(uid, "primary")
+                if locked:
+                    safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    return
+                if _aa2.verify_primary_privacy(text):
+                    _aa2.reset_failed_attempts(uid, "primary")
+                    _aa2.start_session(uid, "primary")
+                    _aa2.audit("primary_login_ok", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    _show_panel = globals().get("_show_admin_panel")
+                    if _show_panel:
+                        _show_panel(uid)
+                    else:
+                        safe_send(uid, "✅ Logged in. Panel loading error — try /admin_lockin.")
+                else:
+                    _aa2.record_failed_attempt(uid, "primary")
+                    import admin_auth as _aa_ck
+                    _cfg = _aa_ck._load_config()
+                    _attempts = _cfg.get("primary", {}).get("failed_attempts", 0)
+                    _remaining = max(0, _aa_ck.MAX_FAILED - _attempts)
+
+                    if _remaining > 0:
+                        # KEEP pending flow active so user gets all attempts
+                        safe_send(uid,
+                            f"❌ Wrong privacy code.\n"
+                            f"⚠️ *{_remaining} attempts left* before 15-min lockout.\n\n"
+                            f"Type your privacy code again, or `/forgot` to reset.",
+                            parse_mode="Markdown")
+                    else:
+                        # Only clear pending when locked out
+                        PENDING_AUTH_FLOW.pop(uid, None)
+                        safe_send(uid,
+                            f"🔒 Locked. Too many failed attempts. Try again in 15 min.\n\n"
+                            f"Type `/forgot` if you need to reset your privacy code.",
+                            parse_mode="Markdown")
+                return
+
+            # ---- Sub-admin privacy code ----
+            if act == "sub_priv":
+                locked, mins = _aa2.is_locked(uid, "sub")
+                if locked:
+                    safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    return
+                if _aa2.verify_sub_admin_privacy(uid, text):
+                    _aa2.reset_failed_attempts(uid, "sub")
+                    _aa2.start_session(uid, "sub")
+                    _aa2.update_sub_admin_last_seen(uid)
+                    _aa2.audit("sub_login_ok", uid, {})
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    _show_sub = globals().get("_show_sub_admin_panel")
+                    if _show_sub:
+                        _show_sub(uid)
+                    else:
+                        _show_panel = globals().get("_show_admin_panel")
+                        if _show_panel:
+                            _show_panel(uid)
+                else:
+                    _aa2.record_failed_attempt(uid, "sub")
+                    PENDING_AUTH_FLOW.pop(uid, None)
+                    safe_send(uid, "❌ Wrong privacy code. Entry cancelled.", parse_mode="Markdown")
+                return
+
+    # ---- Admin unblock code (works even when blocked) ----
+    if text.strip() == ADMIN_UNBLOCK_CODE:
+        p.setdefault("behavior", {"strikes": 0, "blocked_until": None})
+        p["behavior"]["strikes"] = 0
+        p["behavior"]["blocked_until"] = None
+        save_profile(uid, p)
+        bot.reply_to(message, "🔓 *Admin unblock successful.* Strikes reset to 0.",
+                     parse_mode="Markdown")
+        return
+
+    # ---- Blocked check ----
+    blocked, time_left = check_blocked(uid)
+    if blocked:
+        safe_send(uid,
+            f"⛔ *Access Denied*\n\n"
+            f"You are blocked.\n"
+            f"Contact admin on WhatsApp *{WHATSAPP_CONTACT}* and pay *₹10* to unblock."
+            + _countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # ---- Activation gate ----
+    if not p.get("secured"):
+        if is_valid_key(text):
+            p["secured"] = True
+            p["activation_key"] = text.strip()
+            p["key_expired"] = False
+            p["onboarding_step"] = "name"
+            save_profile(uid, p)
+            # Hamilton story (once)
+            if not p.get("story_shown"):
+                safe_send(uid, _hamilton_story(), parse_mode="Markdown")
+                p["story_shown"] = True
+                save_profile(uid, p)
+                time.sleep(1)
+            bot.reply_to(message, "✅ *Key confirmed. Let's set up your profile.*",
+                         parse_mode="Markdown")
+            _run_onboarding(uid)
+        else:
+            p.setdefault("no_key_attempts", 0)
+            p["no_key_attempts"] += 1
+            save_profile(uid, p)
+            if p["no_key_attempts"] <= 2:
+                safe_send(uid, _no_key_message(short=False), parse_mode="Markdown")
+            else:
+                safe_send(uid, _no_key_message(short=True), parse_mode="Markdown")
+        return
+
+    # ---- Expired key check ----
+    if _check_key_expired(uid, p):
+        return
+
+    # ---- Onboarding gate ----
+    if p.get("onboarding_step") and p["onboarding_step"] != "done":
+        _run_onboarding(uid)
+        return
+
+    if not p.get("exams"):
+        bot.reply_to(message, "🎯 Set exams with /mode first.")
+        return
+
+    # ============================================
+    # SESSION LOCKS (borders)
+    # ============================================
+    sess = exam_engine.get_session(uid)
+
+    # Test mode → hard border
+    if sess and sess.get("mode") == "test":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        paper = sess.get("current_paper", 1)
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="test_stop"))
+        safe_send(uid,
+            f"📝 *Test in progress* — Paper {paper}, Q{q_done}/{len(plan)}\n\n"
+            f"I can't answer questions during the test.\n"
+            f"Finish first, then we can talk.\n\n"
+            f"Use the button below to end early.",
+            parse_mode="Markdown",
+            reply_markup=markup)
+        return
+
+    # Conceptual mode → hard border
+    if sess and sess.get("mode") == "conceptual":
+        q_done = sess.get("questions_done", 0)
+        plan = sess.get("plan", [])
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("⏹ Stop Test",
+                                                       callback_data="concept_stop"))
+        safe_send(uid,
+            f"🧠 *Conceptual test in progress* — Q{q_done}/{len(plan)}\n\n"
+            f"I can't answer questions during the test.\n"
+            f"Finish first, then we can talk.",
+            parse_mode="Markdown",
+            reply_markup=markup)
+        return
+
+    # Practice mode → soft border (allow doubt)
+    if p.get("_practice_active") and sess and sess.get("mode") == "practice":
+        # Treat as doubt → answer briefly, then show Continue/Stop
+        exam = sess.get("exam") or health.exam_of(p) or "JEE_MAIN"
+        timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+        try:
+            bump_api_calls(uid)
+            answer = ai_client.ask_hamilton(exam, text)
+        except Exception:
+            answer = None
+        timer_manager.stop_thinking_timer(uid)
+        if not answer:
+            safe_send(uid, "⚠️ Could not answer right now. Retry or Continue.")
+            return
+        svg, clean = svg_renderer.detect_svg_in_text(answer)
+        final = "💬 *Your doubt answered:*\n\n" + clean
+        safe_send(uid, final + _countdown_footer(uid),
+                  parse_mode="Markdown",
+                  reply_markup=_doubt_continue_buttons())
+        if svg and SVG_ENABLED:
+            path = svg_renderer.render_svg(svg, name=f"doubt_{uid}")
+            if path:
+                safe_send_photo(uid, path)
+                svg_renderer.cleanup_file(path)
+        return
+
+    # Stuck practice flag without session → clear
+    if p.get("_practice_active") and not sess:
+        p["_practice_active"] = False
+        save_profile(uid, p)
+
+    # Notes session → if user types anything else, treat as doubt about notes
+    if p.get("_notes_state"):
+        low = text.lower().strip()
+        if low in ("continue", "next", "next part", "go on", "cont"):
+            _send_next_notes_batch(uid)
+            return
+        if low in ("stop", "exit", "done", "end"):
+            p.pop("_notes_state", None)
+            save_profile(uid, p)
+            safe_send(uid, "✅ Notes session ended.")
+            return
+        if low in ("explain", "explain more", "detail"):
+            state = p.get("_notes_state", {})
+            last = state.get("last_notes", "")
+            exam = state.get("exam", "JEE_MAIN")
+            if not last:
+                safe_send(uid, "Nothing to explain.")
+                return
+            timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+            prompt = ("The student wants a simpler explanation of these notes:\n\n"
+                      + last + "\n\nRe-explain in simpler friendly language.")
+            bump_api_calls(uid)
+            answer = ai_client.ask_hamilton(exam, prompt)
+            timer_manager.stop_thinking_timer(uid)
+            if answer:
+                svg, clean = svg_renderer.detect_svg_in_text(answer)
+                safe_send(uid, clean + _countdown_footer(uid), parse_mode="Markdown")
+                if svg and SVG_ENABLED:
+                    path = svg_renderer.render_svg(svg, name=f"explain_{uid}")
+                    if path:
+                        safe_send_photo(uid, path)
+                        svg_renderer.cleanup_file(path)
+            return
+
+    # Pending numerical (practice)
+    if uid in PENDING_NUMERICAL:
+        pending = PENDING_NUMERICAL.get(uid)
+        if pending and pending.get("is_test"):
+            _handle_test_numerical(uid, text)
+        else:
+            _handle_numerical_answer(uid, text)
+        return
+
+    # ============================================
+    # ---- LOCK_LOGIC_V2: smart AI lock that respects any pending flow ----
+    import admin_auth as _aa_lock
+    _lock_sess = _aa_lock.get_session(message.chat.id)
+    _lock_text = (message.text or "").strip()
+
+    if _lock_sess and _lock_text and not _lock_text.startswith("/"):
+        # Determine if ANY pending flow is active (auth OR admin)
+        _flow_active = False
+        for _mn, _mo in __import__("sys").modules.items():
+            # Check PENDING_AUTH_FLOW
+            if hasattr(_mo, "PENDING_AUTH_FLOW"):
+                _af = _mo.PENDING_AUTH_FLOW.get(message.chat.id)
+                if _af and _af.get("at") and (__import__("time").time() - _af["at"]) < 300:
+                    _flow_active = True
+                    break
+            # Check PENDING_ADMIN_FLOW
+            if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+                _pf = _mo.PENDING_ADMIN_FLOW.get(message.chat.id)
+                if _pf and _pf.get("at") and (__import__("time").time() - _pf["at"]) < 300:
+                    _flow_active = True
+                    break
+
+        if not _flow_active:
+            # No pending flow → user is just chatting in admin mode
+            # Block AI and tell them to use /exit
+            safe_send(message.chat.id,
+                "🛠️ *Admin Panel Active*\n\n"
+                "Use panel buttons above. Type `/exit` to close admin mode and return to normal chat.",
+                parse_mode="Markdown")
+            return
+
+    # ---- End LOCK_LOGIC_V2 ----
+    # NORMAL FREE-TEXT AI
+    # ============================================
+    exam = health.exam_of(p) or "JEE_MAIN"
+
+    # 3-tier classification (merged single-call: classify + answer)
+    bump_api_calls(uid)
+    try:
+        intent, merged_reply = ai_client.classify_message_and_answer(
+            exam, text, selected_exams=p.get("exams") or [exam]
+        )
+    except Exception:
+        intent, merged_reply = "STUDY", None
+
+    if intent == "OFF_TOPIC":
+        blocked_now, mins = register_strike(uid)
+        stats = get_usage_stats(uid)
+        sc  = stats["strikes_current"]
+        st  = stats["strikes_total"]
+        bt  = stats["blocks_total"]
+        remaining = max(0, STRIKE_LIMIT - sc)
+
+        if blocked_now:
+            safe_send(uid,
+                f"⛔ *BLOCK MODE ACTIVATED*\n\n"
+                f"You have been blocked for *{mins} minutes* for repeated misuse.\n\n"
+                f"📊 *Your record so far:*\n"
+                f"  • Strikes this session: *{sc}*\n"
+                f"  • Total strikes ever: *{st}*\n"
+                f"  • Previous blocks: *{bt}*\n\n"
+                f"WhatsApp *{WHATSAPP_CONTACT}* if this was a mistake."
+                + _countdown_footer(uid),
+                parse_mode="Markdown")
+            return
+
+        safe_send(uid,
+            f"⚠️ *STRIKE {sc}/{STRIKE_LIMIT}*\n"
+            f"_({remaining} more strikes until temporary block)_\n\n"
+            "Think about study. Think about studies. Don't simply learn. "
+            "Understand it so you can simply memorize it. Remember that your "
+            "ultimate success requires the right resources. If you are "
+            "distracted or bored, invest your time wisely with Hemanth and "
+            "Krishna Publications. Message 8074231426 to get books that "
+            "clarify your concepts and elevate your ranks immediately.\n\n"
+            "Focus now. Your exam is watching the calendar."
+            + _countdown_footer(uid),
+            parse_mode="Markdown")
+        return
+
+    # Thinking timer + AI
+    timer_manager.start_thinking_timer(bot, uid, ai_client.THINKING_MSG)
+    try:
+        bump_api_calls(uid)
+        answer = ai_client.ask_hamilton(exam, text)
+    except Exception:
+        answer = None
+    timer_manager.stop_thinking_timer(uid)
+
+    if not answer:
+        mid = timer_manager.get_thinking_msg_id(uid)
+        err = "⚠️ Hamilton is momentarily overloaded. Please try again."
+        if mid:
+            safe_edit(uid, mid, err)
+        else:
+            safe_send(uid, err)
+        return
+
+    svg, clean = svg_renderer.detect_svg_in_text(answer)
+    final = clean + _countdown_footer(uid)
+
+    mid = timer_manager.get_thinking_msg_id(uid)
+    if mid:
+        safe_edit(uid, mid, final, parse_mode="Markdown")
+    else:
+        safe_send(uid, final, parse_mode="Markdown")
+
+    if svg and SVG_ENABLED:
+        path = svg_renderer.render_svg(svg, name=f"ai_{uid}")
+        if path:
+            safe_send_photo(uid, path)
+            svg_renderer.cleanup_file(path)
+
+# ==========================================================
+# TWO-WAY CHAT (admin <-> student)
+# ==========================================================
+TWO_WAY_CHAT = {}   # {student_uid: {"admin_uid": int, "started": ts}}
+
+def _is_in_two_way_chat(uid):
+    entry = TWO_WAY_CHAT.get(uid)
+    if not entry:
+        return None
+    import time as _t
+    if _t.time() - entry["started"] > getattr(config, "TWO_WAY_CHAT_TIMEOUT_MIN", 30) * 60:
+        TWO_WAY_CHAT.pop(uid, None)
+        return None
+    return entry
+
+
+# ==========================================================
+# EXTENDED PENDING FLOW (for admin actions)
+# ==========================================================
+PENDING_ADMIN_FLOW = {}   # {admin_uid: {"action": ..., "data": {...}, "at": ts}}
+

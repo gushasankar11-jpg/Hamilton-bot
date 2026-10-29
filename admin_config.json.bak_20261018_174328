@@ -1,0 +1,14 @@
+{
+  "primary": {
+    "chat_id": null,
+    "name": "Gokarnam Muni Krishna Vamsi",
+    "privacy_hash": "6ea338e158a7115c2ed3325b74e431a384dd422012140c60f8c93d6dcf16b135",
+    "privacy_salt": "f1aa323a0c2ee1ed44c7a4000ac15f29930edac1a9cca8bbdf9df6143a5b6240",
+    "reset_hash": "4c9758d03f846a12c7dd8204129d870c7957eff2d878812f10cc0479415896b6",
+    "reset_salt": "38c936a7f33484f7fc2a949223d4a582696a09949ec7742a10895069e7e41dcb",
+    "created_at": "2026-10-16T17:44:14.235335",
+    "failed_attempts": 0,
+    "locked_until": null
+  },
+  "sub_admins": {}
+}

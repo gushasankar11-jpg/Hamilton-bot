@@ -1,0 +1,149 @@
+# ==========================================================
+# config.py — Hamilton Study AI
+# Single source of truth.
+# ==========================================================
+
+TELEGRAM_TOKEN = "8014117557:AAE5LrvN8TrjnDgWyR3C5Oe9zYtTrOqi6mA"
+
+ADMIN_CHAT_ID = 8857708587
+ADMIN_UNBLOCK_CODE = "HK-MASTER-2026-X9"
+
+# ----------------------------------------------------------
+# EXAMS
+# ----------------------------------------------------------
+EXAM_OPTIONS = {"A": "JEE_ADV", "B": "JEE_MAIN", "C": "EAMCET"}
+
+EXAM_NAMES = {
+    "JEE_ADV": "JEE Advanced",
+    "JEE_MAIN": "JEE Mains",
+    "EAMCET": "EAMCET",
+}
+
+EXAM_MD = {
+    "JEE_ADV":  (5, 18),
+    "JEE_MAIN": (1, 22),
+    "EAMCET":   (5, 5),
+}
+
+MAX_MARKS = {
+    "JEE_ADV": 360,
+    "JEE_MAIN": 300,
+    "EAMCET": 160,
+}
+
+DURATION_MIN = {
+    "JEE_ADV": 180,
+    "JEE_MAIN": 180,
+    "EAMCET": 180,
+}
+
+# ----------------------------------------------------------
+# PAPER PATTERNS (used in Test mode - fixed counts)
+# ----------------------------------------------------------
+PAPER_PATTERN = {
+    "JEE_MAIN": {
+        "Physics":   {"MCQ": 20, "Numerical": 5},
+        "Chemistry": {"MCQ": 20, "Numerical": 5},
+        "Maths":     {"MCQ": 20, "Numerical": 5},
+    },
+    "JEE_ADV": {
+        "Physics":   {"MCQ": 4, "Multi": 4, "Numerical": 6, "Match": 3},
+        "Chemistry": {"MCQ": 4, "Multi": 4, "Numerical": 6, "Match": 3},
+        "Maths":     {"MCQ": 4, "Multi": 4, "Numerical": 6, "Match": 3},
+    },
+    "EAMCET": {
+        "Maths":     {"MCQ": 80},
+        "Physics":   {"MCQ": 40},
+        "Chemistry": {"MCQ": 40},
+    },
+}
+
+MARKING = {
+    "JEE_MAIN": {"MCQ": 4, "MCQ_wrong": -1, "Numerical": 4, "Numerical_wrong": 0},
+    "JEE_ADV":  {"MCQ": 3, "MCQ_wrong": -1,
+                 "Multi": 4, "Multi_partial": 2, "Multi_wrong": -2,
+                 "Numerical": 4, "Numerical_wrong": 0,
+                 "Match": 3, "Match_wrong": -1},
+    "EAMCET":   {"MCQ": 1, "MCQ_wrong": 0},
+}
+
+# ----------------------------------------------------------
+# PATHS
+# ----------------------------------------------------------
+KEYS_FILE = "keys.json"
+PROFILE_DIR = "profiles"
+BOOKMARK_DIR = "bookmarks"
+DATA_DIR = "data"
+USER_ID_FILE = "data/user_ids.json"
+SVG_TEMP_DIR = "svg_temp"
+
+# ----------------------------------------------------------
+# LIMITS
+# ----------------------------------------------------------
+TELEGRAM_MSG_LIMIT = 4000
+STRIKE_LIMIT = 10
+BLOCK_MINUTES = 60
+MAX_FUTURE_YEARS = 3
+AUTO_DELETE_DAYS_AFTER_EXAM = 10
+
+# ----------------------------------------------------------
+# HEALTH FORMULA
+# ----------------------------------------------------------
+HEALTH_PRIOR_ATTEMPTS = 8
+HEALTH_PRIOR_CORRECT = 2
+HEALTH_ACCURACY_WEIGHT = 0.85
+HEALTH_SPEED_WEIGHT = 0.15
+
+# ----------------------------------------------------------
+# PRICING (universal ₹169)
+# ----------------------------------------------------------
+PRICE_UNIVERSAL = 169
+PRICING_NOTE = "_Fixed price. Any exam. Full duration of prep._"
+WHATSAPP_CONTACT = "+91 80742 31426"
+
+# ----------------------------------------------------------
+# SOURCE MIX
+# ----------------------------------------------------------
+SOURCE_MIX_BASE = {"material": 50, "pyq": 30, "ai": 20}
+SOURCE_MIX_HIGH_PERF = {"material": 45, "pyq": 20, "ai": 35}
+SOURCE_MIX_LOW_PERF = {"material": 55, "pyq": 35, "ai": 10}
+
+MATERIAL_NAMES = [
+    "Cengage", "DC Pandey", "HC Verma", "Pearson",
+    "Arihant", "OP Tandon", "MS Chouhan", "JD Lee",
+]
+
+# ----------------------------------------------------------
+# SVG
+# ----------------------------------------------------------
+SVG_ENABLED = True
+SVG_MAX_WIDTH = 900
+SVG_CONVERT_CMD = "rsvg-convert"
+SVG_TIMEOUT = 20
+
+SVG_COLOR_GREEN = "#28a745"
+SVG_COLOR_YELLOW = "#ffc107"
+SVG_COLOR_ORANGE = "#fd7e14"
+SVG_COLOR_RED = "#dc3545"
+SVG_COLOR_BG = "#0a0a1a"
+SVG_COLOR_TEXT = "#ffffff"
+SVG_COLOR_ACCENT = "#00d4ff"
+SVG_LOGO_COLOR = "#c9a961"
+
+# ----------------------------------------------------------
+# USER IDs
+# ----------------------------------------------------------
+USER_ID_PREFIX = "HKU-"
+USER_ID_DIGITS = 6
+
+
+if __name__ == "__main__":
+    print("config.py OK")
+    print("Exams:", list(EXAM_NAMES.keys()))
+    print("Price:", PRICE_UNIVERSAL)
+    print("Admin:", ADMIN_CHAT_ID)
+
+# ==========================================================
+# ADMIN PANEL CODE (super random — change anytime)
+# ==========================================================
+ADMIN_PANEL_CODE = "HK-DELETE-MASTER-X8K3Q7W2M9P4N6V1B5T3R8L2D7A4E9C6Z1Y5J"

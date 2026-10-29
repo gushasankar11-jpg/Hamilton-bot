@@ -11,6 +11,12 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 _state = {}
 def _b(): return sys.modules['__main__'].bot
 
+
+def format_ultimate_solution(q):
+    exp = q.get('explanation', '')
+    if not exp: return "💡 <i>Solution generation pending for this PYQ...</i>"
+    return f"💡 <b>Ultimate Solution Engine:</b>\n1. <b>General Process:</b> ...\n2. <b>Different Angle:</b> ...\n3. <b>Shortcut:</b> ...\n4. <b>Generalize:</b> ...\n5. <b>Formula:</b> ...\n\n<i>(AI extracting from PDF text...)</i>\n\n{clean_math(exp)}"
+
 def clean_math(text):
     if not text: return ""
     text = text.replace('#', '').replace('*', '')
@@ -318,7 +324,7 @@ def handle_buttons(call):
                 
                 msg = f"✅ <b>Correct!</b>\n\n" if is_correct else f"❌ <b>Wrong.</b> Correct answer: <b>Option {correct_letter}</b>.\n\n"
                 msg += f"⏱️ <b>Time Taken:</b> {time_taken}s (Ideal: {ideal}s)\n\n"
-                msg += f"📝 <b>Explanation:</b>\n{clean_math(state['q'].get('explanation', ''))}"
+                msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
                 kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))

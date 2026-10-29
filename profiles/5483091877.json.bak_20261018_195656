@@ -1,0 +1,33 @@
+{
+  "secured": true,
+  "name": "Kv ast",
+  "institute": "Viswasai",
+  "level": null,
+  "exams": [],
+  "priority": null,
+  "priority_pct": 100,
+  "target_year": null,
+  "target_marks": {},
+  "selected_chapters": {},
+  "subtopic_stats": {},
+  "onboarding_step": "done",
+  "behavior": {
+    "strikes": 0,
+    "blocked_until": null
+  },
+  "strikes_total": 0,
+  "blocks_total": 0,
+  "api_calls_total": 0,
+  "last_strike_at": null,
+  "last_block_at": null,
+  "leaderboard_optin": true,
+  "story_shown": true,
+  "no_key_attempts": 0,
+  "hku_id": null,
+  "activation_key": "HK Publications 2026-27",
+  "key_expired": false,
+  "_practice_active": false,
+  "_practice_exam": null,
+  "_practice_level": "medium",
+  "created_at": "2026-10-18T19:17:25.511459"
+}

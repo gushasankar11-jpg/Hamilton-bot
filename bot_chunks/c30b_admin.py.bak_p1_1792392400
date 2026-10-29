@@ -1,0 +1,805 @@
+# ==========================================================
+# c30b_admin.py — Admin panel v2 (new format + full features)
+# ==========================================================
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime, timedelta
+import admin_auth as auth
+
+
+def _list_all_users():
+    users = []
+    if not os.path.isdir(PROFILE_DIR):
+        return users
+    for fname in os.listdir(PROFILE_DIR):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            uid = int(fname.replace(".json", ""))
+        except ValueError:
+            continue
+        try:
+            with open(os.path.join(PROFILE_DIR, fname)) as f:
+                p = json.load(f)
+        except Exception:
+            continue
+        if not p.get("secured"):
+            continue
+        users.append((uid, p))
+    users.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+    return users
+
+
+def _days_since(iso_str):
+    try:
+        return (datetime.now() - datetime.fromisoformat(iso_str)).days
+    except Exception:
+        return "?"
+
+
+def _snapshot_counters():
+    """Compute today / week / total counters + online now."""
+    today = datetime.now().date()
+    week_ago = datetime.now() - timedelta(days=7)
+    today_users = 0
+    week_users_set = set()
+    total_users = 0
+    online_count = 0
+    online_uids = []
+    today_calls = 0
+    total_calls = 0
+    week_calls = 0
+    try:
+        with open("data/lifetime_stats.json") as _f:
+            _s = json.load(_f)
+            total_calls = _s.get("total_calls", 0)
+            today_calls = _s.get("daily_calls", {}).get(today.isoformat(), 0)
+    except Exception:
+        pass
+    now = datetime.now()
+    for uid, p in _list_all_users():
+        total_users += 1
+        last_seen = p.get("last_seen")
+        if last_seen:
+            try:
+                dt = datetime.fromisoformat(last_seen)
+                if dt.date() == today:
+                    today_users += 1
+                if dt >= week_ago:
+                    week_users_set.add(uid)
+                if (now - dt) < timedelta(minutes=5):
+                    online_count += 1
+                    online_uids.append((uid, p))
+            except Exception:
+                pass
+    return {
+        "today_calls": today_calls,
+        "today_users": today_users,
+        "week_calls": week_calls,
+        "week_users": len(week_users_set),
+        "total_calls": total_calls,
+        "total_users": total_users,
+        "online_count": online_count,
+        "online_uids": online_uids,
+    }
+
+
+
+_STATS_MSGS = {}
+_BTN_MSGS = {}
+
+def _show_admin_panel(chat_id, page=0, message_id=None):
+    session = auth.get_session(chat_id)
+    if not session:
+        safe_send(chat_id, "\U0001f512 Session expired. Re-enter the admin code.")
+        return
+    try:
+        auth.touch_session(chat_id)
+    except Exception:
+        pass
+    role = session["role"]
+    snap = _snapshot_counters()
+    if role == "primary":
+        header = (
+            "\U0001f6e0 *HAMILTON ADMIN PANEL* [PRIMARY]\n\n"
+            "\U0001f4ca *LIVE SNAPSHOT* (updates every 2s)\n"
+            f"  Today: *{snap['today_calls']}* calls \u00b7 *{snap['today_users']}* users\n"
+            f"  Week:  *{snap['week_users']}* users\n"
+            f"  Total: *{snap['total_calls']}* calls \u00b7 *{snap['total_users']}* users\n\n"
+            f"\U0001f7e2 *ONLINE NOW:* *{snap['online_count']}* users\n"
+            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+        )
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(
+            InlineKeyboardButton("\U0001f465 Users", callback_data="admin_users:0"),
+            InlineKeyboardButton("\U0001f7e2 Online Now", callback_data="admin_online"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f6ab Blocked", callback_data="admin_blocked"),
+            InlineKeyboardButton("\u26a0\ufe0f Watchlist", callback_data="admin_watch"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f4c8 Power Users", callback_data="admin_power"),
+            InlineKeyboardButton("\U0001f4ca Weekly Chart", callback_data="admin_weekly"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f4c9 Exam Mix", callback_data="admin_exam_mix"),
+            InlineKeyboardButton("\U0001f393 Level Mix", callback_data="admin_level_mix"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f50d Search", callback_data="admin_search_hint"),
+            InlineKeyboardButton("\U0001f4e2 Broadcast", callback_data="admin_broadcast"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f4ac Personal Msg", callback_data="admin_pmsg_hint"),
+            InlineKeyboardButton("\U0001f4f1 Devices", callback_data="admin_devices"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f195 New Users", callback_data="admin_newusers"),
+            InlineKeyboardButton("\U0001f4e4 Export CSV", callback_data="admin_export"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f511 Generate Lock-in Code", callback_data="admin_lockin_btn"),
+        )
+        kb.add(InlineKeyboardButton("\u274c Close", callback_data="admin_close"))
+    else:
+        header = (
+            "\U0001f6e1 *HAMILTON ADMIN PANEL* [READ-ONLY]\n\n"
+            "\U0001f4ca *LIVE SNAPSHOT* (updates every 2s)\n"
+            f"  Today: *{snap['today_calls']}* calls \u00b7 *{snap['today_users']}* users\n"
+            f"  Week:  *{snap['week_users']}* users\n"
+            f"  Total: *{snap['total_calls']}* calls\n\n"
+            f"\U0001f7e2 *ONLINE NOW:* *{snap['online_count']}* users\n\n"
+            "\u26a0\ufe0f _Read-only_"
+        )
+        kb = InlineKeyboardMarkup(row_width=2)
+        kb.add(
+            InlineKeyboardButton("\U0001f465 Users", callback_data="admin_users:0"),
+            InlineKeyboardButton("\U0001f7e2 Online Now", callback_data="admin_online"),
+        )
+        kb.add(
+            InlineKeyboardButton("\u26a0\ufe0f Watchlist", callback_data="admin_watch"),
+            InlineKeyboardButton("\U0001f4c8 Power Users", callback_data="admin_power"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f4ca Weekly Chart", callback_data="admin_weekly"),
+            InlineKeyboardButton("\U0001f4c9 Exam Mix", callback_data="admin_exam_mix"),
+        )
+        kb.add(
+            InlineKeyboardButton("\U0001f393 Level Mix", callback_data="admin_level_mix"),
+            InlineKeyboardButton("\U0001f50d Search", callback_data="admin_search_hint"),
+        )
+        kb.add(InlineKeyboardButton("\u274c Close", callback_data="admin_close"))
+    stats_id = _STATS_MSGS.get(chat_id)
+    stats_ok = False
+    if stats_id:
+        try:
+            bot.edit_message_text(
+                header, chat_id=chat_id, message_id=stats_id,
+                parse_mode="Markdown", reply_markup=None
+            )
+            stats_ok = True
+        except Exception as _e:
+            print(f"[panel-stats-edit-fail] {_e}")
+            stats_id = None
+    if not stats_ok:
+        try:
+            m = bot.send_message(chat_id, header, parse_mode="Markdown")
+            stats_id = m.message_id
+            _STATS_MSGS[chat_id] = stats_id
+            _trk = globals().get("track_admin_msg")
+            if _trk:
+                try: _trk(chat_id, stats_id)
+                except Exception: pass
+        except Exception as _e:
+            print(f"[panel-stats-send-fail] {_e}")
+            return
+    btn_id = _BTN_MSGS.get(chat_id)
+    btn_ok = False
+    if btn_id:
+        try:
+            bot.edit_message_text(
+                "\u2699\ufe0f *Controls*",
+                chat_id=chat_id, message_id=btn_id,
+                parse_mode="Markdown", reply_markup=kb
+            )
+            btn_ok = True
+        except Exception as _e:
+            print(f"[panel-btn-edit-fail] {_e}")
+            btn_id = None
+    if not btn_ok:
+        try:
+            m2 = bot.send_message(chat_id, "\u2699\ufe0f *Controls*", reply_markup=kb)
+            btn_id = m2.message_id
+            _BTN_MSGS[chat_id] = btn_id
+            _trk = globals().get("track_admin_msg")
+            if _trk:
+                try: _trk(chat_id, btn_id)
+                except Exception: pass
+        except Exception as _e:
+            print(f"[panel-btn-send-fail] {_e}")
+            return
+    if message_id and message_id not in (stats_id, btn_id):
+        try:
+            bot.delete_message(chat_id, message_id)
+        except Exception:
+            pass
+    _reg = globals().get("register_panel")
+    if _reg:
+        try:
+            _reg(chat_id, stats_id, header)
+        except Exception as _e:
+            print(f"[panel-reg-fail] {_e}")
+
+
+
+def _show_sub_admin_panel(uid):
+    _show_admin_panel(uid)
+
+
+# ==========================================================
+# USERS LIST
+# ==========================================================
+def _build_user_list_keyboard(users, page=0, per_page=8):
+    kb = InlineKeyboardMarkup(row_width=1)
+    start = page * per_page
+    end = start + per_page
+    for uid, p in users[start:end]:
+        name = (p.get("name") or "?")[:18]
+        hku = p.get("hku_id") or "—"
+        st = p.get("strikes_total", 0)
+        kb.add(InlineKeyboardButton(
+            f"👤 {hku} · {name} · ⚠️{st}",
+            callback_data=f"admin_view:{uid}"
+        ))
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"admin_users:{page-1}"))
+    if end < len(users):
+        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"admin_users:{page+1}"))
+    if nav:
+        kb.row(*nav)
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    return kb
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_users:"))
+def _cb_users(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session:
+        return
+    try:
+        page = int(call.data.split(":")[1])
+    except Exception:
+        page = 0
+    users = _list_all_users()
+    if not users:
+        text = "👥 *Users*\n\n_No users registered yet._"
+        kb = InlineKeyboardMarkup()
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    else:
+        role = session["role"]
+        text = (f"👥 *Users — Page {page+1}*\n"
+                f"Total: *{len(users)}*\n"
+                f"_{'Full access' if role == 'primary' else 'Read-only'}_")
+        kb = _build_user_list_keyboard(users, page)
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# USER DETAIL VIEW
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_view:"))
+def _cb_view_user(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session:
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    p = load_profile(target)
+    if not p:
+        bot.answer_callback_query(call.id, "Not found")
+        return
+
+    name = (p.get("name") or "Unknown")[:40]
+    hku = p.get("hku_id") or "—"
+    phone = p.get("phone", "—")
+    days = _days_since(p.get("created_at", ""))
+    last_seen = p.get("last_seen", "never")
+    if last_seen and last_seen != "never":
+        try:
+            ls_dt = datetime.fromisoformat(last_seen)
+            mins_ago = int((datetime.now() - ls_dt).total_seconds() // 60)
+            if mins_ago < 60:
+                last_seen = f"{mins_ago} min ago"
+            elif mins_ago < 1440:
+                last_seen = f"{mins_ago // 60} hr ago"
+            else:
+                last_seen = f"{mins_ago // 1440} days ago"
+        except Exception:
+            pass
+
+    text = (
+        f"👤 *{name}*\n"
+        f"🆔 `{hku}`\n"
+        f"📱 UID `{target}`\n"
+        f"📞 Phone: `{phone}`\n"
+        f"📅 Joined {days} days ago\n"
+        f"🎓 Level: {p.get('level', '—')}\n"
+        f"📚 Exams: {', '.join(p.get('exams', [])) or '—'}\n"
+        f"👀 Last active: {last_seen}\n\n"
+        f"📊 *Usage*\n"
+        f"  • Strikes total: *{p.get('strikes_total', 0)}*\n"
+        f"  • Blocks: *{p.get('blocks_total', 0)}*\n"
+        f"  • API calls: *{p.get('api_calls_total', 0)}*\n"
+    )
+
+    kb = InlineKeyboardMarkup(row_width=2)
+    is_blocked = bool(p.get("behavior", {}).get("blocked_until"))
+    if session["role"] == "primary":
+        kb.add(
+            InlineKeyboardButton("💬 Message", callback_data=f"admin_pmsg_user:{target}"),
+            InlineKeyboardButton("✏️ Edit Name", callback_data=f"admin_edit_name:{target}"),
+        )
+        kb.add(
+            InlineKeyboardButton("🗑 Delete", callback_data=f"admin_del_prompt:{target}"),
+            InlineKeyboardButton("⚠️ Watch", callback_data=f"user_watch:{target}"),
+        )
+        if is_blocked:
+            kb.add(InlineKeyboardButton("🔓 Unblock Now", callback_data=f"user_unblock:{target}"))
+        else:
+            kb.add(InlineKeyboardButton("🚫 Block User", callback_data=f"user_block:{target}"))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# ONLINE NOW
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "admin_online")
+def _cb_online(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    snap = _snapshot_counters()
+    if snap["online_count"] == 0:
+        text = "🟢 *Online Now*\n\n_No users active in last 5 minutes._"
+    else:
+        text = f"🟢 *Online Now — {snap['online_count']} users*\n\n"
+        for o_uid, p in snap["online_uids"][:30]:
+            name = (p.get("name") or "?")[:20]
+            hku = p.get("hku_id") or "—"
+            text += f"• `{hku}` {name}  (`{o_uid}`)\n"
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# DEVICES — show admin login history + last activity per user
+# ==========================================================
+def build_devices_panel(uid):
+    entries = auth.list_admin_devices(40)
+    text = "📱 *DEVICES & ACTIVITY*\n\nSelect a device to view details."
+    kb = InlineKeyboardMarkup(row_width=1)
+    
+    for i, e in enumerate(entries[-10:]):
+        ts = e.get("ts", "")[:16].replace("T", " ")
+        role = e.get("role", "?")
+        cid = e.get("chat_id", "?")
+        kb.add(InlineKeyboardButton(f"📱 {cid} ({role}) - {ts}", callback_data=f"noop"))
+        
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    return text, kb
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_devices")
+def _cb_devices(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid): return
+    text, kb = build_devices_panel(uid)
+    
+    # Tell live tracker to update this panel
+    try:
+        from bot_chunks.c30p_live_update import register_panel
+        register_panel(uid, call.message.message_id, "devices")
+    except Exception: pass
+    
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id, reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# OTHER PANELS (blocked, watchlist, power, weekly, mixes, etc.)
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "admin_blocked")
+def _cb_blocked(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    blocked = []
+    for u_id, p in _list_all_users():
+        beh = p.get("behavior", {})
+        if beh.get("blocked_until"):
+            blocked.append((u_id, p))
+    text = "🚫 *Blocked Users*\n\n"
+    if not blocked:
+        text += "_No users currently blocked._"
+    else:
+        for u_id, p in blocked:
+            beh = p.get("behavior", {})
+            name = (p.get("name") or "?")[:15]
+            text += f"• {name} (`{u_id}`)\n  Until: {beh.get('blocked_until', '')[:16]}\n"
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+def build_watchlist_panel(uid):
+    users = sorted(_list_all_users(), key=lambda x: x[1].get("strikes_total", 0), reverse=True)
+    text = "⚠️ *Watchlist (top strikes)*\n\nSelect a user to manage:"
+    kb = InlineKeyboardMarkup(row_width=1)
+    for u_id, p in users[:10]:
+        if p.get("strikes_total", 0) == 0:
+            break
+        name = (p.get("name") or "?")[:15]
+        kb.add(InlineKeyboardButton(f"👤 {name} ({p.get('strikes_total')} strikes)", callback_data=f"admin_view:{u_id}"))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    return text, kb
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_watch")
+def _cb_watch(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid): return
+    text, kb = build_watchlist_panel(uid)
+    
+    try:
+        from bot_chunks.c30p_live_update import register_panel
+        register_panel(uid, call.message.message_id, "watch")
+    except Exception: pass
+    
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id, reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_power")
+def _cb_power(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    users = sorted(_list_all_users(), key=lambda x: x[1].get("api_calls_total", 0), reverse=True)
+    text = "📈 *Power Users (top API calls)*\n\n"
+    for u_id, p in users[:10]:
+        name = (p.get("name") or "?")[:15]
+        text += f"• {name} — {p.get('api_calls_total', 0)} calls\n"
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda c: c.data in ("admin_weekly", "admin_exam_mix", "admin_level_mix", "admin_export"))
+def _cb_stub(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    msg = {
+        "admin_weekly": "📊 *Weekly Chart* — coming in Session 5",
+        "admin_exam_mix": "📉 *Exam Mix* — coming in Session 6",
+        "admin_level_mix": "🎓 *Level Mix* — coming in Session 6",
+        "admin_export": "📤 *Export CSV* — coming in Session 6",
+    }.get(call.data, "Coming soon")
+    bot.answer_callback_query(call.id, msg)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_back")
+def _cb_back(call):
+    _show_admin_panel(call.message.chat.id, page=0,
+                      message_id=call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_close")
+def _cb_admin_close(call):
+    uid = call.from_user.id
+    try:
+        bot.answer_callback_query(call.id, "Closing admin mode...")
+    except Exception:
+        pass
+    # clear panel dicts so next open sends fresh
+    _sm = globals().get("_STATS_MSGS")
+    if _sm is not None:
+        try: _sm.pop(uid, None)
+        except Exception: pass
+    _bm = globals().get("_BTN_MSGS")
+    if _bm is not None:
+        try: _bm.pop(uid, None)
+        except Exception: pass
+    # delete every tracked message
+    _del = globals().get("delete_all_admin_msgs")
+    del_count = 0
+    if _del:
+        try:
+            del_count, _ = _del(uid)
+        except Exception as e:
+            print(f"[close] delete err: {e}")
+    # clear session
+    try:
+        auth._SESSIONS.pop(uid, None)
+    except Exception:
+        pass
+    try:
+        _unreg = globals().get("unregister_panel")
+        if _unreg:
+            _unreg(uid)
+    except Exception:
+        pass
+    print(f"[close] {uid} deleted={del_count} msgs")
+    try:
+        m = bot.send_message(uid,
+            f"\U0001f44b Admin mode closed. {del_count} messages cleared.\n\nYou are back to normal Hamilton chat.",
+            parse_mode="Markdown")
+        # delete this notice after 30s (best-effort via sleep thread)
+        import threading as _th, time as _ti
+        def _auto_del():
+            _ti.sleep(30)
+            try: bot.delete_message(uid, m.message_id)
+            except Exception: pass
+        _th.Thread(target=_auto_del, daemon=True).start()
+    except Exception:
+        pass
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_search_hint")
+def _cb_search_hint(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    safe_send(uid, "🔍 Use `/find <name or UID>` to search.")
+
+
+# ==========================================================
+# DELETE FLOW
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_del_prompt:"))
+def _cb_del_prompt(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Read-only access")
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    p = load_profile(target)
+    if not p:
+        bot.answer_callback_query(call.id, "User not found")
+        return
+    name = (p.get("name") or "Unknown")[:30]
+    text = (
+        f"🗑 *DELETE REQUEST*\n\n"
+        f"👤 {name}\n"
+        f"📱 UID `{target}`\n"
+        f"⚠️ Strikes: {p.get('strikes_total', 0)} · Blocks: {p.get('blocks_total', 0)}\n\n"
+        f"Type your *privacy code* to confirm deletion."
+    )
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "confirm_delete",
+                "data": {"target": target},
+                "at": __import__("time").time(),
+            }
+            break
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="admin_close"))
+    try:
+        bot.edit_message_text(text, chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, text, reply_markup=kb, parse_mode="Markdown")
+
+
+# ==========================================================
+# FIND
+# ==========================================================
+@bot.message_handler(commands=['find'])
+def _cmd_find(message):
+    uid = message.chat.id
+    if not auth.get_session(uid):
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: `/find <name or UID>`", parse_mode="Markdown")
+        return
+    q = parts[1].strip().lower()
+    users = _list_all_users()
+    matches = [(u, p) for u, p in users
+               if q in (p.get("name") or "").lower() or q in str(u)]
+    if not matches:
+        bot.reply_to(message, f"❌ No matches for `{q}`", parse_mode="Markdown")
+        return
+    text = f"🔍 *{len(matches)} match(es)*\n\n"
+    kb = InlineKeyboardMarkup(row_width=1)
+    for u, p in matches[:20]:
+        name = (p.get("name") or "?")[:18]
+        hku = p.get("hku_id") or "—"
+        kb.add(InlineKeyboardButton(f"→ {hku} · {name}", callback_data=f"admin_view:{u}"))
+    kb.add(InlineKeyboardButton("❌ Close", callback_data="admin_close"))
+    bot.reply_to(message, text, reply_markup=kb, parse_mode="Markdown")
+
+
+print("c30b_admin: loaded (panel v2).")
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_pmsg_hint")
+def _cb_pmsg_list(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    users = _list_all_users()[:8]
+    kb = InlineKeyboardMarkup(row_width=1)
+    for u_id, p in users:
+        name = (p.get("name") or "?")[:18]
+        hku = p.get("hku_id") or "—"
+        kb.add(InlineKeyboardButton(
+            f"💬 {hku} · {name}",
+            callback_data=f"admin_pmsg_user:{u_id}"
+        ))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_back"))
+    try:
+        bot.edit_message_text("💬 *Select user to message:*",
+                               chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        bot.send_message(uid, "💬 Select user:", reply_markup=kb, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pmsg_user:"))
+def _cb_pmsg_user(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    # Block self-chat
+    if target == uid:
+        safe_send(uid, "❌ *Cannot message yourself.*\nThis would create a loop.")
+        return
+    # Set pending state so c09 catches next text as message
+    for mod_name, mod in __import__("sys").modules.items():
+        if hasattr(mod, "PENDING_ADMIN_FLOW"):
+            mod.PENDING_ADMIN_FLOW[uid] = {
+                "action": "personal_text",
+                "data": {"target_uid": target},
+                "at": __import__("time").time(),
+            }
+            break
+    p = load_profile(target) or {}
+    safe_send(uid,
+        f"📩 *Message to {p.get('name', '?')}*\n\nType your message now:",
+        parse_mode="Markdown")
+
+
+# ---- Admin Block User ----
+@bot.callback_query_handler(func=lambda c: c.data.startswith("user_block:"))
+def _cb_user_block(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    kb = InlineKeyboardMarkup(row_width=3)
+    kb.add(
+        InlineKeyboardButton("1 hour", callback_data=f"user_block_do:{target}:60"),
+        InlineKeyboardButton("6 hours", callback_data=f"user_block_do:{target}:360"),
+        InlineKeyboardButton("24 hours", callback_data=f"user_block_do:{target}:1440"),
+    )
+    kb.add(
+        InlineKeyboardButton("7 days", callback_data=f"user_block_do:{target}:10080"),
+        InlineKeyboardButton("30 days", callback_data=f"user_block_do:{target}:43200"),
+    )
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="admin_back"))
+    try:
+        bot.edit_message_text("🚫 *Block User for how long?*",
+                               chat_id=uid, message_id=call.message.message_id,
+                               reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        pass
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("user_block_do:"))
+def _cb_user_block_do(call):
+    uid = call.message.chat.id
+    if not auth.get_session(uid):
+        return
+    parts = call.data.split(":")
+    try:
+        target = int(parts[1])
+        minutes = int(parts[2])
+    except Exception:
+        return
+    p = load_profile(target)
+    if not p:
+        bot.answer_callback_query(call.id, "User not found")
+        return
+    p.setdefault("behavior", {})
+    from datetime import datetime, timedelta
+    until = datetime.now() + timedelta(minutes=minutes)
+    p["behavior"]["blocked_until"] = until.isoformat()
+    p["behavior"]["blocked_by"] = "admin"
+    p["behavior"]["block_reason"] = "blocked by admin for behaviour"
+    p["blocks_total"] = p.get("blocks_total", 0) + 1
+    p["last_block_at"] = datetime.now().isoformat()
+    save_profile(target, p)
+    # Message the user
+    try:
+        safe_send(target,
+            f"🚫 *Blocked by Admin*\n\n"
+            f"You have been blocked for *{minutes} minutes* due to behaviour.\n\n"
+            f"Contact admin to unblock.",
+            parse_mode="Markdown")
+    except Exception:
+        pass
+    bot.answer_callback_query(call.id, f"Blocked {target} for {minutes}min")
+    _cb_view_user(call)
+
+
+# ---- Admin Unblock User ----
+@bot.callback_query_handler(func=lambda c: c.data.startswith("user_unblock:"))
+def _cb_user_unblock(call):
+    uid = call.message.chat.id
+    session = auth.get_session(uid)
+    if not session or session["role"] != "primary":
+        bot.answer_callback_query(call.id, "Primary only")
+        return
+    try:
+        target = int(call.data.split(":")[1])
+    except Exception:
+        return
+    p = load_profile(target)
+    if p:
+        p.setdefault("behavior", {})
+        p["behavior"]["blocked_until"] = None
+        p["behavior"]["blocked_by"] = None
+        p["behavior"]["block_reason"] = None
+        p["behavior"]["strikes"] = 0
+        save_profile(target, p)
+        try:
+            safe_send(target,
+                "🔓 *Unblocked by Admin*\n\nYou can now message the bot again. Welcome back!",
+                parse_mode="Markdown")
+        except Exception:
+            pass
+    bot.answer_callback_query(call.id, f"Unblocked {target}")
+    _cb_view_user(call)
+

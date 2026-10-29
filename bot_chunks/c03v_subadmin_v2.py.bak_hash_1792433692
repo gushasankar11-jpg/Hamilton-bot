@@ -1,0 +1,425 @@
+# ==========================================================
+# c30v_subadmin_v2.py — sub-admin v3 (login by name+password)
+# - New registration: 5 steps + back button
+# - Login: name + privacy password (no device check)
+# - Forgot password: /sub_forgot → forgot key → new privacy
+# ==========================================================
+import admin_auth as _v2_auth
+import time as _v2_time
+
+_SUBREG_V2_STATE = {}
+_V3_SEEN_MSG_IDS = set()   # dedup for double-processing
+_SUB_LOCKIN_OK = {}
+
+
+def _is_in_flow(message):
+    try:
+        return message.chat.id in _SUBREG_V2_STATE
+    except Exception:
+        return False
+
+
+def _back_kb():
+    from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🔙 Cancel", callback_data="sub_cancel"))
+    return kb
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "sub_cancel")
+def _cb_cancel(call):
+    uid = call.from_user.id
+    _SUBREG_V2_STATE.pop(uid, None)
+    try:
+        bot.edit_message_text(
+            "❌ Cancelled. Type the gate code again to restart.",
+            chat_id=uid, message_id=call.message.message_id
+        )
+    except Exception:
+        pass
+
+
+# ==========================================================
+# NEW DEVICE — full registration 5 steps
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "sub_new")
+def _v3_cb_new(call):
+    uid = call.from_user.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    # If sub-admin already registered with this chat_id, tell them to use Already Registered
+    if _v2_auth.is_sub_admin_registered(uid):
+        safe_send(uid,
+            "⚠️ This account is already registered as sub-admin.\n\n"
+            "Use *Already Registered* to login, or ask admin to delete your registration first.",
+            parse_mode="Markdown")
+        return
+    _SUBREG_V2_STATE[uid] = {"step": "lockin", "at": _v2_time.time()}
+    safe_send(uid,
+        "🔑 *New Sub-Admin Setup* — Step 1/5\n\n"
+        "Enter the *lock-in code* from the primary admin:",
+        parse_mode="Markdown", reply_markup=_back_kb())
+    print(f"[v3] {uid} → step lockin")
+
+
+# ==========================================================
+# ALREADY REGISTERED — name + password login (no device check)
+# ==========================================================
+@bot.callback_query_handler(func=lambda c: c.data == "sub_reg")
+def _v3_cb_reg(call):
+    uid = call.from_user.id
+    try:
+        bot.edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    _SUBREG_V2_STATE[uid] = {"step": "login_name", "at": _v2_time.time()}
+    from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("🔙 Cancel", callback_data="sub_cancel"))
+    kb.add(InlineKeyboardButton("🗝 Forgot Password", callback_data="sub_forgot_btn"))
+    safe_send(uid,
+        "🔐 *Sub-Admin Login*\n\n"
+        "*Step 1/2:* Enter your *name* (as registered):",
+        parse_mode="Markdown", reply_markup=kb)
+    print(f"[v3] {uid} → step login_name")
+
+
+# ==========================================================
+# UNIVERSAL TEXT HANDLER
+# ==========================================================
+@bot.message_handler(func=_is_in_flow, content_types=['text'])
+def _v3_flow(message):
+    try:
+        try:
+            print(f'[v3-flow-enter] uid={message.chat.id} text={message.text!r:.50}')
+            uid = message.chat.id
+            st = _SUBREG_V2_STATE.get(uid)
+            if not st:
+                return
+            if _v2_time.time() - st.get("at", 0) > 300:
+                _SUBREG_V2_STATE.pop(uid, None)
+                safe_send(uid, "⏰ Timed out. Restart from gate code.")
+                return
+            txt = (message.text or "").strip()
+            if not txt:
+                return
+            if txt.startswith("/"):
+                _SUBREG_V2_STATE.pop(uid, None)
+                # Allow command handlers to run without noise
+                if txt.split()[0] in ("/sub_forgot", "/cancel", "/forgot"):
+                    return
+                safe_send(uid, "Cancelled.")
+                return
+            st["at"] = _v2_time.time()
+            step = st.get("step")
+
+            # ===== REGISTRATION FLOW =====
+            if step == "lockin":
+                try:
+                    ok, _info = _v2_auth.verify_lockin_code(txt, requester_uid=uid)
+                    print(f"[v3-lockin] uid={uid} code={txt!r} ok={ok} info={_info}")
+                except Exception as e:
+                    print(f"[v3] lockin err: {e}")
+                    ok = False
+                if not ok:
+                    safe_send(uid,
+                        f"❌ *Invalid lock-in code*\n\n"
+                        f"Code you sent: `{txt}`\n\n"
+                        f"Common reasons:\n"
+                        f"  • Expired (10 min limit)\n"
+                        f"  • Already used (single-use)\n"
+                        f"  • Typo — check the code\n\n"
+                        f"Ask admin for a fresh code.",
+                        parse_mode="Markdown",
+                        reply_markup=_back_kb())
+                    return
+                st["step"] = "verify"
+                _SUBREG_V2_STATE[uid] = st
+                safe_send(uid,
+                    "✅ Lock-in accepted — Step 2/5\n\n"
+                    "Enter the *verification code* from the primary admin:",
+                    parse_mode="Markdown", reply_markup=_back_kb())
+                print(f"[v3] {uid} → verify")
+                return
+
+            if step == "verify":
+                try:
+                    ok = _v2_auth.verify_sub_admin_verify_code(txt)
+                except Exception as e:
+                    print(f"[v3] verify err: {e}")
+                    ok = False
+                if not ok:
+                    safe_send(uid, "❌ Invalid verification code. Try again:", reply_markup=_back_kb())
+                    return
+                st["step"] = "name"
+                _SUBREG_V2_STATE[uid] = st
+                safe_send(uid,
+                    "✅ Verified — Step 3/5\n\n"
+                    "Enter your *full name*:",
+                    parse_mode="Markdown", reply_markup=_back_kb())
+                print(f"[v3] {uid} → name")
+                return
+
+            if step == "name":
+                if len(txt) < 2:
+                    safe_send(uid, "Name too short (min 2). Try again:", reply_markup=_back_kb())
+                    return
+                st["name"] = txt[:60]
+                st["step"] = "privacy"
+                _SUBREG_V2_STATE[uid] = st
+                safe_send(uid,
+                    f"✅ Name saved: *{st['name']}* — Step 4/5\n\n"
+                    "Set your *privacy password* (login password, min 4 chars):",
+                    parse_mode="Markdown", reply_markup=_back_kb())
+                print(f"[v3] {uid} → privacy")
+                return
+
+            if step == "privacy":
+                if len(txt) < 4:
+                    safe_send(uid, "Too short (min 4). Try again:", reply_markup=_back_kb())
+                    return
+                st["privacy"] = txt
+                st["step"] = "forgot"
+                _SUBREG_V2_STATE[uid] = st
+                safe_send(uid,
+                    "✅ Privacy set — Step 5/5\n\n"
+                    "Set your *forgot-password key* (min 6 chars):\n"
+                    "_You'll use this to reset privacy if you forget it._",
+                    parse_mode="Markdown", reply_markup=_back_kb())
+                print(f"[v3] {uid} → forgot")
+                return
+
+            if step == "forgot":
+                if len(txt) < 6:
+                    safe_send(uid, "Too short (min 6). Try again:", reply_markup=_back_kb())
+                    return
+                name = st.get("name", "Sub-Admin")
+                privacy = st.get("privacy", "")
+                forgot = txt
+                try:
+                    _v2_auth.register_sub_admin(uid, name, privacy)
+                    cfg = _v2_auth._load_config()
+                    entry = cfg.get("sub_admins", {}).get(str(uid))
+                    if entry:
+                        try:
+                            rh, rs = _v2_auth._hash_secret(forgot)
+                            entry["reset_hash"] = rh
+                            entry["reset_salt"] = rs
+                            _v2_auth._save_config(cfg)
+                        except Exception as eh:
+                            print(f"[v3] hash err: {eh}")
+                    _v2_auth.start_session(uid, "sub")
+                    _v2_auth.update_sub_admin_last_seen(uid)
+                    _SUBREG_V2_STATE.pop(uid, None)
+                    safe_send(uid,
+                        f"✅ *Registered!*\n\n👤 {name}\n🛡 Read-only access\n\nOpening panel...",
+                        parse_mode="Markdown")
+                    _sp = globals().get("_show_sub_admin_panel")
+                    if _sp: _sp(uid)
+                    print(f"[v3] {uid} REGISTERED name={name}")
+                except Exception as e:
+                    print(f"[v3] register fail: {e}")
+                    safe_send(uid, f"⚠️ {str(e)[:100]}")
+                return
+
+            # ===== LOGIN FLOW (name + password, no device check) =====
+            if step == "login_name":
+                if len(txt) < 2:
+                    safe_send(uid, "Name too short. Try again:", reply_markup=_back_kb())
+                    return
+                st["login_name"] = txt[:60]
+                st["step"] = "login_pw"
+                _SUBREG_V2_STATE[uid] = st
+                safe_send(uid,
+                    f"Name: *{st['login_name']}*\n\n"
+                    "Enter your *privacy password*:\n\n"
+                    "_Type /cancel to abort_",
+                    parse_mode="Markdown")
+                print(f"[v3] {uid} → login_pw")
+                return
+
+            if step == "login_pw":
+                name = st.get("login_name", "")
+                try:
+                    # Find sub-admin by name (case-insensitive)
+                    cfg = _v2_auth._load_config()
+                    subs = cfg.get("sub_admins", {})
+                    target_sid = None
+                    for sid_str, entry in subs.items():
+                        if (entry.get("name") or "").lower() == name.lower():
+                            target_sid = int(sid_str)
+                            break
+                    if target_sid is None:
+                        safe_send(uid, f"❌ No sub-admin named *{name}*. Try again:", parse_mode="Markdown", reply_markup=_back_kb())
+                        return
+                    # Verify password against that entry
+                    entry = subs.get(str(target_sid), {})
+                    try:
+                        import hashlib as _hl
+                        ph = entry.get("privacy_hash", "")
+                        ps = entry.get("privacy_salt", "")
+                        got = _hl.sha256((txt + ps).encode()).hexdigest()
+                        if got != ph:
+                            safe_send(uid, "❌ Wrong password. Try again or /sub_forgot:", reply_markup=_back_kb())
+                            # Keep step=login_pw so retry goes to same branch
+                            _SUBREG_V2_STATE[uid] = st
+                            return
+                            return
+                    except Exception as e:
+                        print(f"[v3] pw check err: {e}")
+                        safe_send(uid, "❌ Verification error.")
+                        return
+                    # Success — bind this chat_id to that account if different
+                    if target_sid != uid:
+                        # If this device has different chat_id, register it as a device session
+                        # Simplest: copy credentials to this chat_id
+                        cfg2 = _v2_auth._load_config()
+                        cfg2["sub_admins"][str(uid)] = dict(entry)
+                        cfg2["sub_admins"][str(uid)]["last_seen"] = _v2_time.time().__class__.__name__  # placeholder
+                        try:
+                            _v2_auth._save_config(cfg2)
+                        except Exception:
+                            pass
+                    _v2_auth.start_session(uid, "sub")
+                    try:
+                        _v2_auth.update_sub_admin_last_seen(uid)
+                    except Exception:
+                        pass
+                    _SUBREG_V2_STATE.pop(uid, None)
+                    safe_send(uid,
+                        f"✅ Welcome back, *{name}*!\n\nOpening panel...",
+                        parse_mode="Markdown")
+                    _sp = globals().get("_show_sub_admin_panel")
+                    if _sp: _sp(uid)
+                    print(f"[v3] {uid} LOGIN name={name} target_sid={target_sid}")
+                except Exception as e:
+                    print(f"[v3] login err: {e}")
+                    safe_send(uid, f"⚠️ {str(e)[:100]}")
+                return
+
+
+        # ==========================================================
+        # FORGOT PASSWORD
+        # ==========================================================
+        except Exception as _flow_e:
+            import traceback
+            print(f'[v3-flow-error] {_flow_e}')
+            traceback.print_exc()
+            try:
+                safe_send(message.chat.id, f'⚠️ Setup error: {str(_flow_e)[:100]}')
+            except Exception:
+                pass
+
+    except Exception as _fc_e:
+        import traceback
+        traceback.print_exc()
+        print(f'[FLOW-CRASH] {_fc_e}')
+        try:
+            _cln = _SUBREG_V2_STATE.get(message.chat.id)
+            if _cln:
+                _cln.pop("_processing", None)
+        except Exception:
+            pass
+        try:
+            safe_send(message.chat.id, f'⚠️ Error: {str(_fc_e)[:150]}')
+        except Exception:
+            pass
+    finally:
+        try:
+            _fin = _SUBREG_V2_STATE.get(message.chat.id)
+            if _fin:
+                _fin.pop("_processing", None)
+        except Exception:
+            pass
+
+@bot.message_handler(commands=['sub_forgot'])
+def _v3_sub_forgot(message):
+    uid = message.chat.id
+    _SUBREG_V2_STATE[uid] = {"step": "forgot_reset_key", "at": _v2_time.time()}
+    safe_send(uid,
+        "🗝 Enter your *forgot-password key*:",
+        parse_mode="Markdown", reply_markup=_back_kb())
+
+
+@bot.message_handler(func=lambda m: (
+    m.chat.id in _SUBREG_V2_STATE and
+    _SUBREG_V2_STATE[m.chat.id].get("step") == "forgot_reset_key"
+), content_types=['text'])
+def _v3_reset_key(message):
+    uid = message.chat.id
+    st = _SUBREG_V2_STATE.get(uid) or {}
+    txt = (message.text or "").strip()
+    if not txt or txt.startswith("/"):
+        _SUBREG_V2_STATE.pop(uid, None)
+        return
+    if len(txt) < 6:
+        safe_send(uid, "Invalid key.", reply_markup=_back_kb())
+        return
+    try:
+        cfg = _v2_auth._load_config()
+        entry = cfg.get("sub_admins", {}).get(str(uid))
+        if not entry or not entry.get("reset_hash"):
+            safe_send(uid, "❌ No reset key on file. Contact admin.")
+            _SUBREG_V2_STATE.pop(uid, None)
+            return
+        import hashlib as _hl
+        salt = entry.get("reset_salt", "")
+        expected = entry.get("reset_hash", "")
+        got = _hl.sha256((txt + salt).encode()).hexdigest()
+        if got != expected:
+            safe_send(uid, "❌ Wrong key.", reply_markup=_back_kb())
+            return
+        st["step"] = "forgot_new_priv"
+        st["at"] = _v2_time.time()
+        _SUBREG_V2_STATE[uid] = st
+        safe_send(uid, "🔐 Enter your *new privacy password* (min 4):", parse_mode="Markdown", reply_markup=_back_kb())
+    except Exception as e:
+        print(f"[v3] reset err: {e}")
+        safe_send(uid, "❌ Error.")
+
+
+@bot.message_handler(func=lambda m: (
+    m.chat.id in _SUBREG_V2_STATE and
+    _SUBREG_V2_STATE[m.chat.id].get("step") == "forgot_new_priv"
+), content_types=['text'])
+def _v3_set_new_priv(message):
+    uid = message.chat.id
+    txt = (message.text or "").strip()
+    if not txt or txt.startswith("/"):
+        _SUBREG_V2_STATE.pop(uid, None)
+        return
+    if len(txt) < 4:
+        safe_send(uid, "Too short.", reply_markup=_back_kb())
+        return
+    try:
+        cfg = _v2_auth._load_config()
+        entry = cfg.get("sub_admins", {}).get(str(uid))
+        if not entry:
+            safe_send(uid, "❌ Not found.")
+            _SUBREG_V2_STATE.pop(uid, None)
+            return
+        ph, ps = _v2_auth._hash_secret(txt)
+        entry["privacy_hash"] = ph
+        entry["privacy_salt"] = ps
+        _v2_auth._save_config(cfg)
+        _SUBREG_V2_STATE.pop(uid, None)
+        safe_send(uid, "✅ *Privacy password reset.* Login with new password.", parse_mode="Markdown")
+        print(f"[v3] {uid} privacy reset OK")
+    except Exception as e:
+        print(f"[v3] reset save err: {e}")
+
+
+print("c30v_subadmin_v2: loaded (v3 - name+password login).")
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "sub_forgot_btn")
+def _cb_sub_forgot_btn(call):
+    uid = call.from_user.id
+    _SUBREG_V2_STATE[uid] = {"step": "forgot_reset_key", "at": _v2_time.time()}
+    safe_send(uid,
+        "🗝 *Forgot Password*\n\n"
+        "Enter your *forgot-password key* (set during registration):",
+        parse_mode="Markdown", reply_markup=_back_kb())
+    print(f"[v3] {uid} → forgot_reset_key")
