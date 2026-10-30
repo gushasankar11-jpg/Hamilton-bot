@@ -22,7 +22,7 @@
   "last_block_at": null,
   "leaderboard_optin": true,
   "story_shown": false,
-  "no_key_attempts": 3,
+  "no_key_attempts": 4,
   "hku_id": null,
   "activation_key": null,
   "key_expired": false,
@@ -30,5 +30,5 @@
   "_practice_exam": null,
   "_practice_level": "medium",
   "created_at": "2026-10-29T13:43:38.694953",
-  "last_seen": "2026-10-29T13:48:38.207441"
+  "last_seen": "2026-10-30T05:24:33.315832"
 }

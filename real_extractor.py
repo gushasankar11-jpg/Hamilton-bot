@@ -7,9 +7,8 @@ IMG_PRACTICE = os.path.join(BASE_DIR, "pyq_images", "jee_main", "practice")
 DB_FILE = os.path.join(BASE_DIR, "data", "pyq_master.json")
 
 master_db = {"practice": {}, "papers": {}}
-CORE_LIMIT = 60  # First 60 go to 'eligible', rest go to 'skipped'
 
-print(f"🚀 Starting FULL Extraction (Splitting at {CORE_LIMIT})...")
+print("🚀 Starting FULL Extraction (No cap, pre-loading all details)...")
 
 for subj in os.listdir(PDF_PRACTICE):
     subj_dir = os.path.join(PDF_PRACTICE, subj)
@@ -66,12 +65,13 @@ for subj in os.listdir(PDF_PRACTICE):
                 y_max = float(q_matches[i+1][0]) * scale - 15 if i+1 < len(q_matches) else foot_y * scale - 15
                 
                 crop_top = max(0, y_min - 20)
-                # SAFETY: Ensure crop_bottom is always at least 50px below crop_top
                 crop_bottom = max(crop_top + 50, min(h, y_max)) 
+                
                 q_img = img.crop((0, int(crop_top), w, int(crop_bottom)))
                 q_filename = os.path.join(out_dir, f"q{q_num}.png")
                 q_img.save(q_filename)
                 
+                # Extract details
                 header_text = text[max(0, text.find(f"Q{q_num}.")-100) : text.find(f"Q{q_num}.")+200]
                 date_match = re.search(r'(JEE Main \d{4}.*?Shift)', header_text, re.IGNORECASE)
                 source_date = date_match.group(1) if date_match else "JEE Main (Unknown Shift)"
@@ -97,13 +97,10 @@ for subj in os.listdir(PDF_PRACTICE):
             
         if all_qs:
             all_qs.sort(key=lambda x: x["q_num"])
-            # Split into eligible (first 60) and skipped (rest)
-            master_db["practice"][subj][chapter_name] = {
-                "eligible": all_qs[:CORE_LIMIT],
-                "skipped": all_qs[CORE_LIMIT:]
-            }
-            print(f"✅ {subj} / {chapter_name}: {len(all_qs[:CORE_LIMIT])} eligible, {len(all_qs[CORE_LIMIT:])} skipped")
+            # Store ALL questions in a flat list
+            master_db["practice"][subj][chapter_name] = all_qs
+            print(f"✅ {subj} / {chapter_name}: Extracted {len(all_qs)} total questions")
 
 with open(DB_FILE, "w") as f:
     json.dump(master_db, f, indent=2)
-print(f"✅ Saved TWO-PHASE DB to {DB_FILE}")
+print(f"✅ Saved FULL DB to {DB_FILE}")
