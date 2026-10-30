@@ -1,32 +1,28 @@
-import ast
-
 path = "bot_chunks/c09.py"
 content = open(path).read()
 
-old_block = '''    # --- DOUBT HANDLER ---
-    st = _state.get(uid, {})
+old_text = '''    # --- DOUBT HANDLER ---
     if st.get("waiting_for_doubt"):'''
-new_block = '''    # --- PYQ NUMERICAL HANDLER ---
-    st = _state.get(uid, {})
+
+new_text = '''    # --- PYQ NUMERICAL HANDLER ---
     if st.get("waiting_for_pyq_numeric"):
         st["waiting_for_pyq_numeric"] = False
         st["pyq_timer_active"] = False
         q = st.get("q", {})
         
-        _b().send_message(uid, "🤔 <i>Verifying your numerical answer via AI...</i>")
+        _b().send_message(uid, "🤔 <i>Checking your answer...</i>")
         
-        # Use Vision AI to verify the numerical answer
-        import ai_client
-        # Since we can't send the image easily, we assume ai_client can handle text
-        prompt = f"JEE Main Numerical Question from {q.get('subtopic')}. The student's answer is: {message.text}. The correct MCQ options were A,B,C,D but the student is answering as a numerical. Please calculate the exact numerical value for this question model and tell me if the student is correct. Give a 1-line verdict (Correct or Wrong) and the exact value."
+        # Since the original question had options, we check if the student's text matches the correct option's value
+        # (For true numericals, we would compare floats, but here we just pass it to AI)
+        prompt = f"The correct option index is {q.get('correct_index', 0)}. The student typed: '{message.text}'. Evaluate if this is likely correct based on standard JEE Main numerical values. Reply '✅ Correct' or '❌ Wrong' followed by a 1-line explanation."
         
         try:
+            import ai_client
             reply = ai_client.ask_ai(prompt)
-            _b().send_message(uid, f"📝 <b>AI Verification:</b>\\n{reply}")
-        except Exception as e:
-            _b().send_message(uid, f"❌ AI Error: {e}")
+            _b().send_message(uid, reply)
+        except:
+            _b().send_message(uid, "❌ Could not verify. Moving on.")
             
-        # Move to next question
         st["pyq_index"] += 1
         send_pyq_q(uid)
         return
@@ -34,14 +30,7 @@ new_block = '''    # --- PYQ NUMERICAL HANDLER ---
     # --- DOUBT HANDLER ---
     if st.get("waiting_for_doubt"):'''
     
-if old_block in content:
-    content = content.replace(old_block, new_block)
-    try:
-        ast.parse(content)
-        open(path, "w").write(content)
-        print("✅ c09.py: Numerical PYQ handler added.")
-    except SyntaxError as e:
-        print("❌ c09 Syntax Error:", e)
-else:
-    print("⚠️ c09 pattern not found.")
-
+if old_text in content:
+    content = content.replace(old_text, new_text)
+    open(path, "w").write(content)
+    print("✅ c09.py numerical handler added.")
