@@ -2,7 +2,7 @@ import os, subprocess, json, re, urllib.request, time
 from PIL import Image
 
 # PUT YOUR GROQ API KEY HERE
-GROQ_API_KEY = "YOUR_GROQ_API_KEY_HERE"
+GROQ_API_KEY = "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"
 
 BASE_DIR = os.getcwd()
 PDF_PRACTICE = os.path.join(BASE_DIR, "pyq_pdfs", "jee_main", "practice")
