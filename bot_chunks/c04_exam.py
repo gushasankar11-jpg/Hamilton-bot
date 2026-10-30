@@ -327,7 +327,8 @@ def handle_buttons(call):
                 msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
+                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
                 _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
                 
             elif data == "f_skip":
@@ -348,6 +349,10 @@ def handle_buttons(call):
             state["pyq_questions"] = state.get("pyq_skipped", [])
             state["pyq_index"] = 0
             send_pyq_q(uid, call.message.message_id)
+            
+        elif data == "f_doubt":
+            state["waiting_for_doubt"] = True
+            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
             
         elif data == "f_next_q":
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
@@ -515,7 +520,16 @@ def send_pyq_q(uid, msg_id=None):
     state["processing"] = False
 
     phase_name = "Priority" if state.get("pyq_phase") == "priority" else "Normal"
-    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {q.get('difficulty', 5)}/10"
+    
+    # Format Difficulty as "8 (Hard)"
+    diff_num = q.get('difficulty', 5)
+    if isinstance(diff_num, int):
+        diff_text = "Easy" if diff_num <= 4 else ("Medium" if diff_num <= 7 else "Hard")
+        diff_str = f"{diff_num} ({diff_text})"
+    else:
+        diff_str = str(diff_num)
+        
+    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {diff_str}"
     
     kb = InlineKeyboardMarkup(row_width=4)
     kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
@@ -842,7 +856,8 @@ def handle_buttons(call):
                 msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
+                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
                 _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
                 
             elif data == "f_skip":
@@ -863,6 +878,10 @@ def handle_buttons(call):
             state["pyq_questions"] = state.get("pyq_skipped", [])
             state["pyq_index"] = 0
             send_pyq_q(uid, call.message.message_id)
+            
+        elif data == "f_doubt":
+            state["waiting_for_doubt"] = True
+            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
             
         elif data == "f_next_q":
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
@@ -1030,7 +1049,16 @@ def send_pyq_q(uid, msg_id=None):
     state["processing"] = False
 
     phase_name = "Priority" if state.get("pyq_phase") == "priority" else "Normal"
-    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {q.get('difficulty', 5)}/10"
+    
+    # Format Difficulty as "8 (Hard)"
+    diff_num = q.get('difficulty', 5)
+    if isinstance(diff_num, int):
+        diff_text = "Easy" if diff_num <= 4 else ("Medium" if diff_num <= 7 else "Hard")
+        diff_str = f"{diff_num} ({diff_text})"
+    else:
+        diff_str = str(diff_num)
+        
+    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {diff_str}"
     
     kb = InlineKeyboardMarkup(row_width=4)
     kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
@@ -1357,7 +1385,8 @@ def handle_buttons(call):
                 msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
+                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
                 _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
                 
             elif data == "f_skip":
@@ -1378,6 +1407,10 @@ def handle_buttons(call):
             state["pyq_questions"] = state.get("pyq_skipped", [])
             state["pyq_index"] = 0
             send_pyq_q(uid, call.message.message_id)
+            
+        elif data == "f_doubt":
+            state["waiting_for_doubt"] = True
+            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
             
         elif data == "f_next_q":
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
@@ -1869,7 +1902,8 @@ def handle_buttons(call):
                 msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
+                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
                 _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
                 
             elif data == "f_skip":
@@ -1890,6 +1924,10 @@ def handle_buttons(call):
             state["pyq_questions"] = state.get("pyq_skipped", [])
             state["pyq_index"] = 0
             send_pyq_q(uid, call.message.message_id)
+            
+        elif data == "f_doubt":
+            state["waiting_for_doubt"] = True
+            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
             
         elif data == "f_next_q":
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
@@ -2381,7 +2419,8 @@ def handle_buttons(call):
                 msg += format_ultimate_solution(state['q'])
                 
                 kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
+                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
                 _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
                 
             elif data == "f_skip":
@@ -2402,6 +2441,10 @@ def handle_buttons(call):
             state["pyq_questions"] = state.get("pyq_skipped", [])
             state["pyq_index"] = 0
             send_pyq_q(uid, call.message.message_id)
+            
+        elif data == "f_doubt":
+            state["waiting_for_doubt"] = True
+            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
             
         elif data == "f_next_q":
             _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
