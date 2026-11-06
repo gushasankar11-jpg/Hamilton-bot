@@ -4,6 +4,8 @@
 
 @bot.message_handler(commands=['select'])
 def cmd_select(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -84,6 +86,8 @@ def _select_chapters(message, subj, chapter_list):
 # ==========================================================
 @bot.message_handler(commands=['health'])
 def cmd_health(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -148,8 +152,9 @@ def _health_text(r, days_left=None):
 # ==========================================================
 # /plan
 # ==========================================================
-@bot.message_handler(commands=['plan'])
 def cmd_plan(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -158,7 +163,7 @@ def cmd_plan(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
     primary = p.get("priority") or p["exams"][0]
     lines = ["📋 *YOUR STUDY PLAN*", ""]
@@ -190,6 +195,8 @@ def cmd_plan(message):
 # ==========================================================
 @bot.message_handler(commands=['target'])
 def cmd_target(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -206,6 +213,8 @@ def cmd_target(message):
 # ==========================================================
 @bot.message_handler(commands=['graph'])
 def cmd_graph(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -214,7 +223,7 @@ def cmd_graph(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
     subj_data = {s: d["health"] for s, d in r["subjects"].items()}
     svg = svg_templates.combined_progress(r["overall"], subj_data)

@@ -1,3 +1,40 @@
+# Loads FIRST (c00zz < c01) — answers every callback instantly
+try:
+    @bot.middleware_handler(update_types=['callback_query'])
+    def _instant_answer(bot_instance, call):
+        try: bot_instance.answer_callback_query(call.id)
+        except: pass
+    print("✅ c00zz: instant callback middleware loaded", flush=True)
+except AttributeError:
+    @bot.callback_query_handler(func=lambda c: True)
+    def _instant_answer_fallback(call):
+        try: bot.answer_callback_query(call.id)
+        except: pass
+    print("⚠️ c00zz: fallback handler (older telebot)", flush=True)
+
+import glob as _gl, os as _os, random as _rnd
+
+@bot.message_handler(commands=['sample'])
+def cmd_sample_crops(message):
+    uid = message.chat.id
+    files = []
+    for f in _gl.glob('pyq_images/extracted_books_v3/**/*.png', recursive=True):
+        try:
+            if _os.path.getsize(f) > 40000:
+                files.append(f)
+        except: pass
+    if not files:
+        bot.send_message(uid, "No crops ≥40KB yet.")
+        return
+    bot.send_message(uid, f"📤 Sending 3 of {len(files)} sample crops...")
+    for f in _rnd.sample(files, min(3, len(files))):
+        try:
+            with open(f, 'rb') as fh:
+                bot.send_photo(uid, fh, caption=f.split('/')[-1])
+        except Exception as e:
+            bot.send_message(uid, f"⚠️ {f}: {e}")
+
+
 import sys
 # ==========================================================
 # bot.py — Chunk 1: Foundation
@@ -1083,6 +1120,700 @@ except Exception:
     pass
 
 
+import json, os, time, datetime, threading
+import datetime as _safe_dt
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+ROUTINE_DIR = "data/routines"
+os.makedirs(ROUTINE_DIR, exist_ok=True)
+
+def _rp(uid): return f"{ROUTINE_DIR}/{uid}.json"
+def _load(uid):
+    p = _rp(uid)
+    if not os.path.exists(p): return None
+    try: return json.load(open(p))
+    except: return None
+def _save(uid, d):
+    try: json.dump(d, open(_rp(uid), "w"), indent=2)
+    except: pass
+def _today(): return _safe_dt.date.today().isoformat()
+def _hm(): return _safe_dt.datetime.now().strftime("%H:%M")
+def _to_min(s):
+    try: h, m = s.split(":"); return int(h)*60 + int(m)
+    except: return None
+
+EMO = {"wake":"🌅","sleep":"😴","breakfast":"🍳","lunch":"🍱","dinner":"🍽️","theory":"📚","pyq":"🧮","revision":"🔄","college":"🏫","study":"📖","break":"☕","hygiene":"🚿","travel":"🚌","other":"⏰"}
+STUDY_TYPES = ("theory","pyq","revision","study")
+
+def init_daily_routine(uid, blocks):
+    r = {"date": _today(), "blocks": [], "summary_sent": False}
+    for i, b in enumerate(blocks):
+        r["blocks"].append({"idx":i,"time":b.get("time","00:00"),"end":b.get("end",""),
+            "task":b.get("task","Task"),"type":b.get("type","other"),
+            "subject":b.get("subject",""),"chapter":b.get("chapter",""),
+            "status":"pending","notified_at":None,"nagged_at":None,
+            "snooze_until":None,"msg_id":None,"done_at":None,"missed_at":None})
+    _save(uid, r)
+    return r
+
+def _stats(r):
+    done = [b for b in r["blocks"] if b["status"]=="done"]
+    skipped = [b for b in r["blocks"] if b["status"]=="skipped"]
+    missed = [b for b in r["blocks"] if b["status"]=="missed"]
+    pending = [b for b in r["blocks"] if b["status"]=="pending"]
+    plan_study = sum((_to_min(b.get("end","")) or 0) - (_to_min(b["time"]) or 0) for b in r["blocks"] if b.get("type") in STUDY_TYPES and b.get("end"))
+    done_study = sum((_to_min(b.get("end","")) or 0) - (_to_min(b["time"]) or 0) for b in done if b.get("type") in STUDY_TYPES and b.get("end"))
+    pyq_done = len([b for b in done if b.get("type")=="pyq"])
+    pyq_plan = len([b for b in r["blocks"] if b.get("type")=="pyq"])
+    total = len(r["blocks"])
+    completion = round(100*len(done)/total,1) if total else 0
+    return {"done":done,"skipped":skipped,"missed":missed,"pending":pending,
+            "plan_study":plan_study,"done_study":done_study,
+            "pyq_done":pyq_done,"pyq_plan":pyq_plan,"total":total,"completion":completion}
+
+def _verdict(st):
+    p = st["completion"]
+    if p >= 80: return "🏆 <b>ON TRACK</b> — keep this pace, you'll hit target."
+    if p >= 50: return "⚡ <b>PARTIAL</b> — push harder, you're slipping."
+    if p >= 25: return "⚠️ <b>BEHIND</b> — this pace won't hit your target. Fix tonight."
+    return "🚨 <b>WAY BEHIND</b> — emergency reset. Restart tomorrow with discipline."
+
+def _kb(uid, idx, block):
+    kb = InlineKeyboardMarkup()
+    kb.row(InlineKeyboardButton("✅ Done", callback_data=f"rt_done:{idx}"), InlineKeyboardButton("⏭ Skip", callback_data=f"rt_skip:{idx}"))
+    if block.get("type")=="pyq":
+        kb.row(InlineKeyboardButton("🎯 Open PYQ Menu", callback_data=f"rt_pyq:{idx}"))
+    kb.row(InlineKeyboardButton("⏰ Snooze 10m", callback_data=f"rt_snooze:{idx}"))
+    return kb
+
+def _fmt_block(block):
+    em = EMO.get(block.get("type",""), "⏰")
+    lines = [f"{em} <b>{block['task']}</b>"]
+    tm = block["time"] + (f" – {block['end']}" if block.get("end") else "")
+    lines.append(f"⏰ {tm}")
+    now_min = _to_min(_hm()); end_min = _to_min(block.get("end",""))
+    if end_min is not None and now_min is not None:
+        d = end_min - now_min
+        if d > 0: lines.append(f"⏳ {d} min left" if d < 60 else f"⏳ {d//60}h {d%60}m left")
+        else: lines.append("⏱ Time up")
+    if block.get("subject"): lines.append(f"📖 {block['subject']}")
+    if block.get("chapter"): lines.append(f"📑 {block['chapter']}")
+    return "\n".join(lines)
+
+def _fire(uid, r, block):
+    try:
+        m = bot.send_message(uid, _fmt_block(block), parse_mode="HTML", reply_markup=_kb(uid, block["idx"], block))
+        block["msg_id"] = m.message_id; block["notified_at"] = _hm(); _save(uid, r)
+    except Exception as e: print(f"[rt] fire err: {e}", flush=True)
+
+def _nag(uid, r, block):
+    try:
+        bot.send_message(uid, f"🔔 <b>COACH:</b> '{block['task']}' (due {block['time']}) still not marked. What happened?", reply_markup=_kb(uid, block["idx"], block))
+        block["nagged_at"] = _hm(); _save(uid, r)
+    except: pass
+
+def _next(uid, r, cur):
+    nxt = next((b for b in r["blocks"] if b["idx"] > cur and b["status"]=="pending"), None)
+    try:
+        if nxt: bot.send_message(uid, f"➡️ Next up: <b>{nxt['task']}</b> at {nxt['time']}", parse_mode="HTML")
+        else: bot.send_message(uid, "🎉 All blocks handled for today. Use /today for full report.")
+    except: pass
+
+def _daily_summary(uid, r):
+    st = _stats(r)
+    lines = [f"📊 <b>DAILY REPORT — {r['date']}</b>", ""]
+    lines.append(f"✅ Done: <b>{len(st['done'])}</b> / {st['total']}")
+    if st["skipped"]: lines.append(f"⏭ Skipped: {len(st['skipped'])}")
+    if st["missed"]: lines.append(f"❌ Missed (no confirm): {len(st['missed'])}")
+    if st["pending"]: lines.append(f"⏳ Still pending: {len(st['pending'])}")
+    if st["plan_study"]:
+        ph, pm = st["plan_study"]//60, st["plan_study"]%60
+        dh, dm = st["done_study"]//60, st["done_study"]%60
+        lines.append(f"📚 Study: <b>{dh}h {dm}m</b> done / <b>{ph}h {pm}m</b> planned")
+    if st["pyq_plan"]:
+        lines.append(f"🧮 PYQs: <b>{st['pyq_done']}</b> done / <b>{st['pyq_plan']}</b> planned")
+    if st["done"]:
+        lines.append("\n<b>✅ Completed:</b>")
+        for b in st["done"][:10]: lines.append(f"• {b['task']} (at {b.get('done_at','?')})")
+    if st["missed"]:
+        lines.append("\n<b>❌ Not submitted / Missed:</b>")
+        for b in st["missed"][:10]: lines.append(f"• {b['task']} — was due {b['time']}")
+    if st["pending"]:
+        lines.append("\n<b>⏳ Not done yet:</b>")
+        for b in st["pending"][:10]: lines.append(f"• {b['task']} — {b['time']}")
+    lines.append("")
+    lines.append(_verdict(st))
+    try: bot.send_message(uid, "\n".join(lines), parse_mode="HTML")
+    except: pass
+
+def routine_worker():
+    while True:
+        try:
+            time.sleep(30)
+            if not os.path.isdir(ROUTINE_DIR): continue
+            for f in os.listdir(ROUTINE_DIR):
+                if not f.endswith(".json"): continue
+                try: uid = int(f.replace(".json",""))
+                except: continue
+                try: r = json.load(open(f"{ROUTINE_DIR}/{f}"))
+                except: continue
+                if r.get("date") != _today():
+                    try: _daily_summary(uid, r)
+                    except: pass
+                    for b in r.get("blocks", []):
+                        b.update({"status":"pending","notified_at":None,"nagged_at":None,"snooze_until":None,"msg_id":None,"done_at":None,"missed_at":None})
+                    r["date"] = _today(); r["summary_sent"] = False; _save(uid, r)
+                now = _hm(); now_min = _to_min(now)
+                if now_min is None: continue
+                for b in r.get("blocks", []):
+                    if b.get("status") != "pending": continue
+                    bt = _to_min(b["time"])
+                    if bt is None: continue
+                    if b.get("snooze_until"):
+                        if now >= b["snooze_until"]:
+                            b["snooze_until"]=None; b["notified_at"]=None; b["nagged_at"]=None; _save(uid, r)
+                        else: continue
+                    if now_min > bt + 30 and not b.get("notified_at") and not b.get("nagged_at"):
+                        b["status"]="missed"; b["missed_at"]=now; _save(uid, r)
+                        try: bot.send_message(uid, f"❌ <b>MISSED:</b> '{b['task']}' was due at {b['time']}. If you did it, mark done:", reply_markup=_kb(uid, b["idx"], b))
+                        except: pass
+                        continue
+                    if now_min >= bt and not b.get("notified_at"): _fire(uid, r, b)
+                    elif b.get("notified_at") and not b.get("nagged_at"):
+                        nf = _to_min(b["notified_at"])
+                        if nf is not None and now_min - nf >= 15: _nag(uid, r, b)
+                if now == "22:00" and not r.get("summary_sent"):
+                    _daily_summary(uid, r); r["summary_sent"]=True; _save(uid, r)
+        except Exception as e: print(f"[rt] worker err: {e}", flush=True)
+
+try:
+    threading.Thread(target=routine_worker, daemon=True).start()
+    print("✅ c01zz_routine_tracker: worker started", flush=True)
+except Exception as e: print(f"[rt] thread fail: {e}", flush=True)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("rt_"))
+def handle_routine_cb(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    uid = call.message.chat.id
+    try: parts = call.data.split(":"); action = parts[0]; idx = int(parts[1])
+    except: return
+    r = _load(uid)
+    if not r: return
+    block = next((b for b in r["blocks"] if b["idx"] == idx), None)
+    if not block: return
+    if action == "rt_done":
+        block["status"]="done"; block["done_at"]=_hm(); _save(uid, r)
+        try: bot.edit_message_text(f"✅ <b>{block['task']}</b> — done at {block['done_at']}", chat_id=uid, message_id=call.message.message_id)
+        except: pass
+        _next(uid, r, idx)
+    elif action == "rt_skip":
+        block["status"]="skipped"; _save(uid, r)
+        try: bot.edit_message_text(f"⏭ <b>{block['task']}</b> — skipped", chat_id=uid, message_id=call.message.message_id)
+        except: pass
+        _next(uid, r, idx)
+    elif action == "rt_snooze":
+        block["snooze_until"]=(_safe_dt.datetime.now()+_safe_dt.timedelta(minutes=10)).strftime("%H:%M")
+        block["notified_at"]=None; block["nagged_at"]=None; block["status"]="pending"; _save(uid, r)
+        try: bot.edit_message_text(f"⏰ <b>{block['task']}</b> — snoozed 10 min", chat_id=uid, message_id=call.message.message_id)
+        except: pass
+    elif action == "rt_pyq":
+        subj = block.get("subject","") or "any subject"; ch = block.get("chapter","")
+        kb = InlineKeyboardMarkup(); kb.row(InlineKeyboardButton("📖 Open PYQ Menu", callback_data="f_mode:pyq"))
+        msg = f"🎯 <b>PYQ Time</b>\n📖 {subj}" + (f" → {ch}" if ch else "") + "\n\nTap below → PYQs → pick chapter → start solving."
+        try: bot.send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
+        except: pass
+
+@bot.message_handler(commands=['today','report'])
+def cmd_today(message):
+    uid = message.chat.id; r = _load(uid)
+    if not r: bot.send_message(uid, "No routine yet. Use /plan or /testroutine."); return
+    _daily_summary(uid, r)
+
+@bot.message_handler(commands=['pending'])
+def cmd_pending(message):
+    uid = message.chat.id; r = _load(uid)
+    if not r: bot.send_message(uid, "No routine."); return
+    st = _stats(r)
+    if not st["pending"]: bot.send_message(uid, "🎉 Nothing pending!"); return
+    lines = ["⏳ <b>Pending today:</b>"]
+    for b in st["pending"]:
+        lines.append(f"• {b['task']} — {b['time']}" + (f" ({b['subject']})" if b.get("subject") else ""))
+    bot.send_message(uid, "\n".join(lines), parse_mode="HTML")
+
+@bot.message_handler(commands=['testroutine'])
+def cmd_testroutine(message):
+    uid = message.chat.id; now = _safe_dt.datetime.now()
+    specs = [("Wake up & hydrate","wake",""),("Breakfast","breakfast",""),("Math theory","theory","Maths"),("Math PYQs","pyq","Maths")]
+    blocks = []
+    for i, (task, typ, subj) in enumerate(specs):
+        t = (now + _safe_dt.timedelta(minutes=(i+1)*2)).strftime("%H:%M")
+        e = (now + _safe_dt.timedelta(minutes=(i+1)*2 + 1)).strftime("%H:%M")
+        blocks.append({"time":t,"end":e,"task":task,"type":typ,"subject":subj,"chapter":""})
+    init_daily_routine(uid, blocks)
+    bot.send_message(uid, f"✅ Test routine: {len(blocks)} blocks, 2 min apart. First fires in ~2 min. Use /today to see live.")
+
+
+import re
+print('C50_START_MARK', flush=True)
+#####C50_TOP#####
+print('##### C50 START EXECUTING #####', flush=True)
+import telebot, json, os, time, datetime, threading, base64, requests
+import datetime as _safe_dt
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+
+def _analyze_schedule(ans):
+    def _t(s):
+        s = str(s).upper().replace(" ","").strip()
+        for x in ["🌅","🌙","⏰","😴"]: s = s.replace(x,"")
+        try:
+            if "AM" in s or "PM" in s:
+                pm = "PM" in s; s2 = s.replace("AM","").replace("PM","")
+                p = s2.split(":"); h = int(p[0]); mi = int(p[1]) if len(p)>1 else 0
+                if pm and h < 12: h += 12
+                if not pm and h == 12: h = 0
+            else:
+                p = s.split(":"); h = int(p[0]); mi = int(p[1]) if len(p)>1 else 0
+            return h*60 + mi
+        except: return None
+    wake = _t(ans.get("1","06:00")); sleep = _t(ans.get("2","23:00"))
+    sleep_h = 7.0
+    if wake is not None and sleep is not None:
+        d = wake - sleep
+        if d <= 0: d += 24*60
+        sleep_h = round(d/60, 1)
+    col_min = 0; a3 = str(ans.get("3",""))
+    if "Yes" in a3 or "✅" in a3:
+        cs = _t(ans.get("4","08:00")); ce = _t(ans.get("5","14:00"))
+        if cs is not None and ce is not None and ce > cs: col_min += ce - cs
+        tr = str(ans.get("6","30m"))
+        if "15" in tr: col_min += 30
+        elif "30" in tr: col_min += 60
+        elif "45" in tr: col_min += 90
+        elif "1h" in tr or "60" in tr: col_min += 120
+    free_h = max(0, (24*60 - sleep_h*60 - col_min - 90 - 30)/60)
+    study_day = round(free_h * 0.85, 1)
+    days = 78
+    try: days = int(str(ans.get("24","78")).split()[0])
+    except: pass
+    target = 150
+    try: target = int(str(ans.get("22","150")).split()[0])
+    except: pass
+    req = 1200 if target >= 200 else (900 if target >= 150 else (600 if target >= 100 else 400))
+    total_study = int(study_day * days); gap = req - total_study
+    verdict = "SUFFICIENT" if gap <= 0 else ("TIGHT" if gap < 200 else "INSUFFICIENT")
+    return {"sleep_hours": sleep_h, "free_hours": round(free_h,1), "daily_study": study_day,
+            "total_study": total_study, "required": req, "gap": gap, "days": days,
+            "target": target, "verdict": verdict, "sleep_warn": sleep_h < 7 or sleep_h > 9}
+
+
+
+PLANNER_STATE = {}
+
+QUESTIONS = [
+    {"s": 1, "t": "Wake up time", "p": "🌅 <b>1. What time do you wake up?</b>\n<i>Type time (e.g. 6:30), click AM/PM.</i>", "type": "time"},
+    {"s": 2, "t": "Sleep time", "p": "🌙 <b>2. What time do you go to sleep?</b>\n<i>Type time (e.g. 11:00), click AM/PM.</i>", "type": "time"},
+    {"s": 3, "t": "School/College", "p": "🏫 <b>3. Do you attend school or college?</b>", "type": "btn", "o": ["✅ Yes", "❌ No"]},
+    {"s": 4, "t": "College start", "p": "🚌 <b>4. If yes, what time does it start?</b>\n<i>Type time, click AM/PM.</i>", "type": "time"},
+    {"s": 5, "t": "College end", "p": "🏠 <b>5. What time does it end?</b>\n<i>Type time, click AM/PM.</i>", "type": "time"},
+    {"s": 6, "t": "Travel time", "p": "🚗 <b>6. How much time to travel one way?</b>", "type": "btn", "o": ["⏱ 15m", "⏱ 30m", "⏱ 45m", "⏱ 1h"]},
+    {"s": 7, "t": "Meal times", "p": "🍽️ <b>7. Breakfast, lunch, and dinner times?</b>\n<i>Type (e.g. 8 AM, 2 PM, 8 PM)</i>", "type": "text"},
+    {"s": 8, "t": "Fixed activities", "p": "🏋️ <b>8. Any other fixed daily activities?</b>\n<i>Type or click Skip.</i>", "type": "text"},
+    {"s": 9, "t": "Maths progress", "p": "📐 <b>9. Maths chapters completed?</b>", "type": "btn", "o": ["0-5", "6-10", "11-15", "15+"]},
+    {"s": 10, "t": "Physics progress", "p": "⚛️ <b>10. Physics chapters completed?</b>", "type": "btn", "o": ["0-5", "6-10", "11-15", "15+"]},
+    {"s": 11, "t": "Chemistry progress", "p": "🧪 <b>11. Chemistry chapters completed?</b>", "type": "btn", "o": ["0-5", "6-10", "11-15", "15+"]},
+    {"s": 12, "t": "Mastered", "p": "🏆 <b>12. Which chapters are MASTERED?</b>\n<i>Type or click Skip.</i>", "type": "text"},
+    {"s": 13, "t": "Skip List", "p": "🚫 <b>13. Chapters you want to SKIP entirely?</b>\n<i>Type or click Skip.</i>", "type": "text"},
+    {"s": 14, "t": "Maths accuracy", "p": "📐 <b>14. Typical accuracy in Maths?</b>", "type": "btn", "o": ["<50%", "50-70%", "70-85%", "85%+"]},
+    {"s": 15, "t": "Physics accuracy", "p": "⚛️ <b>15. Typical accuracy in Physics?</b>", "type": "btn", "o": ["<50%", "50-70%", "70-85%", "85%+"]},
+    {"s": 16, "t": "Chemistry accuracy", "p": "🧪 <b>16. Typical accuracy in Chemistry?</b>", "type": "btn", "o": ["<50%", "50-70%", "70-85%", "85%+"]},
+    {"s": 17, "t": "Learning speed", "p": "📖 <b>17. Hours to learn a new chapter?</b>", "type": "btn", "o": ["1-2 hrs", "3-4 hrs", "5-6 hrs", "6+ hrs"]},
+    {"s": 18, "t": "Practice speed", "p": "✍️ <b>18. Hours to practice solved problems?</b>", "type": "btn", "o": ["1-2 hrs", "3-4 hrs", "5-6 hrs", "6+ hrs"]},
+    {"s": 19, "t": "Study style", "p": "🧠 <b>19. Preferred study style?</b>", "type": "btn", "o": ["Long block", "Short sessions"]},
+    {"s": 20, "t": "Revision style", "p": "🔄 <b>20. Revision preference?</b>", "type": "btn", "o": ["Daily 30m", "Weekly full"]},
+    {"s": 21, "t": "Grand Tests", "p": "📝 <b>21. Days before exam to start Grand Tests?</b>", "type": "btn", "o": ["15 days", "20 days", "25 days"]},
+    {"s": 22, "t": "Target marks", "p": "🎯 <b>22. Confirm target marks (e.g. 150)</b>", "type": "text"},
+    {"s": 23, "t": "Priority exam", "p": "📚 <b>23. Confirm priority exam.</b>", "type": "btn", "o": ["JEE Main", "JEE Adv", "AP EAPCET"]},
+    {"s": 24, "t": "Time left", "p": "⏳ <b>24. Days remaining until exam? (e.g. 80)</b>", "type": "text"},
+    {"s": 25, "t": "Teaching Schedule", "p": "🏫 <b>25. Upload Institute Teaching Schedule.</b>\n<i>Send a PDF or Image. Click Skip if none.</i>", "type": "btn", "o": ["⏭ Skip"]},
+    {"s": 26, "t": "Exam Schedule", "p": "🗓️ <b>26. Upload Institute Exam Schedule (Dates).</b>\n<i>Send a PDF or Image. Click Skip if none.</i>", "type": "btn", "o": ["⏭ Skip"]}
+]
+
+def get_time_kb():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    kb.row("1","2","3"); kb.row("4","5","6"); kb.row("7","8","9")
+    kb.row("0",":","AM"); kb.row("PM","🔙 Back")
+    return kb
+
+def get_btn_kb(opts, step):
+    kb = InlineKeyboardMarkup(row_width=2)
+    for o in opts: kb.add(InlineKeyboardButton(o, callback_data=f"p_{o}"))
+    if step > 1: kb.add(InlineKeyboardButton("🔙 Back", callback_data="p_back"))
+    return kb
+
+def analyze_file_with_ai(file_bytes, mime_type, prompt_text):
+    import ai_client
+    gemini_keys = getattr(ai_client, "GEMINI_KEYS", [])
+    if not gemini_keys: return "AI Keys unavailable."
+    key = gemini_keys[0]
+    
+    img_b64 = base64.b64encode(file_bytes).decode('utf-8')
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+    payload = {
+        "contents": [{"parts": [
+            {"text": prompt_text},
+            {"inlineData": {"mimeType": mime_type, "data": img_b64}}
+        ]}],
+        "generationConfig": {"temperature": 0.1}
+    }
+    try:
+        res = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=45)
+        data = res.json()
+        if "error" not in data:
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+    except: pass
+    return "Could not analyze file."
+
+def notification_worker():
+    while True:
+        time.sleep(30)
+        now = _safe_dt.datetime.now()
+        current_time = now.strftime("%H:%M")
+        if not os.path.exists("profiles"): continue
+        for f in os.listdir("profiles"):
+            if f.endswith("_plan.json"):
+                uid = int(f.replace("_plan.json", ""))
+                try:
+                    plan = json.load(open(f"profiles/{f}"))
+                    if not plan.get("completed"): continue
+                    wake_time = plan.get("ans", {}).get("1", "06:00").replace(" AM", "").replace(" PM", "").replace("🌅 ", "")
+                    if wake_time == current_time and not plan.get("wake_sent"):
+                        bot.send_message(uid, "🌅 <b>Good Morning!</b>\nTime to wake up and start your day. 🚀", parse_mode="HTML")
+                        plan["wake_sent"] = True
+                        json.dump(plan, open(f"profiles/{f}", "w"))
+                    if current_time == "00:00":
+                        plan["wake_sent"] = False
+                        json.dump(plan, open(f"profiles/{f}", "w"))
+                except: pass
+
+try:
+    threading.Thread(target=notification_worker, daemon=True).start()
+except Exception as _e:
+    print(f"[c50] notif thread failed: {_e}", flush=True)
+
+@bot.message_handler(commands=['plan'])
+def start_planner(message):
+    try:
+        uid = message.chat.id
+        os.makedirs("profiles", exist_ok=True)
+        plan_file = f"profiles/{uid}_plan.json"
+        
+        if os.path.exists(plan_file):
+            try:
+                plan = json.load(open(plan_file))
+                if plan.get("completed"):
+                    kb = InlineKeyboardMarkup(row_width=1)
+                    kb.add(InlineKeyboardButton("📎 Resend last files", callback_data="p_resend"))
+                    kb.add(InlineKeyboardButton("🔁 Regenerate plan", callback_data="p_regen"))
+                    kb.add(InlineKeyboardButton("🔄 Start Fresh", callback_data="p_fresh"))
+                    kb.add(InlineKeyboardButton("✏️ Edit Specific Step", callback_data="p_edit_menu"))
+                    bot.send_message(uid, "🧠 <b>You already have a plan registered.</b>\nWhat would you like to do?", parse_mode="HTML", reply_markup=kb)
+                    return
+            except: pass
+            
+        PLANNER_STATE[uid] = {"active": True, "step": 1, "answers": {}, "temp_time": ""}
+        bot.send_message(uid, "🚀 <b>Welcome to the Hamilton AI Planner (26 Steps)!</b>\nLet's build your perfect study schedule.\n\n" + QUESTIONS[0]["p"], parse_mode="HTML", reply_markup=get_time_kb())
+    except Exception as e:
+        bot.reply_to(message, f"❌ Planner Error: {e}")
+
+@bot.callback_query_handler(func=lambda c: c.data in ["p_resend","p_regen"])
+def handle_resend_regen(call):
+    uid = call.message.chat.id
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    if call.data == "p_resend":
+        sent = 0
+        for path, cap in [(f"profiles/{uid}_daily.md","📅 Daily Routine"),(f"profiles/{uid}_master.md","🗺️ Master Plan")]:
+            try:
+                if os.path.exists(path):
+                    bot.send_document(uid, open(path,"rb"), caption=cap); sent += 1
+            except Exception as e:
+                try: bot.send_message(uid, f"⚠️ {cap} send fail: {e}")
+                except: pass
+        if sent == 0: bot.send_message(uid, "⚠️ No files found. Try Regenerate.")
+    elif call.data == "p_regen":
+        try:
+            plan = json.load(open(f"profiles/{uid}_plan.json"))
+            PLANNER_STATE[uid] = {"active": True, "step": 1, "answers": plan.get("ans", {}), "temp_time": ""}
+            finish_planning(uid)
+        except Exception as e:
+            bot.send_message(uid, f"❌ Cannot regenerate: {e}")
+
+@bot.callback_query_handler(func=lambda c: c.data in ["p_fresh", "p_edit_menu", "p_cancel"])
+def handle_plan_menu(call):
+    uid = call.message.chat.id
+    bot.answer_callback_query(call.id)
+    try: bot.delete_message(uid, call.message.message_id)
+    except: pass
+    if call.data == "p_fresh":
+        PLANNER_STATE[uid] = {"active": True, "step": 1, "answers": {}, "temp_time": ""}
+        bot.send_message(uid, "🔄 <b>Wiped Old Plan. Starting fresh...</b>\n\n" + QUESTIONS[0]["p"], parse_mode="HTML", reply_markup=get_time_kb())
+    elif call.data == "p_edit_menu":
+        kb = InlineKeyboardMarkup(row_width=2)
+        for q in QUESTIONS:
+            kb.add(InlineKeyboardButton(f"{q['s']}. {q['t']}", callback_data=f"p_edit_{q['s']}"))
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="p_cancel"))
+        bot.send_message(uid, "✏️ <b>Select the step you want to edit:</b>", parse_mode="HTML", reply_markup=kb)
+    elif call.data == "p_cancel":
+        bot.send_message(uid, "❌ Cancelled.")
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("p_edit_"))
+def handle_edit_step(call):
+    uid = call.message.chat.id
+    step = int(call.data.split("_")[2])
+    bot.answer_callback_query(call.id)
+    try: bot.delete_message(uid, call.message.message_id)
+    except: pass
+    PLANNER_STATE[uid] = {"active": True, "step": step, "answers": {}, "temp_time": ""}
+    q = QUESTIONS[step-1]
+    kb = get_time_kb() if q["type"] == "time" else (get_btn_kb(q["o"], step) if q["type"] == "btn" else None)
+    bot.send_message(uid, f"✏️ <b>Editing Step {step}: {q['t']}</b>\n\n{q['p']}", parse_mode="HTML", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data == "p_back" and PLANNER_STATE.get(c.message.chat.id, {}).get("active"))
+def handle_back_btn(call):
+    uid = call.message.chat.id
+    st = PLANNER_STATE[uid]
+    bot.answer_callback_query(call.id)
+    try: bot.delete_message(uid, call.message.message_id)
+    except: pass
+    
+    st["step"] -= 1
+    if st["step"] < 1: st["step"] = 1
+    q = QUESTIONS[st["step"]-1]
+    kb = get_time_kb() if q["type"] == "time" else (get_btn_kb(q["o"], st["step"]) if q["type"] == "btn" else None)
+    
+    # Show previous answer if it exists
+    prev_ans = st["answers"].get(str(st["step"]), "")
+    prefix = f"🔙 <i>Previous answer: {prev_ans}</i>\n\n" if prev_ans else ""
+    bot.send_message(uid, prefix + q["p"], parse_mode="HTML", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("p_") and PLANNER_STATE.get(c.message.chat.id, {}).get("active") and c.data not in ["p_fresh", "p_edit_menu", "p_cancel", "p_back"] and not c.data.startswith("p_edit_"))
+def handle_inline_btn(call):
+    uid = call.message.chat.id
+    st = PLANNER_STATE[uid]
+    ans = call.data.split("_", 1)[1]
+    bot.answer_callback_query(call.id)
+    try: bot.delete_message(uid, call.message.message_id)
+    except: pass
+    
+    # For time buttons (AM/PM)
+    if "AM" in ans or "PM" in ans:
+        final_time = f"{st.get('temp_time', '')} {ans}"
+        st["answers"][str(st["step"])] = final_time
+        st["temp_time"] = ""
+    else:
+        st["answers"][str(st["step"])] = ans
+    
+    if st["step"] == 3 and "No" in ans: st["step"] = 6
+    else: st["step"] += 1
+    advance_wizard(uid)
+
+@bot.message_handler(func=lambda m: PLANNER_STATE.get(m.chat.id, {}).get("active") and QUESTIONS[PLANNER_STATE[m.chat.id]["step"]-1]["type"] in ["time", "text"])
+def handle_text_input(message):
+    uid = message.chat.id; st = PLANNER_STATE[uid]; q = QUESTIONS[st["step"]-1]
+    if q["type"] == "time":
+        t = message.text.strip(); low = t.lower()
+        if t == "🔙 Back" or low == "back":
+            st["step"] = max(1, st["step"] - 1); st["temp_time"] = ""
+            advance_wizard(uid); return
+        if low in ("am","pm"):
+            acc = (st.get("temp_time") or "").strip()
+            if not acc:
+                bot.send_message(uid, "⚠️ Enter digits first (e.g. 6:30), then tap AM/PM."); return
+            full = acc + " " + low.upper()
+            st["answers"][str(st["step"])] = full; st["temp_time"] = ""; st["step"] += 1
+            bot.send_message(uid, f"✅ Saved: {full}", reply_markup=ReplyKeyboardRemove())
+            advance_wizard(uid); return
+        if "am" in low or "pm" in low:
+            st["answers"][str(st["step"])] = t; st["temp_time"] = ""; st["step"] += 1
+            bot.send_message(uid, f"✅ Saved: {t}", reply_markup=ReplyKeyboardRemove())
+            advance_wizard(uid); return
+        st["temp_time"] = (st.get("temp_time") or "") + t
+        bot.send_message(uid, f"⏳ {st['temp_time']} — more digits, or AM/PM, or 🔙 Back."); return
+    bot.send_message(uid, f"✅ Saved: {message.text}", reply_markup=ReplyKeyboardRemove())
+    st["answers"][str(st["step"])] = message.text; st["step"] += 1
+    advance_wizard(uid)
+
+@bot.message_handler(content_types=['document', 'photo'])
+def handle_planner_file(message):
+    uid = message.chat.id
+    if uid not in PLANNER_STATE or not PLANNER_STATE[uid].get("active"): return
+    if PLANNER_STATE[uid]["step"] not in [25, 26]: return
+    
+    msg = bot.reply_to(message, "🧠 <i>Analyzing your file with AI Vision...</i>", parse_mode="HTML")
+    try:
+        if message.content_type == 'photo':
+            file_info = bot.get_file(message.photo[-1].file_id)
+            mime = "image/jpeg"
+        else:
+            file_info = bot.get_file(message.document.file_id)
+            mime = "application/pdf" if message.document.file_name.endswith('.pdf') else "image/jpeg"
+            
+        downloaded = bot.download_file(file_info.file_path)
+        prompt = "Extract all schedule details, dates, times, and subject names from this document/image clearly."
+        ai_text = analyze_file_with_ai(downloaded, mime, prompt)
+        
+        PLANNER_STATE[uid]["answers"][str(PLANNER_STATE[uid]["step"])] = f"📄 [Schedule Details]: {ai_text[:1500]}"
+        PLANNER_STATE[uid]["step"] += 1
+        bot.edit_message_text("✅ <b>Schedule analyzed and saved!</b> 🎉", chat_id=uid, message_id=msg.message_id, parse_mode="HTML")
+        advance_wizard(uid)
+    except Exception as e:
+        bot.edit_message_text(f"❌ File Error: {e}. Click Skip.", chat_id=uid, message_id=msg.message_id)
+
+def advance_wizard(uid):
+    st = PLANNER_STATE[uid]
+    if st["step"] > 26:
+        return finish_planning(uid)
+    q = QUESTIONS[st["step"]-1]
+    kb = get_time_kb() if q["type"] == "time" else (get_btn_kb(q["o"], st["step"]) if q["type"] == "btn" else None)
+    bot.send_message(uid, q["p"], parse_mode="HTML", reply_markup=kb)
+
+def _ai_call_safe(ek, prompt, label):
+    try:
+        import ai_client
+    except Exception as e:
+        return "", f"ai_client import failed: {e}"
+    fn = None
+    for name in ["ask_hamilton","ask_ai","ask","generate","chat_completion","complete"]:
+        f = getattr(ai_client, name, None)
+        if callable(f): fn = f; break
+    if not fn:
+        avail = [n for n in dir(ai_client) if not n.startswith("_") and callable(getattr(ai_client, n, None))]
+        return "", f"no ask function. Available: {avail[:8]}"
+    try:
+        result = fn(ek, prompt)
+        if not result: return "", f"{label}: empty response (check API quota/keys)"
+        return str(result), None
+    except Exception as e:
+        return "", f"{label}: {type(e).__name__}: {str(e)[:150]}"
+
+def finish_planning(uid):
+    st = PLANNER_STATE[uid]; st["active"] = False
+    msg = bot.send_message(uid, "🔍 <i>Step 1/4: Auditing schedule...</i>", parse_mode="HTML")
+    try:
+        json.dump({"completed": True, "ans": st["answers"], "wake_sent": False, "start_date": _safe_dt.date.today().isoformat()}, open(f"profiles/{uid}_plan.json","w"))
+    except Exception as _e:
+        print(f"[fp] save plan err: {_e}", flush=True)
+    A = _analyze_schedule(st["answers"])
+    L = {1:"Wake",2:"Sleep",3:"College",4:"Col start",5:"Col end",6:"Travel",7:"Meals",8:"Fixed",9:"Maths done",10:"Phy done",11:"Chem done",12:"Mastered",13:"Skipped",14:"Maths acc",15:"Phy acc",16:"Chem acc",17:"Learn spd",18:"Practice spd",19:"Style",20:"Revision",21:"GT last N days",22:"Target",23:"Exam",24:"TOTAL days",25:"Teach sched",26:"Exam sched"}
+    ctx = ""
+    for k, v in st["answers"].items():
+        try: lbl = L.get(int(k), f"Q{k}")
+        except: lbl = f"Q{k}"
+        ctx += f"- {lbl}: {v}\n"
+    total = str(st["answers"].get("24","N/A")); gt = str(st["answers"].get("21","N/A"))
+    ex = str(st["answers"].get("23","JEE Main"))
+    ek = "JEE_ADV" if "Adv" in ex else ("EAPCET" if "EAPCET" in ex.upper() or "EAMCET" in ex.upper() else "JEE_MAIN")
+    audit = f"AUDIT: sleep={A['sleep_hours']}h ({'LOW' if A['sleep_warn'] else 'OK'}), free={A['free_hours']}h/d, study={A['daily_study']}h/d, total={A['total_study']}h/{A['days']}d, need~{A['required']}h, gap={A['gap']}h, verdict={A['verdict']}.\n"
+    hdr = ("YOU ARE A STRICT JEE COACH. No fluff. Hard truth.\n\nSTUDENT:\n" + ctx + "\n" + audit +
+           f"\nRULES:\n1. Total={total}. GT=LAST {gt} of {total}. Never confuse.\n2. If sleep<7h warn.\n3. If gap>0 prescribe extra hrs OR lower target.\n4. Priority: {ex}.\n5. Respect schedules.\n6. Specific chapters.\n7. Resources: NTA Abhyas, PW, Embibe, HC Verma, DC Pandey, NCERT.\n8. Push hard.\n9. FORMAT: Output CLEAN Markdown tables ONLY. Cells must be PLAIN text — NO quotation marks around values, NO backticks inside cells. Do NOT wrap output in ``` fences. Table format: header row | separator row | data rows. No blank lines between rows.\n\n")
+    dp = hdr + "TASK: DAILY ROUTINE Markdown table: Time|Activity|Subject/Chapter|Duration|Why. Pomodoro 25/5.\n\nAfter markdown output EXACTLY:\n```json\n{\"blocks\":[{\"time\":\"05:00\",\"end\":\"05:10\",\"task\":\"Wake up\",\"type\":\"wake\",\"subject\":\"\",\"chapter\":\"\"}]}\n```\ntype in: wake,hygiene,breakfast,lunch,dinner,theory,pyq,revision,college,travel,study,break,sleep,other. 24h HH:MM. Valid JSON only."
+    mp = hdr + f"TASK: MASTER PLAN Markdown, exactly {total} days. Table: Day#|Date|Subject|Chapter|Material|PYQs|Mock|Why now. Last {gt} days = grand tests."
+    sp = hdr + f"TASK: ~250-word PLAIN TEXT strategy: (1) sleep verdict (2) {total}-day phases (3) subject priority (4) last {gt} days (5) reality-check (6) one hard truth."
+    icon = "⚠️" if A["sleep_warn"] else "✅"
+    m1 = (f"📊 <b>SCHEDULE AUDIT</b>\n\n{icon} Sleep: <b>{A['sleep_hours']}h/night</b> " + ("— below 7-8h" if A["sleep_warn"] else "— healthy") + "\n"
+          f"⏱ Free: <b>{A['free_hours']}h/day</b>\n📚 Study: <b>{A['daily_study']}h/day</b>\n"
+          f"📈 {A['days']}d: <b>{A['total_study']}h</b>\n🎯 Need for {A['target']}: ~<b>{A['required']}h</b>\n"
+          f"📉 Gap: <b>{A['gap']}h</b> → <b>{A['verdict']}</b>")
+    try: bot.send_message(uid, m1, parse_mode="HTML")
+    except Exception as _e: print(f"[fp] m1 err: {_e}", flush=True)
+    try: bot.edit_message_text("📝 <i>Step 2/4: Generating Daily Routine (~30s)...</i>", chat_id=uid, message_id=msg.message_id, parse_mode="HTML")
+    except: pass
+    dm, err1 = _ai_call_safe(ek, dp, "Daily routine")
+    if err1:
+        try: bot.send_message(uid, f"⚠️ {err1}")
+        except: pass
+    blks = []
+    if dm:
+        _m = re.search(r"```json\s*(\{.*?\})\s*```", dm, re.DOTALL)
+        if not _m: _m = re.search(r'(\{"blocks"\s*:\s*\[.*?\]\s*\})', dm, re.DOTALL)
+        if _m:
+            try:
+                raw = _m.group(1) if _m.lastindex else _m.group(0)
+                obj = json.loads(raw); blks = obj.get("blocks", []) or []
+                if blks:
+                    try: init_daily_routine(uid, blks)
+                    except Exception as _e1: print(f"[rt] init fail: {_e1}", flush=True)
+                dm = dm[:_m.start()] + dm[_m.end():]
+            except Exception as _e2: print(f"[rt] json parse fail: {_e2}", flush=True)
+        dm = re.sub(r'^```[a-z]*\n', '', dm.strip()).strip()
+        dm = re.sub(r'\n```$', '', dm).strip()
+        dm = dm + "\n"
+        try: open(f"profiles/{uid}_daily.md","w").write(dm)
+        except: pass
+    try: bot.edit_message_text("🗺️ <i>Step 3/4: Generating Master Plan (~30s)...</i>", chat_id=uid, message_id=msg.message_id, parse_mode="HTML")
+    except: pass
+    mm, err2 = _ai_call_safe(ek, mp, "Master plan")
+    if err2:
+        try: bot.send_message(uid, f"⚠️ {err2}")
+        except: pass
+    if mm:
+        mm = re.sub(r'^```[a-z]*\n', '', mm.strip()).strip()
+        mm = re.sub(r'\n```$', '', mm).strip()
+        mm = mm + "\n"
+        try: open(f"profiles/{uid}_master.md","w").write(mm)
+        except: pass
+    try: bot.edit_message_text("🧠 <i>Step 4/4: Generating Strategy (~15s)...</i>", chat_id=uid, message_id=msg.message_id, parse_mode="HTML")
+    except: pass
+    sx, err3 = _ai_call_safe(ek, sp, "Strategy")
+    if sx:
+        try: bot.send_message(uid, "🧠 <b>STRATEGY</b>\n\n" + sx[:3500], parse_mode="HTML")
+        except: pass
+    try:
+        done_msg = "✅ <b>Plan ready!</b>" + (f"\n🔄 Tracker: {len(blks)} blocks. Use /today." if blks else "\n⚠️ No daily blocks from AI.")
+        bot.edit_message_text(done_msg, chat_id=uid, message_id=msg.message_id, parse_mode="HTML")
+    except: pass
+    if dm:
+        try: bot.send_document(uid, open(f"profiles/{uid}_daily.md","rb"), caption="📅 Daily Routine")
+        except Exception as _e: bot.send_message(uid, f"⚠️ Daily file: {_e}")
+    else:
+        try: bot.send_message(uid, "❌ Daily Routine not generated (AI failed)")
+        except: pass
+    if mm:
+        try: bot.send_document(uid, open(f"profiles/{uid}_master.md","rb"), caption=f"🗺️ Master Plan ({total} days)")
+        except Exception as _e: bot.send_message(uid, f"⚠️ Master file: {_e}")
+    else:
+        try: bot.send_message(uid, "❌ Master Plan not generated (AI failed)")
+        except: pass
+
+
+@bot.message_handler(commands=["resend","regen"])
+def cmd_resend_regen(message):
+    uid = message.chat.id
+    if "regen" in message.text.lower():
+        try:
+            plan = json.load(open(f"profiles/{uid}_plan.json"))
+            PLANNER_STATE[uid] = {"active": True, "step": 1, "answers": plan.get("ans", {}), "temp_time": ""}
+            finish_planning(uid)
+        except Exception as e:
+            bot.send_message(uid, f"❌ Cannot regenerate: {e}")
+        return
+    sent = 0
+    for path, cap in [(f"profiles/{uid}_daily.md","📅 Daily Routine"),(f"profiles/{uid}_master.md","🗺️ Master Plan")]:
+        try:
+            if os.path.exists(path):
+                bot.send_document(uid, open(path,"rb"), caption=cap); sent += 1
+        except: pass
+    if sent == 0: bot.send_message(uid, "⚠️ No files found. Try /regen")
+
+print("✅ c50_planner: Master Version (Back Btn + Time Logic + Emojis) loaded.")
+
+#####C50_BOTTOM#####
+print('##### C50 FINISHED EXECUTING #####', flush=True)
+
+print('C50_END_MARK', flush=True)
+
+
 # ==========================================================
 # c02.py — Start, Onboarding, Mode, Status
 # ==========================================================
@@ -1807,6 +2538,8 @@ print("c02w_mode_wizard: loaded (v2).")
 
 @bot.message_handler(commands=['select'])
 def cmd_select(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -1887,6 +2620,8 @@ def _select_chapters(message, subj, chapter_list):
 # ==========================================================
 @bot.message_handler(commands=['health'])
 def cmd_health(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -1951,8 +2686,9 @@ def _health_text(r, days_left=None):
 # ==========================================================
 # /plan
 # ==========================================================
-@bot.message_handler(commands=['plan'])
 def cmd_plan(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -1961,7 +2697,7 @@ def cmd_plan(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
     primary = p.get("priority") or p["exams"][0]
     lines = ["📋 *YOUR STUDY PLAN*", ""]
@@ -1993,6 +2729,8 @@ def cmd_plan(message):
 # ==========================================================
 @bot.message_handler(commands=['target'])
 def cmd_target(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -2009,6 +2747,8 @@ def cmd_target(message):
 # ==========================================================
 @bot.message_handler(commands=['graph'])
 def cmd_graph(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -2017,7 +2757,7 @@ def cmd_graph(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
     subj_data = {s: d["health"] for s, d in r["subjects"].items()}
     svg = svg_templates.combined_progress(r["overall"], subj_data)
@@ -2709,6 +3449,31 @@ def handle_quiz_answer(call):
 print("✅ c04c_quiz_test: Interactive test UI loaded.")
 
 
+
+import json, os, time, threading
+
+_PYQ_CACHE = None
+_PYQ_CACHE_TIME = 0
+
+def get_pyq_db():
+    global _PYQ_CACHE, _PYQ_CACHE_TIME
+    db_path = "data/pyq_master.json"
+    try:
+        mtime = os.path.getmtime(db_path)
+    except:
+        mtime = 0
+        
+    if _PYQ_CACHE is None or mtime > _PYQ_CACHE_TIME:
+        print("[CACHE] Loading pyq_master.json into memory...")
+        try:
+            with open(db_path, "r") as f:
+                _PYQ_CACHE = json.load(f)
+            _PYQ_CACHE_TIME = mtime
+        except Exception as e:
+            print(f"[CACHE] Error loading DB: {e}")
+            if _PYQ_CACHE is None: _PYQ_CACHE = {"papers": {}, "practice": {}, "practice_adv": {}}
+    return _PYQ_CACHE
+
 import json
 import time
 import threading
@@ -2720,6 +3485,44 @@ import os
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 _state = {}
+def clean_math(text):
+    if not text: return ""
+    text = text.replace("$$", "").replace("$", "")
+    text = re.sub(r'\\boxed\{(.*?)\}', r'\1', text)
+    text = re.sub(r'\\frac\{(.*?)\}\{(.*?)\}', r'(\1)/(\2)', text)
+    text = re.sub(r'\\sqrt\{(.*?)\}', r'√(\1)', text)
+    symbols = {
+        '\\alpha': 'α', '\\beta': 'β', '\\theta': 'θ', '\\pi': 'π',
+        '\\times': '×', '\\cdot': '·', '\\pm': '±', '\\infty': '∞',
+        '\\le': '≤', '\\ge': '≥', '\\ne': '≠', '\\to': '→',
+        '\\vec': '', '\\hat': ''
+    }
+    for k, v in symbols.items():
+        text = text.replace(k, v)
+    supers = {'0':'⁰', '1':'¹', '2':'²', '3':'³', '4':'⁴', '5':'⁵', '6':'⁶', '7':'⁷', '8':'⁸', '9':'⁹', 'n':'ⁿ'}
+    def rep_super(m):
+        return ''.join(supers.get(c, c) for c in m.group(1))
+    text = re.sub(r'\^\{?(\d+|n)\}?', rep_super, text)
+    subs = {'0':'₀', '1':'₁', '2':'₂', '3':'₃', '4':'₄', '5':'₅', '6':'₆', '7':'₇', '8':'₈', '9':'₉', 'n':'ₙ'}
+    def rep_sub(m):
+        return ''.join(subs.get(c, c) for c in m.group(1))
+    text = re.sub(r'\_\{?(\d+|n)\}?', rep_sub, text)
+    text = re.sub(r'\\([a-zA-Z]+)', r'\1', text)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+    return text
+
+
+import json
+_PYQ_CACHE = {"practice": {}, "practice_adv": {}, "papers": {}}
+def load_pyq_cache():
+    global _PYQ_CACHE
+    try:
+        with open("data/pyq_master.json") as f:
+            _PYQ_CACHE = json.load(f)
+    except Exception as e:
+        print(f"Cache load error: {e}")
+
 def _b(): return sys.modules['__main__'].bot
 
 
@@ -2728,21 +3531,31 @@ def format_ultimate_solution(q):
     if not exp: return "💡 <i>Solution generation pending for this PYQ...</i>"
     return f"💡 <b>Ultimate Solution Engine:</b>\n1. <b>General Process:</b> ...\n2. <b>Different Angle:</b> ...\n3. <b>Shortcut:</b> ...\n4. <b>Generalize:</b> ...\n5. <b>Formula:</b> ...\n\n<i>(AI extracting from PDF text...)</i>\n\n{clean_math(exp)}"
 
-def clean_math(text):
-    if not text: return ""
-    text = text.replace('#', '').replace('*', '')
-    if not text: return ""
-    t = str(text)
-    t = html.unescape(t).replace("*", "").replace("_", " ")
-    t = t.replace("\\alpha", "α").replace("\\beta", "β").replace("\\theta", "θ").replace("\\pi", "π")
-    t = t.replace("\\times", "×").replace("\\cdot", "•").replace("\\sqrt", "√").replace("\\infty", "∞")
-    t = t.replace("\\(", "").replace("\\)", "").replace("\\[", "").replace("\\]", "").replace("$", "")
-    t = t.replace("{", "").replace("}", "").replace("\\", "")
-    sup = str.maketrans("0123456789+-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻")
-    sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-    t = re.sub(r'\^([0-9+\-]+)', lambda m: m.group(1).translate(sup), t)
-    t = re.sub(r'_([0-9]+)', lambda m: m.group(1).translate(sub), t)
-    return t.strip()
+
+def get_ai_solution(q_text, uid=None):
+    """Fallback AI solution — uses ai_client which is always loaded."""
+    if not q_text:
+        return "❌ No question text available."
+    prompt = f"""Solve this JEE Main question with SHORTCUT-focused approach.
+
+Question: {q_text}
+
+Use EXACTLY this 5-part format:
+
+**1. General Process:** Standard textbook approach (1-2 lines)
+**2. Shortcut:** Fastest trick to solve in exam
+**3. Guess & Predict:** How to eliminate wrong options or guess if stuck
+**4. Skip Calculation:** Round-off / approximation tricks
+**5. Formula:** Core formula used
+
+Emphasize shortcuts, guessing strategy, and skip-calculation tricks."""
+    try:
+        import ai_client
+        exam = _state.get(uid, {}).get("exam", "JEE_MAIN") if uid else "JEE_MAIN"
+        return ai_client.ask_hamilton(exam, prompt)
+    except Exception as e:
+        return f"❌ AI Error: {e}"
+
 
 def _extract_chapters(raw_data):
     chapters = set()
@@ -2830,300 +3643,6 @@ def _show_chapters(uid, msg_id):
     try: _b().edit_message_text(f"📚 <b>Select Chapter:</b>\n(Showing {start+1}-{min(end, len(chapters))} of {len(chapters)})", chat_id=uid, message_id=msg_id, parse_mode="HTML", reply_markup=kb)
     except: pass
 
-@bot.callback_query_handler(func=lambda c: c.data.startswith("f_"))
-def handle_buttons(call):
-    try: _b().answer_callback_query(call.id)
-    except: pass
-    uid = call.from_user.id
-    data = call.data
-    if uid not in _state: _state[uid] = {}
-    state = _state[uid]
-
-    if data.startswith("f_ans:") and state.get("processing"): return
-        
-    try:
-        if data.startswith("f_mode:"):
-            mode = data.split(":")[1]
-            _state[uid] = {"mode": mode, "active": True, "covered": [], "q_count": 0, "correct": 0, "wrong": 0, "skipped": 0, "generating": False, "processing": False}
-            
-            if mode == "pyq":
-                kb = InlineKeyboardMarkup(row_width=1)
-                kb.add(
-                    InlineKeyboardButton("📖 Practice (Chapter-wise)", callback_data="f_pyq:practice"),
-                    InlineKeyboardButton("📝 Previous Paper Test", callback_data="f_pyq:papers")
-                )
-                kb.add(InlineKeyboardButton("🚧 JEE Adv (Coming Soon)", callback_data="f_soon"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("🔍 <b>PYQ Explorer</b>\nSelect type:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-                return
-                
-            kb = InlineKeyboardMarkup(row_width=3)
-            kb.add(
-                InlineKeyboardButton("Physics", callback_data="f_sub:Physics"),
-                InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"),
-                InlineKeyboardButton("Maths", callback_data="f_sub:Maths")
-            )
-            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-            _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data == "f_soon":
-            _b().answer_callback_query(call.id, "Coming Soon!", show_alert=True)
-
-        elif data.startswith("f_pyq:"):
-            ptype = data.split(":")[1]
-            import json
-            try:
-                with open("data/pyq_db.json") as f: db = json.load(f)
-            except: db = {"practice": {}, "papers": {}}
-
-            if ptype == "practice":
-                kb = InlineKeyboardMarkup(row_width=3)
-                for subj in db.get("practice", {}).keys():
-                    kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_sub:{subj}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📖 <b>PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-            
-            elif ptype == "papers":
-                kb = InlineKeyboardMarkup(row_width=3)
-                years = list(db.get("papers", {}).keys())
-                if not years:
-                    _b().answer_callback_query(call.id, "No papers uploaded yet.")
-                    return
-                for yr in years:
-                    kb.add(InlineKeyboardButton(yr, callback_data=f"f_pyq_yr:{yr}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📝 <b>Previous Paper Test</b>\nSelect Year:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_pyq_sub:"):
-            subj = data.split(":")[1]
-            state["pyq_subj"] = subj
-            import json
-            chapters = []
-            try:
-                with open("data/pyq_master.json") as f: db = json.load(f)
-                extracted = db.get("practice", {}).get(subj, {})
-                chapters = list(extracted.keys())
-            except Exception:
-                pass
-
-            kb = InlineKeyboardMarkup(row_width=1)
-            if not chapters:
-                # Show a proper page instead of an alert
-                msg = f"⏳ <b>{subj} - Still Processing</b>\n\nNo chapters have been extracted yet. Hamilton is working on it in the background. Please check back later."
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-                _b().edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-                return
-
-            for ch in chapters:
-                kb.add(InlineKeyboardButton(ch[:30], callback_data=f"f_pyq_ch:{ch}"))
-            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-            _b().edit_message_text(f"📖 <b>{subj} - Extracted PYQ Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_pyq_ch:"):
-            ch = data.split(":", 1)[1]
-            subj = state.get("pyq_subj")
-            import json, os
-            print(f"[DEBUG] f_pyq_ch clicked: subj={subj} ch={ch}")
-            q_data = None
-            for attempt in range(6):
-                try:
-                    with open("data/pyq_master.json") as f: db = json.load(f)
-                    q_data = db.get("practice", {}).get(subj, {}).get(ch)
-                    if q_data is not None:
-                        print(f"[DEBUG] JSON OK (attempt {attempt+1})")
-                        break
-                    else:
-                        # Valid JSON, chapter really missing
-                        _b().send_message(uid, f"❌ Chapter not in DB: {subj} / {ch}")
-                        return
-                except json.JSONDecodeError as e:
-                    print(f"[DEBUG] JSON retry {attempt+1}: {e}")
-                    import time as _t; _t.sleep(0.3)
-                except Exception as e:
-                    _b().send_message(uid, f"❌ Load error: {e}")
-                    print(f"[DEBUG] Load error: {e}")
-                    return
-            if q_data is None:
-                _b().send_message(uid, "❌ Could not load (extractor busy). Try again in 2 sec.")
-                return
-
-            if not q_data.get("priority") and not q_data.get("normal"):
-                _b().answer_callback_query(call.id, "⚠️ No questions found in this chapter.", show_alert=True)
-                return
-
-            state["mode"] = "pyq"
-            state["subj"] = subj
-            state["chapter"] = ch
-            state["pyq_phase"] = "priority"
-            state["pyq_questions"] = q_data.get("priority", [])
-            state["pyq_normal"] = q_data.get("normal", [])
-            state["pyq_index"] = 0
-            
-            # Verify the image path exists before trying to send
-            first_q = state["pyq_questions"][0] if state["pyq_questions"] else None
-            if not first_q:
-                _b().answer_callback_query(call.id, "❌ Priority list is empty.", show_alert=True)
-                return
-                
-            if not os.path.exists(first_q["img"]):
-                _b().send_message(uid, f"❌ <b>Database Error:</b> Image file missing at `{first_q['img']}`. The extraction might have failed to save the image.", parse_mode="HTML")
-                return
-            
-            try: _b().delete_message(uid, call.message.message_id)
-            except: pass
-            
-            try:
-                send_pyq_q(uid)
-            except Exception as e:
-                _b().send_message(uid, f"❌ UI Crash: {e}")
-                print(f"PYQ UI CRASH: {e}")
-
-        elif data.startswith("f_back:"):
-            target = data.split(":")[1]
-            if target == "main": cmd_exam(call.message)
-            elif target == "sub":
-                mode = state.get("mode", "practice")
-                kb = InlineKeyboardMarkup(row_width=3)
-                kb.add(InlineKeyboardButton("Physics", callback_data="f_sub:Physics"), InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"), InlineKeyboardButton("Maths", callback_data="f_sub:Maths"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_sub:"):
-            subj = data.split(":")[1]
-            state["subj"] = subj
-            exam = state.get("exam", "jee_adv").lower()
-            fn = f"data/{exam}_{subj.lower()}.json"
-            try:
-                with open(fn) as f: chapters = _extract_chapters(json.load(f))
-            except: chapters = ["Motion in a Straight Line", "Units and Measurements"]
-            state["chapters"] = chapters
-            state["page"] = 0
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_page:"):
-            state["page"] += int(data.split(":")[1])
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_ch:"):
-            ch = data.split(":", 1)[1]
-            state["chapter"] = ch
-            state["q_count"] = 0
-            _b().edit_message_text(f"⏳ Generating Q1...", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
-            threading.Thread(target=_generate_next, args=(uid, call.message.message_id), daemon=True).start()
-
-        elif data.startswith("f_ans:"):
-            if state.get("processing") or state.get("selected") is not None: return
-            state["selected"] = int(data.split(":")[1])
-            sel = state["selected"]
-            kb = InlineKeyboardMarkup(row_width=4)
-            kb.row(*[InlineKeyboardButton(f"{'✅' if i == sel else ''}{chr(65+i)}", callback_data=f"f_ans:{i}") for i in range(4)])
-            kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-            state["kb"] = kb
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=kb)
-            except: pass
-
-        elif data in ("f_save", "f_skip"):
-            if state.get("processing") or state.get("generating"): return
-            state["processing"] = True
-            state["pyq_timer_active"] = False
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            except: pass
-            _b().send_message(uid, "🔎 <b>Verifying your response...</b>", parse_mode="HTML")
-            if data == "f_save":
-                if state.get("processing"): return
-                state["processing"] = True
-                state["pyq_timer_active"] = False
-                try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-                except: pass
-                
-                if state.get("selected") is None:
-                    state["processing"] = False
-                    _b().send_message(uid, "⚠️ Please select an option first.")
-                    return
-                    
-                is_correct = state["selected"] == state["q"].get("correct_index", 0)
-                if is_correct: state["correct"] += 1
-                else: state["wrong"] += 1
-                
-                time_taken = int(time.time() - state.get("q_start_time", time.time()))
-                ideal = state["q"].get("ideal_time", 60)
-                correct_letter = chr(65 + state["q"].get("correct_index", 0))
-                
-                try:
-                    import health
-                    health.record_attempt(uid, state.get("subj", "Physics"), state.get("chapter", ""), state["q"].get("subtopic", ""), is_correct, time_taken)
-                except: pass
-
-                msg = "✅ <b>Correct!</b>\n\n" if is_correct else f"❌ <b>Wrong.</b> Correct answer: <b>{correct_letter}</b>.\n\n"
-                msg += f"⏱️ <b>Time:</b> {time_taken}s (Ideal: {ideal}s)"
-                _b().send_message(uid, msg, parse_mode="HTML")
-
-                if state.get("mode") == "pyq" and "img" in state["q"]:
-                    load_msg = _b().send_message(uid, "🧠 <i>Generating AI Solution...</i>")
-                    try:
-                        from c40_vision_ai import get_vision_solution
-                        sol = get_vision_solution(state["q"]["img"])
-                        sol = sol.replace("**Solution:**", "").replace("Ultimate Solution Engine:", "").strip()
-                        _b().edit_message_text(f"💡 <b>Solution:</b>\n{sol}", chat_id=uid, message_id=load_msg.message_id, parse_mode="Markdown")
-                    except Exception as e:
-                        _b().edit_message_text(f"❌ AI Error: {e}", chat_id=uid, message_id=load_msg.message_id)
-
-                kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt", callback_data="f_doubt"))
-                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                _b().send_message(uid, "Next step:", reply_markup=kb)
-                
-            elif data == "f_skip":
-                state["skipped"] += 1
-                if state.get("q"):
-                    correct = state["q"].get("correct_index", 0)
-                    exp = clean_math(state["q"].get("explanation", ""))
-                    msg = f"⏭ <b>Correct Answer: Option {chr(65+correct)}</b>\n\n📝 <b>Explanation:</b>\n{exp}"
-                    kb = InlineKeyboardMarkup(row_width=2)
-                    kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                    _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
-            
-            state["selected"] = None
-            state["processing"] = False
-
-        elif data == "f_pyq_cont":
-            state["pyq_phase"] = "skipped"
-            state["pyq_questions"] = state.get("pyq_skipped", [])
-            state["pyq_index"] = 0
-            send_pyq_q(uid, call.message.message_id)
-            
-        elif data == "f_doubt":
-            state["waiting_for_doubt"] = True
-            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
-            
-        elif data == "f_next_q":
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            except: pass
-            state["selected"] = None
-            state["processing"] = False
-            if state.get("mode") == "pyq":
-                state["pyq_index"] += 1
-                send_pyq_q(uid) # Clean call, keeps old messages
-            else:
-                threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-        elif data == "f_stop":
-            state["active"] = False
-            if state.get("mode") == "pyq":
-                c = state.get("correct", 0)
-                w = state.get("wrong", 0)
-                s = state.get("skipped", 0)
-                msg = f"🛑 <b>PYQ Practice Stopped</b>\n\n✅ Correct: {c}\n❌ Wrong: {w}\n⏭ Skipped: {s}"
-                _b().send_message(uid, msg, parse_mode="HTML")
-            state["processing"] = False
-            _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            _generate_report(uid)
-            
-        elif data == "f_retry":
-            if state.get("generating"): return
-            threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-
-    except Exception as e:
-        print(f"[ROUTER-ERR] {e}")
 
 def _generate_report(uid):
     state = _state.get(uid, {})
@@ -3231,1270 +3750,416 @@ def _generate_next(uid, msg_id=None):
 print("✅ c04_exam: FINAL PYQ & EXAM ENGINE LOADED.")
 
 
+
+def _build_pyq_nav(uid):
+    st = _state.get(uid, {})
+    q_list = st.get("pyq_questions", [])
+    current = st.get("pyq_index", 0)
+    if not q_list: return None
+
+    # For Papers: Dynamically split into 3 sections based on total count
+    if st.get("pyq_is_paper"):
+        total_q = len(q_list)
+        chunk = (total_q + 2) // 3  # Divide evenly among 3 subjects
+        sections = [
+            ("Sec 1", 0, chunk),
+            ("Sec 2", chunk, chunk*2),
+            ("Sec 3", chunk*2, total_q)
+        ]
+        
+        kb = InlineKeyboardMarkup(row_width=6)
+        for sec_name, start, end in sections:
+            if start >= total_q: continue
+            kb.row(InlineKeyboardButton(f"--- {sec_name} ---", callback_data="ignore_click"))
+            row = []
+            for i in range(start, min(end, total_q)):
+                if i == current: emoji = "⚪"
+                elif q_list[i].get("_attempted"): emoji = "🟢"
+                elif q_list[i].get("_skipped"): emoji = "⚫"
+                else: emoji = "▫️"
+                # Display index + 1 to guarantee sequential numbering (Q1, Q2...)
+                row.append(InlineKeyboardButton(f"{emoji}{i+1}", callback_data=f"nav_jump:{i}"))
+                if len(row) == 6:
+                    kb.row(*row)
+                    row = []
+            if row: kb.row(*row)
+        return kb
+
+    # Chapter Nav (Topic -> Year -> Q)
+    view = st.get("nav_view", "topics")
+    if view == "topics":
+        topics = {}
+        for q in q_list:
+            t = q.get("subtopic", "General")
+            topics[t] = topics.get(t, 0) + 1
+        st["_nav_topics"] = list(topics.keys())
+        kb = InlineKeyboardMarkup(row_width=2)
+        for idx, t in enumerate(st["_nav_topics"]):
+            kb.add(InlineKeyboardButton(f"📁 {t[:20]} ({topics[t]})", callback_data=f"nav_topic:{idx}"))
+        return kb
+    elif view == "years":
+        topic = st.get("nav_topic", "")
+        years = {}
+        for q in q_list:
+            if q.get("subtopic") != topic: continue
+            src = q.get("source", "")
+            m = re.search(r'(20\d\d)', src)
+            y = m.group(1) if m else "?"
+            years[y] = years.get(y, 0) + 1
+        kb = InlineKeyboardMarkup(row_width=3)
+        for y in sorted(years.keys(), reverse=True):
+            kb.add(InlineKeyboardButton(f"📅 {y} ({years[y]})", callback_data=f"nav_year:{y}"))
+        kb.add(InlineKeyboardButton("🔙 Topics", callback_data="nav_topics"))
+        return kb
+    elif view == "questions":
+        topic = st.get("nav_topic", "")
+        year = st.get("nav_year", "")
+        matching = []
+        for i, q in enumerate(q_list):
+            if topic and q.get("subtopic") != topic: continue
+            if year:
+                src = q.get("source", "")
+                m = re.search(r'(20\d\d)', src)
+                if (m.group(1) if m else "?") != year: continue
+            matching.append((i, q))
+        kb = InlineKeyboardMarkup(row_width=6)
+        row = []
+        for i, q in matching:
+            if i == current: emoji = "⚪"
+            elif q.get("_attempted"): emoji = "🟢"
+            elif q.get("_skipped"): emoji = "⚫"
+            else: emoji = "▫️"
+            row.append(InlineKeyboardButton(f"{emoji}{i+1}", callback_data=f"nav_jump:{i}"))
+            if len(row) == 6:
+                kb.row(*row)
+                row = []
+        if row: kb.row(*row)
+        kb.add(InlineKeyboardButton("🔙 Years", callback_data="nav_back_year"))
+        return kb
+    return None
+
 def send_pyq_q(uid, msg_id=None):
-    state = _state[uid]
+    state = _state.get(uid, {})
     if state.get("mode") != "pyq": return
     q_list = state.get("pyq_questions", [])
     idx = state.get("pyq_index", 0)
-    
+
     if idx >= len(q_list):
-        if state.get("pyq_phase") == "priority" and state.get("pyq_normal"):
-            state["pyq_phase"] = "normal"
-            state["pyq_questions"] = state["pyq_normal"]
-            state["pyq_index"] = 0
-            kb = InlineKeyboardMarkup(row_width=2)
-            kb.add(InlineKeyboardButton("▶️ Continue with Normal", callback_data="f_pyq_cont"), InlineKeyboardButton("🛑 Stop & Result", callback_data="f_stop"))
-            _b().send_message(uid, "🎓 <b>You have completed all Priority questions.</b>\n\nDo you want to continue with the remaining normal questions?", reply_markup=kb)
-            return
-        kb = InlineKeyboardMarkup()
-        kb.add(InlineKeyboardButton("🛑 Stop & View Result", callback_data="f_stop"))
-        _b().send_message(uid, "🏁 <b>All questions from this chapter are completed!</b>", reply_markup=kb)
+        _b().send_message(uid, "🏁 <b>All questions complete!</b>", reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop")))
         return
 
     q = q_list[idx]
+    img_path = q.get("img", "")
+    
+    if not os.path.exists(img_path):
+        _b().send_message(uid, f"❌ <b>Image Missing!</b>\nPath: <code>{img_path}</code>\nThis question was probably not extracted correctly.")
+        return
+
     state["q"] = q
     state["selected"] = None
     state["q_start_time"] = time.time()
     state["processing"] = False
-    state["pyq_is_numerical"] = False
+    state["pyq_timer_active"] = True
 
-    # Check for 5th question numerical rule
-    is_num = (idx > 0 and idx % 5 == 0)
-    if is_num:
-        state["pyq_is_numerical"] = True
+    try: _b().delete_message(uid, state.get("pyq_timer_msg_id"))
+    except: pass
+    try: _b().delete_message(uid, state.get("pyq_nav_msg_id"))
+    except: pass
+
+    diff = q.get('difficulty', 5)
+    diff_str = f"{diff}/10" if isinstance(diff, (int, float)) else str(diff)
+    ideal = q.get('ideal_time', 90)
+    qtype = q.get('type', 'single').upper()
+    
+    if state.get("pyq_is_paper"):
+        header = f"📝 <b>Question {idx+1}/{len(q_list)}</b>"
+    else:
+        header = f"📝 <b>PYQ {idx+1}/{len(q_list)}</b>"
+
+    cap = f"{header}\n📅 {q.get('source','JEE Main')}\n⏱ Ideal: {ideal}s | 📊 Diff: {diff_str} | Type: {qtype}"
+
+    kb = InlineKeyboardMarkup(row_width=4)
+    if qtype in ["SINGLE", "MCQ"]:
+        kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
+        kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
+    elif qtype in ["NUMERICAL", "INTEGER"]:
         state["waiting_for_pyq_numeric"] = True
-        caption = f"🔢 <b>PYQ {idx+1}/{len(q_list)} (Numerical Mode)</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n\n<i>⚠️ Options are hidden. Please type your numerical answer.</i>"
-        kb = InlineKeyboardMarkup(row_width=2)
+        cap += "\n<i>Type your answer below:</i>"
         kb.row(InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
     else:
-        phase = "Priority" if state.get("pyq_phase") == "priority" else "Normal"
-        diff = q.get('difficulty', 5)
-        diff_str = f"{diff}/10" if isinstance(diff, int) else str(diff)
-        caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {diff_str}"
-        kb = InlineKeyboardMarkup(row_width=4)
         kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
         kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
 
     try:
-        with open(q["img"], "rb") as f:
-            msg = _b().send_photo(uid, f, caption=caption, parse_mode="HTML", reply_markup=kb)
+        with open(img_path, "rb") as f:
+            msg = _b().send_photo(uid, f, caption=cap, parse_mode="HTML", reply_markup=kb)
             state["pyq_photo_msg_id"] = msg.message_id
     except Exception as e:
-        _b().send_message(uid, f"❌ Image error: {e}")
+        _b().send_message(uid, f"❌ Telegram Send Error: {e}")
+        return
 
-    # START THE TIMER THREAD
-    import threading
-    def _live_timer():
-        t_msg = _b().send_message(uid, "⏱️ 0s")
-        state["pyq_timer_msg_id"] = t_msg.message_id
-        state["pyq_timer_active"] = True
-        while state.get("pyq_timer_active") and state.get("mode") == "pyq":
+    t_msg = _b().send_message(uid, "⏱ 0s")
+    state["pyq_timer_msg_id"] = t_msg.message_id
+
+    nav_kb = _build_pyq_nav(uid)
+    if nav_kb:
+        n_msg = _b().send_message(uid, "🧭 <b>Navigation:</b>", parse_mode="HTML", reply_markup=nav_kb)
+        state["pyq_nav_msg_id"] = n_msg.message_id
+
+    def _timer(uid_, t_msg_id):
+        for i in range(1, 301):
             time.sleep(1)
-            elapsed = int(time.time() - state.get("q_start_time", time.time()))
-            try: _b().edit_message_text(f"⏱️ {elapsed}s", chat_id=uid, message_id=t_msg.message_id)
+            st = _state.get(uid_, {})
+            if not st.get("pyq_timer_active"): break
+            try: _b().edit_message_text(f"⏱ {i}s", chat_id=uid_, message_id=t_msg_id)
             except: pass
-    threading.Thread(target=_live_timer, daemon=True).start()
+    threading.Thread(target=_timer, args=(uid, t_msg.message_id), daemon=True).start()
 
 
-def clean_math(text):
-    if not text: return ""
-    text = text.replace('#', '').replace('*', '')
-    if not text: return ""
-    t = str(text)
-    t = html.unescape(t).replace("*", "").replace("_", " ")
-    t = t.replace("\\alpha", "α").replace("\\beta", "β").replace("\\theta", "θ").replace("\\pi", "π")
-    t = t.replace("\\times", "×").replace("\\cdot", "•").replace("\\sqrt", "√").replace("\\infty", "∞")
-    t = t.replace("\\(", "").replace("\\)", "").replace("\\[", "").replace("\\]", "").replace("$", "")
-    t = t.replace("{", "").replace("}", "").replace("\\", "")
-    sup = str.maketrans("0123456789+-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻")
-    sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-    t = re.sub(r'\^([0-9+\-]+)', lambda m: m.group(1).translate(sup), t)
-    t = re.sub(r'_([0-9]+)', lambda m: m.group(1).translate(sub), t)
-    return t.strip()
-
-def _extract_chapters(raw_data):
-    chapters = set()
-    if isinstance(raw_data, dict):
-        for k, v in raw_data.items():
-            if isinstance(v, dict) and "chapter" in v: chapters.add(v["chapter"])
-            else: chapters.add(k)
-    elif isinstance(raw_data, list):
-        for item in raw_data:
-            if isinstance(item, dict):
-                ch = item.get("chapter") or item.get("name") or item.get("topic")
-                if ch: chapters.add(ch)
-    return sorted(list(chapters))
-
-def _animate_gen(uid, msg_id, count):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if not state.get("generating"): return
-        try: _b().edit_message_text(f"⏳ Generating Q{count}... ({elapsed}s)", chat_id=uid, message_id=msg_id, parse_mode="HTML")
-        except: pass
-
-def _run_floating_timer(uid, timer_msg_id, question_msg_id):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if state.get("question_msg_id") != question_msg_id or state.get("processing") or not state.get("active"):
-            try: _b().delete_message(uid, timer_msg_id)
-            except: pass
-            return
-        try: 
-            _b().edit_message_text(f"⏱️ <b>Time Taken:</b> {elapsed}s", chat_id=uid, message_id=timer_msg_id, parse_mode="HTML")
-        except: pass
-
-def _strip_old_buttons(uid):
-    state = _state.get(uid, {})
-    old_msg = state.get("msg_id")
-    if old_msg:
-        try: _b().edit_message_reply_markup(uid, old_msg, reply_markup=None)
-        except: pass
-    state["msg_id"] = None
-
-@bot.message_handler(commands=['exam'])
-def cmd_exam(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("📖 Practice", callback_data="f_mode:practice"),
-        InlineKeyboardButton("📝 Test", callback_data="f_mode:test")
-    )
-    kb.add(InlineKeyboardButton("🔍 PYQs", callback_data="f_mode:pyq"))
-    _b().send_message(message.chat.id, "🎓 <b>Exam Center</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
-
-@bot.message_handler(commands=['conceptual'])
-def cmd_conceptual(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("💡 Conceptual", callback_data="f_mode:conceptual"),
-        InlineKeyboardButton("⚠️ Exceptional", callback_data="f_mode:exceptional")
-    )
-    _b().send_message(message.chat.id, "🧠 <b>Concept Mastery</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
-
-def _show_chapters(uid, msg_id):
-    state = _state[uid]
-    chapters = state.get("chapters", [])
-    page = state.get("page", 0)
-    start, end = page * 5, (page + 1) * 5
-    chunk = chapters[start:end]
-    
-    kb = InlineKeyboardMarkup(row_width=1)
-    for i, ch in enumerate(chunk):
-        kb.add(InlineKeyboardButton(f"{start + i + 1}. {ch[:25]}", callback_data=f"f_ch:{ch}"))
-        
-    nav = []
-    if page > 0: nav.append(InlineKeyboardButton("⬅️ Prev", callback_data="f_page:-1"))
-    if end < len(chapters): nav.append(InlineKeyboardButton("Next ➡️", callback_data="f_page:1"))
-    if nav: kb.row(*nav)
-    kb.row(InlineKeyboardButton("🔙 Back", callback_data="f_back:sub"))
-    
-    try: _b().edit_message_text(f"📚 <b>Select Chapter:</b>\n(Showing {start+1}-{min(end, len(chapters))} of {len(chapters)})", chat_id=uid, message_id=msg_id, parse_mode="HTML", reply_markup=kb)
-    except: pass
-
-@bot.callback_query_handler(func=lambda c: c.data.startswith("f_"))
 def handle_buttons(call):
     try: _b().answer_callback_query(call.id)
     except: pass
-    uid = call.from_user.id
-    data = call.data
-    if uid not in _state: _state[uid] = {}
-    state = _state[uid]
-
-    if data.startswith("f_ans:") and state.get("processing"): return
-        
+    
     try:
+        uid = call.from_user.id
+        data = call.data
+        if uid not in _state: _state[uid] = {}
+        state = _state[uid]
+        db = get_pyq_db()
+
+        # --- MAIN MENU ---
         if data.startswith("f_mode:"):
             mode = data.split(":")[1]
             _state[uid] = {"mode": mode, "active": True, "covered": [], "q_count": 0, "correct": 0, "wrong": 0, "skipped": 0, "generating": False, "processing": False}
             
             if mode == "pyq":
                 kb = InlineKeyboardMarkup(row_width=1)
-                kb.add(
-                    InlineKeyboardButton("📖 Practice (Chapter-wise)", callback_data="f_pyq:practice"),
-                    InlineKeyboardButton("📝 Previous Paper Test", callback_data="f_pyq:papers")
-                )
-                kb.add(InlineKeyboardButton("🚧 JEE Adv (Coming Soon)", callback_data="f_soon"))
+                kb.add(InlineKeyboardButton("📖 JEE Main Chapter-wise", callback_data="f_pyq:practice"))
+                kb.add(InlineKeyboardButton("🔥 JEE Adv Chapter-wise", callback_data="f_pyq_adv:practice"))
+                kb.add(InlineKeyboardButton("📝 JEE Main Papers", callback_data="f_pyq_papers_cat:JEE MAIN"))
+                kb.add(InlineKeyboardButton("🔥 JEE Adv Papers", callback_data="f_pyq_papers_cat:JEE ADV"))
                 kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
                 _b().edit_message_text("🔍 <b>PYQ Explorer</b>\nSelect type:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
                 return
-                
+
             kb = InlineKeyboardMarkup(row_width=3)
-            kb.add(
-                InlineKeyboardButton("Physics", callback_data="f_sub:Physics"),
-                InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"),
-                InlineKeyboardButton("Maths", callback_data="f_sub:Maths")
-            )
-            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-            _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            kb.add(InlineKeyboardButton("Physics", callback_data="f_sub:Physics"), InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"), InlineKeyboardButton("Maths", callback_data="f_sub:Maths"))
+            _b().edit_message_text(f"📚 <b>{mode.capitalize()} Mode</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-        elif data == "f_soon":
-            _b().answer_callback_query(call.id, "Coming Soon!", show_alert=True)
+        if data.startswith("f_back:"):
+            if data.split(":")[1] == "main":
+                kb = InlineKeyboardMarkup(row_width=2)
+                kb.add(InlineKeyboardButton("📖 Practice", callback_data="f_mode:practice"), InlineKeyboardButton("🔍 PYQs", callback_data="f_mode:pyq"))
+                kb.add(InlineKeyboardButton("📝 Test", callback_data="f_mode:test"), InlineKeyboardButton("💡 Conceptual", callback_data="f_mode:conceptual"))
+                _b().edit_message_text("📚 <b>Exam Engine</b>\nSelect Mode:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-        elif data.startswith("f_pyq:"):
-            ptype = data.split(":")[1]
-            import json
-            try:
-                with open("data/pyq_db.json") as f: db = json.load(f)
-            except: db = {"practice": {}, "papers": {}}
+        # --- JEE MAIN CHAPTER-WISE ---
+        if data == "f_pyq:practice":
+            kb = InlineKeyboardMarkup(row_width=3)
+            for subj in db.get("practice", {}).keys():
+                kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_sub:{subj}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_mode:pyq"))
+            _b().edit_message_text("📖 <b>JEE Main PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-            if ptype == "practice":
-                kb = InlineKeyboardMarkup(row_width=3)
-                for subj in db.get("practice", {}).keys():
-                    kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_sub:{subj}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📖 <b>PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-            
-            elif ptype == "papers":
-                kb = InlineKeyboardMarkup(row_width=3)
-                years = list(db.get("papers", {}).keys())
-                if not years:
-                    _b().answer_callback_query(call.id, "No papers uploaded yet.")
-                    return
-                for yr in years:
-                    kb.add(InlineKeyboardButton(yr, callback_data=f"f_pyq_yr:{yr}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📝 <b>Previous Paper Test</b>\nSelect Year:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_pyq_sub:"):
+        if data.startswith("f_pyq_sub:"):
             subj = data.split(":")[1]
             state["pyq_subj"] = subj
-            import json
-            chapters = []
-            try:
-                with open("data/pyq_master.json") as f: db = json.load(f)
-                extracted = db.get("practice", {}).get(subj, {})
-                chapters = list(extracted.keys())
-            except Exception:
-                pass
-
             kb = InlineKeyboardMarkup(row_width=1)
-            if not chapters:
-                # Show a proper page instead of an alert
-                msg = f"⏳ <b>{subj} - Still Processing</b>\n\nNo chapters have been extracted yet. Hamilton is working on it in the background. Please check back later."
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-                _b().edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-                return
-
-            for ch in chapters:
-                kb.add(InlineKeyboardButton(ch[:30], callback_data=f"f_pyq_ch:{ch}"))
+            for ch in db.get("practice", {}).get(subj, {}).keys():
+                kb.add(InlineKeyboardButton(ch[:40], callback_data=f"f_pyq_ch:{ch[:40]}"))
             kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-            _b().edit_message_text(f"📖 <b>{subj} - Extracted PYQ Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            _b().edit_message_text(f"📖 <b>{subj} - PYQ Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-        elif data.startswith("f_pyq_ch:"):
+        if data.startswith("f_pyq_ch:"):
             ch = data.split(":", 1)[1]
             subj = state.get("pyq_subj")
-            import json, os
-            print(f"[DEBUG] f_pyq_ch clicked: subj={subj} ch={ch}")
-            q_data = None
-            for attempt in range(6):
-                try:
-                    with open("data/pyq_master.json") as f: db = json.load(f)
-                    q_data = db.get("practice", {}).get(subj, {}).get(ch)
-                    if q_data is not None:
-                        print(f"[DEBUG] JSON OK (attempt {attempt+1})")
-                        break
-                    else:
-                        # Valid JSON, chapter really missing
-                        _b().send_message(uid, f"❌ Chapter not in DB: {subj} / {ch}")
-                        return
-                except json.JSONDecodeError as e:
-                    print(f"[DEBUG] JSON retry {attempt+1}: {e}")
-                    import time as _t; _t.sleep(0.3)
-                except Exception as e:
-                    _b().send_message(uid, f"❌ Load error: {e}")
-                    print(f"[DEBUG] Load error: {e}")
-                    return
-            if q_data is None:
-                _b().send_message(uid, "❌ Could not load (extractor busy). Try again in 2 sec.")
+            q_data = db.get("practice", {}).get(subj, {}).get(ch)
+            if not q_data or not q_data.get("priority"):
+                _b().answer_callback_query(call.id, "No questions found in this chapter.", show_alert=True)
                 return
 
-            if not q_data.get("priority") and not q_data.get("normal"):
-                _b().answer_callback_query(call.id, "⚠️ No questions found in this chapter.", show_alert=True)
-                return
-
-            state["mode"] = "pyq"
-            state["subj"] = subj
-            state["chapter"] = ch
-            state["pyq_phase"] = "priority"
+            state["mode"] = "pyq"; state["subj"] = subj; state["chapter"] = ch
             state["pyq_questions"] = q_data.get("priority", [])
             state["pyq_normal"] = q_data.get("normal", [])
-            state["pyq_index"] = 0
-            
-            # Verify the image path exists before trying to send
-            first_q = state["pyq_questions"][0] if state["pyq_questions"] else None
-            if not first_q:
-                _b().answer_callback_query(call.id, "❌ Priority list is empty.", show_alert=True)
-                return
-                
-            if not os.path.exists(first_q["img"]):
-                _b().send_message(uid, f"❌ <b>Database Error:</b> Image file missing at `{first_q['img']}`. The extraction might have failed to save the image.", parse_mode="HTML")
-                return
+            state["pyq_index"] = 0; state["pyq_is_paper"] = False
             
             try: _b().delete_message(uid, call.message.message_id)
             except: pass
             
-            try:
-                send_pyq_q(uid)
-            except Exception as e:
-                _b().send_message(uid, f"❌ UI Crash: {e}")
-                print(f"PYQ UI CRASH: {e}")
-
-        elif data.startswith("f_back:"):
-            target = data.split(":")[1]
-            if target == "main": cmd_exam(call.message)
-            elif target == "sub":
-                mode = state.get("mode", "practice")
-                kb = InlineKeyboardMarkup(row_width=3)
-                kb.add(InlineKeyboardButton("Physics", callback_data="f_sub:Physics"), InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"), InlineKeyboardButton("Maths", callback_data="f_sub:Maths"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_sub:"):
-            subj = data.split(":")[1]
-            state["subj"] = subj
-            exam = state.get("exam", "jee_adv").lower()
-            fn = f"data/{exam}_{subj.lower()}.json"
-            try:
-                with open(fn) as f: chapters = _extract_chapters(json.load(f))
-            except: chapters = ["Motion in a Straight Line", "Units and Measurements"]
-            state["chapters"] = chapters
-            state["page"] = 0
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_page:"):
-            state["page"] += int(data.split(":")[1])
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_ch:"):
-            ch = data.split(":", 1)[1]
-            state["chapter"] = ch
-            state["q_count"] = 0
-            _b().edit_message_text(f"⏳ Generating Q1...", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
-            threading.Thread(target=_generate_next, args=(uid, call.message.message_id), daemon=True).start()
-
-        elif data.startswith("f_ans:"):
-            if state.get("processing") or state.get("selected") is not None: return
-            state["selected"] = int(data.split(":")[1])
-            sel = state["selected"]
-            kb = InlineKeyboardMarkup(row_width=4)
-            kb.row(*[InlineKeyboardButton(f"{'✅' if i == sel else ''}{chr(65+i)}", callback_data=f"f_ans:{i}") for i in range(4)])
-            kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-            state["kb"] = kb
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=kb)
-            except: pass
-
-        elif data in ("f_save", "f_skip"):
-            if state.get("processing") or state.get("generating"): return
-            state["processing"] = True
-            state["pyq_timer_active"] = False
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            except: pass
-            _b().send_message(uid, "🔎 <b>Verifying your response...</b>", parse_mode="HTML")
-            
-            if data == "f_save":
-                if state.get("selected") is None: 
-                    state["processing"] = False
-                    return
-                is_correct = state["selected"] == state["q"].get("correct_index", 0)
-                if is_correct: state["correct"] += 1
-                else: state["wrong"] += 1
-                
-                time_taken = int(time.time() - state.get("q_start_time", time.time()))
-                ideal = state["q"].get("ideal_time", 60)
-                correct_letter = chr(65 + state["q"].get("correct_index", 0))
-                
-                try:
-                    import health
-                    q_subtopic = state["q"].get("subtopic", "General")
-                    health.record_attempt(uid, state["subj"], state["chapter"], q_subtopic, is_correct, time_taken)
-                except: pass
-                
-                msg = f"✅ <b>Correct!</b>\n\n" if is_correct else f"❌ <b>Wrong.</b> Correct answer: <b>Option {correct_letter}</b>.\n\n"
-                msg += f"⏱️ <b>Time Taken:</b> {time_taken}s (Ideal: {ideal}s)\n\n"
-                msg += format_ultimate_solution(state['q'])
-                
-                kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
-                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
-                
-            elif data == "f_skip":
-                state["skipped"] += 1
-                if state.get("q"):
-                    correct = state["q"].get("correct_index", 0)
-                    exp = clean_math(state["q"].get("explanation", ""))
-                    msg = f"⏭ <b>Correct Answer: Option {chr(65+correct)}</b>\n\n📝 <b>Explanation:</b>\n{exp}"
-                    kb = InlineKeyboardMarkup(row_width=2)
-                    kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                    _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
-            
-            state["selected"] = None
-            state["processing"] = False
-
-        elif data == "f_pyq_cont":
-            state["pyq_phase"] = "skipped"
-            state["pyq_questions"] = state.get("pyq_skipped", [])
-            state["pyq_index"] = 0
-            send_pyq_q(uid, call.message.message_id)
-            
-        elif data == "f_doubt":
-            state["waiting_for_doubt"] = True
-            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
-            
-        elif data == "f_next_q":
-            _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            state["selected"] = None
-            state["processing"] = False
-            if state.get("mode") == "pyq":
-                state["pyq_timer_active"] = False
-                state["pyq_index"] += 1
-                send_pyq_q(uid, call.message.message_id)
-            else:
-                threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-
-        elif data == "f_stop":
-            state["active"] = False
-            if state.get("mode") == "pyq":
-                c = state.get("correct", 0)
-                w = state.get("wrong", 0)
-                s = state.get("skipped", 0)
-                msg = f"🛑 <b>PYQ Practice Stopped</b>\n\n✅ Correct: {c}\n❌ Wrong: {w}\n⏭ Skipped: {s}"
-                _b().send_message(uid, msg, parse_mode="HTML")
-            state["processing"] = False
-            _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            _generate_report(uid)
-            
-        elif data == "f_retry":
-            if state.get("generating"): return
-            threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-
-    except Exception as e:
-        print(f"[ROUTER-ERR] {e}")
-
-def _generate_report(uid):
-    state = _state.get(uid, {})
-    total = state.get("correct", 0) + state.get("wrong", 0) + state.get("skipped", 0)
-    if total == 0:
-        _b().send_message(uid, "🛑 Session stopped.")
-        return
-    acc = (state["correct"] / total) * 100 if total > 0 else 0
-    health_delta = (state["correct"] * 1.5) - (state["wrong"] * 1.0)
-    msg = f"🏁 <b>SESSION REPORT</b>\n\n📊 <b>Attempted:</b> {total}\n✅ <b>Correct:</b> {state['correct']}\n❌ <b>Wrong:</b> {state['wrong']}\n⏭ <b>Skipped:</b> {state['skipped']}\n\n🎯 <b>Accuracy:</b> {acc:.1f}%\n❤️ <b>Health Update:</b> {health_delta:+.1f}%\n\n📚 <i>Want a personal Mastery Analyzer? Contact us on WhatsApp:</i> <a href='https://wa.me/918074231426'>H&K Publications</a>"
-    _b().send_message(uid, msg, parse_mode="HTML", disable_web_page_preview=True)
-
-def _generate_next(uid, msg_id=None):
-    state = _state.get(uid, {})
-    if not state.get("active"): return
-    state["generating"] = True
-    state["q_count"] = state.get("q_count", 0) + 1
-    count = state["q_count"]
-    
-    if count > 100:
-        state["active"] = False
-        _b().send_message(uid, "🎉 <b>Mastery Complete!</b> You have covered the entire syllabus.")
-        return
-
-    if msg_id: loader_msg = msg_id
-    else:
-        msg = _b().send_message(uid, f"⏳ Generating Q{count}...", parse_mode="HTML")
-        loader_msg = msg.message_id
-        threading.Thread(target=_animate_gen, args=(uid, loader_msg, count), daemon=True).start()
-
-    import ai_client
-    mode = state.get("mode", "practice")
-    diff = random.randint(3, 9)
-    ideal_time = {3: 45, 4: 60, 5: 75, 6: 90, 7: 90, 8: 100, 9: 110}.get(diff, 90)
-    source = random.choice(["JEE Adv 2023", "JEE Main 2024", "Arihant", "Cengage", "JEE Adv 2021"])
-    q_type = random.choice(["MCQ", "Multi-Correct", "Numerical", "Integer", "Assertion-Reason", "Statement-based", "Match-the-following", "Passage-based", "Matrix"])
-    
-    prompt = f"Generate a JEE question for '{state['chapter']}' (Subject: {state['subj']}).\n"
-    prompt += f"Target Difficulty: {diff}/10. Question Type: {q_type}. Source: {source}.\n"
-    prompt += "RULES:\n1. Output strictly as JSON.\n2. NO LATEX. Use Unicode (α, √, π, ⁰, ²).\n3. Explanation must be direct and concise.\n"
-    prompt += '{"question":"...", "subtopic":"...", "concept":"...", "options":["A","B","C","D"], "correct_index":0, "explanation":"..."}\n'
-
-    q = None
-    for attempt in range(3):
-        try:
-            raw = ai_client._call_groq(0, "Output ONLY valid JSON.", prompt, max_tokens=1200, temperature=0.7)
-            if not raw or not raw.strip(): continue
-            txt = raw.strip()
-            if txt.startswith("```"): txt = re.sub(r"^```(?:json)?\s*", "", txt); txt = re.sub(r"\s*```\s*$", "", txt)
-            first, last = txt.find("{"), txt.rfind("}")
-            if first == -1 or last == -1: continue
-            q = json.loads(txt[first:last+1])
-            if "question" in q and "options" in q:
-                q["difficulty"] = diff
-                q["ideal_time"] = ideal_time
-                q["source"] = source
-                q["q_type"] = q_type
-                break
-        except Exception:
-            q = None
-            time.sleep(1)
-            
-    if not q:
-        try: _b().delete_message(uid, loader_msg)
-        except: pass
-        kb = InlineKeyboardMarkup(row_width=2)
-        kb.add(InlineKeyboardButton("🔄 Retry", callback_data="f_retry"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-        _b().send_message(uid, "⚠️ <b>AI faced an error generating this question.</b>\n\nClick Retry to try again.", parse_mode="HTML", reply_markup=kb)
-        state["generating"] = False
-        return
-        
-    state["q"] = q
-    state["selected"] = None
-    state["q_start_time"] = time.time()
-    
-    header = f"<b>[{mode.upper()} | Q{count}]</b>\n"
-    header += f"📖 <b>{state['chapter']}</b> → {q.get('subtopic', 'General')}\n"
-    header += f"🧠 Concept: {q.get('concept', 'General')}\n"
-    header += f"🎯 Pattern: {q.get('q_type', 'MCQ')} | Difficulty: {q.get('difficulty', 5)}/10 | ⏱️ Ideal: {q.get('ideal_time', 60)}s\n"
-    header += f"🏷️ Source: {q.get('source', 'AI')}\n"
-    header += "━━━━━━━━━━━━━━━\n\n"
-    
-    body = header + f"{clean_math(q.get('question', ''))}\n\n"
-    for i, opt in enumerate(q.get("options", [])[:4]):
-        body += f"<b>{chr(65+i)})</b> {clean_math(opt)}\n"
-        
-    kb = InlineKeyboardMarkup(row_width=4)
-    kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
-    kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-    state["kb"] = kb
-    state["generating"] = False
-    state["processing"] = False
-    
-    try:
-        _b().delete_message(uid, loader_msg)
-        msg = _b().send_message(uid, body, parse_mode="HTML", reply_markup=kb)
-        state["msg_id"] = msg.message_id
-        state["question_msg_id"] = msg.message_id
-        
-        timer_msg = _b().send_message(uid, "⏱️ <b>Time Taken:</b> 0s", parse_mode="HTML")
-        threading.Thread(target=_run_floating_timer, args=(uid, timer_msg.message_id, msg.message_id), daemon=True).start()
-    except Exception as e:
-        print(f"[SEND-ERR] {e}")
-
-print("✅ c04_exam: FINAL PYQ & EXAM ENGINE LOADED.")
-
-
-def send_pyq_q(uid, msg_id=None):
-    state = _state[uid]
-    if state.get("mode") != "pyq": return
-    
-    q_list = state.get("pyq_questions", [])
-    idx = state.get("pyq_index", 0)
-    
-    if idx >= len(q_list):
-        if state.get("pyq_phase") == "priority" and state.get("pyq_normal"):
-            state["pyq_phase"] = "normal"
-            state["pyq_questions"] = state["pyq_normal"]
-            state["pyq_index"] = 0
-            kb = InlineKeyboardMarkup(row_width=2)
-            kb.add(InlineKeyboardButton("▶️ Continue with Normal", callback_data="f_pyq_cont"), InlineKeyboardButton("🛑 Stop & Result", callback_data="f_stop"))
-            _b().send_message(uid, "🎓 <b>You have completed all Priority questions.</b>\n\nDo you want to continue with the remaining normal questions?", reply_markup=kb)
-            return
-
-        kb = InlineKeyboardMarkup()
-        kb.add(InlineKeyboardButton("🛑 Stop & View Result", callback_data="f_stop"))
-        _b().send_message(uid, "🏁 <b>All questions from this chapter are completed!</b>", reply_markup=kb)
-        return
-
-    q = q_list[idx]
-    state["q"] = q
-    state["selected"] = None
-    state["q_start_time"] = time.time()
-    state["processing"] = False
-    state["pyq_is_numerical"] = False # Reset flag
-
-    # --- 5th Question Numerical Logic ---
-    is_num = (idx > 0 and idx % 5 == 0)
-    if is_num:
-        state["pyq_is_numerical"] = True
-        # Tell the user to type the answer
-        state["waiting_for_pyq_numeric"] = True
-        caption = f"🔢 <b>PYQ {idx+1}/{len(q_list)} (Numerical Mode)</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n\n<i>⚠️ Options are hidden. Please type your numerical answer.</i>"
-        kb = InlineKeyboardMarkup(row_width=2)
-        kb.row(InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-    else:
-        phase_name = "Priority" if state.get("pyq_phase") == "priority" else "Normal"
-        diff_raw = q.get('difficulty', 5)
-        try:
-            diff_num = int(float(diff_raw))
-            diff_text = "Easy" if diff_num <= 4 else ("Medium" if diff_num <= 7 else "Hard")
-            diff_str = f"{diff_num}/10 ({diff_text})"
-        except: diff_str = str(diff_raw)
-            
-        caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {diff_str}"
-        kb = InlineKeyboardMarkup(row_width=4)
-        kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
-        kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-
-    # Clean up previous photo, but NOT the solution text
-    if state.get("pyq_photo_msg_id"):
-        try: _b().delete_message(uid, state["pyq_photo_msg_id"])
-        except: pass
-    
-    # Send Photo
-    try:
-        with open(q["img"], "rb") as f:
-            msg = _b().send_photo(uid, f, caption=caption, parse_mode="HTML", reply_markup=kb)
-            state["pyq_photo_msg_id"] = msg.message_id
-            
-            # Simple safe timer
-            import threading
-            def _timer(msg_id):
-                for i in range(1, 300): # Max 5 mins
-                    if not state.get("pyq_timer_active") or state.get("mode") != "pyq": break
+            def run_cd_ch():
+                cdown = _b().send_message(uid, "📄 <b>Starting Practice...</b>\n\n5...")
+                for n in [4, 3, 2, 1]:
                     time.sleep(1)
-                    try: _b().edit_message_text(f"⏱️ {i}s", chat_id=uid, message_id=msg_id)
+                    try: _b().edit_message_text(f"📄 <b>Starting Practice...</b>\n\n{n}...", chat_id=uid, message_id=cdown.message_id)
                     except: pass
-            t_msg = _b().send_message(uid, "⏱️ 0s")
-            state["pyq_timer_msg_id"] = t_msg.message_id
-            state["pyq_timer_active"] = True
-            threading.Thread(target=_timer, args=(t_msg.message_id,), daemon=True).start()
-
-    except Exception as e:
-        _b().send_message(uid, f"❌ Failed to send photo: {e}\nPath: {q['img']}")
-
-def clean_math(text):
-    if not text: return ""
-    text = text.replace('#', '').replace('*', '')
-    if not text: return ""
-    t = str(text)
-    t = html.unescape(t).replace("*", "").replace("_", " ")
-    t = t.replace("\\alpha", "α").replace("\\beta", "β").replace("\\theta", "θ").replace("\\pi", "π")
-    t = t.replace("\\times", "×").replace("\\cdot", "•").replace("\\sqrt", "√").replace("\\infty", "∞")
-    t = t.replace("\\(", "").replace("\\)", "").replace("\\[", "").replace("\\]", "").replace("$", "")
-    t = t.replace("{", "").replace("}", "").replace("\\", "")
-    sup = str.maketrans("0123456789+-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻")
-    sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-    t = re.sub(r'\^([0-9+\-]+)', lambda m: m.group(1).translate(sup), t)
-    t = re.sub(r'_([0-9]+)', lambda m: m.group(1).translate(sub), t)
-    return t.strip()
-
-def _extract_chapters(raw_data):
-    chapters = set()
-    if isinstance(raw_data, dict):
-        for k, v in raw_data.items():
-            if isinstance(v, dict) and "chapter" in v: chapters.add(v["chapter"])
-            else: chapters.add(k)
-    elif isinstance(raw_data, list):
-        for item in raw_data:
-            if isinstance(item, dict):
-                ch = item.get("chapter") or item.get("name") or item.get("topic")
-                if ch: chapters.add(ch)
-    return sorted(list(chapters))
-
-def _animate_gen(uid, msg_id, count):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if not state.get("generating"): return
-        try: _b().edit_message_text(f"⏳ Generating Q{count}... ({elapsed}s)", chat_id=uid, message_id=msg_id, parse_mode="HTML")
-        except: pass
-
-def _run_floating_timer(uid, timer_msg_id, question_msg_id):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if state.get("question_msg_id") != question_msg_id or state.get("processing") or not state.get("active"):
-            try: _b().delete_message(uid, timer_msg_id)
-            except: pass
+                time.sleep(1)
+                _b().edit_message_text("🚀 <b>GO!</b>", chat_id=uid, message_id=cdown.message_id)
+                time.sleep(0.5)
+                send_pyq_q(uid)
+            threading.Thread(target=run_cd_ch, daemon=True).start()
             return
-        try: 
-            _b().edit_message_text(f"⏱️ <b>Time Taken:</b> {elapsed}s", chat_id=uid, message_id=timer_msg_id, parse_mode="HTML")
-        except: pass
 
-def _strip_old_buttons(uid):
-    state = _state.get(uid, {})
-    old_msg = state.get("msg_id")
-    if old_msg:
-        try: _b().edit_message_reply_markup(uid, old_msg, reply_markup=None)
-        except: pass
-    state["msg_id"] = None
-
-@bot.message_handler(commands=['exam'])
-def cmd_exam(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("📖 Practice", callback_data="f_mode:practice"),
-        InlineKeyboardButton("📝 Test", callback_data="f_mode:test")
-    )
-    kb.add(InlineKeyboardButton("🔍 PYQs", callback_data="f_mode:pyq"))
-    _b().send_message(message.chat.id, "🎓 <b>Exam Center</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
-
-@bot.message_handler(commands=['conceptual'])
-def cmd_conceptual(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("💡 Conceptual", callback_data="f_mode:conceptual"),
-        InlineKeyboardButton("⚠️ Exceptional", callback_data="f_mode:exceptional")
-    )
-    _b().send_message(message.chat.id, "🧠 <b>Concept Mastery</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
-
-def _show_chapters(uid, msg_id):
-    state = _state[uid]
-    chapters = state.get("chapters", [])
-    page = state.get("page", 0)
-    start, end = page * 5, (page + 1) * 5
-    chunk = chapters[start:end]
-    
-    kb = InlineKeyboardMarkup(row_width=1)
-    for i, ch in enumerate(chunk):
-        kb.add(InlineKeyboardButton(f"{start + i + 1}. {ch[:25]}", callback_data=f"f_ch:{ch}"))
-        
-    nav = []
-    if page > 0: nav.append(InlineKeyboardButton("⬅️ Prev", callback_data="f_page:-1"))
-    if end < len(chapters): nav.append(InlineKeyboardButton("Next ➡️", callback_data="f_page:1"))
-    if nav: kb.row(*nav)
-    kb.row(InlineKeyboardButton("🔙 Back", callback_data="f_back:sub"))
-    
-    try: _b().edit_message_text(f"📚 <b>Select Chapter:</b>\n(Showing {start+1}-{min(end, len(chapters))} of {len(chapters)})", chat_id=uid, message_id=msg_id, parse_mode="HTML", reply_markup=kb)
-    except: pass
-
-@bot.callback_query_handler(func=lambda c: c.data.startswith("f_"))
-def handle_buttons(call):
-    try: _b().answer_callback_query(call.id)
-    except: pass
-    uid = call.from_user.id
-    data = call.data
-    if uid not in _state: _state[uid] = {}
-    state = _state[uid]
-
-    if data.startswith("f_ans:") and state.get("processing"): return
-        
-    try:
-        if data.startswith("f_mode:"):
-            mode = data.split(":")[1]
-            _state[uid] = {"mode": mode, "active": True, "covered": [], "q_count": 0, "correct": 0, "wrong": 0, "skipped": 0, "generating": False, "processing": False}
-            
-            if mode == "pyq":
-                kb = InlineKeyboardMarkup(row_width=1)
-                kb.add(
-                    InlineKeyboardButton("📖 Practice (Chapter-wise)", callback_data="f_pyq:practice"),
-                    InlineKeyboardButton("📝 Previous Paper Test", callback_data="f_pyq:papers")
-                )
-                kb.add(InlineKeyboardButton("🚧 JEE Adv (Coming Soon)", callback_data="f_soon"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("🔍 <b>PYQ Explorer</b>\nSelect type:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-                return
-                
+        # --- JEE ADV CHAPTER-WISE (THE MISSING BUTTONS) ---
+        if data == "f_pyq_adv:practice":
             kb = InlineKeyboardMarkup(row_width=3)
-            kb.add(
-                InlineKeyboardButton("Physics", callback_data="f_sub:Physics"),
-                InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"),
-                InlineKeyboardButton("Maths", callback_data="f_sub:Maths")
-            )
-            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-            _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            for subj in db.get("practice_adv", {}).keys():
+                kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_adv_sub:{subj}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_mode:pyq"))
+            _b().edit_message_text("🔥 <b>JEE Adv PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-        elif data == "f_soon":
-            _b().answer_callback_query(call.id, "Coming Soon!", show_alert=True)
-
-        elif data.startswith("f_pyq:"):
-            ptype = data.split(":")[1]
-            import json
-            try:
-                with open("data/pyq_db.json") as f: db = json.load(f)
-            except: db = {"practice": {}, "papers": {}}
-
-            if ptype == "practice":
-                kb = InlineKeyboardMarkup(row_width=3)
-                for subj in db.get("practice", {}).keys():
-                    kb.add(InlineKeyboardButton(subj, callback_data=f"f_pyq_sub:{subj}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📖 <b>PYQ Practice</b>\nSelect Subject:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-            
-            elif ptype == "papers":
-                kb = InlineKeyboardMarkup(row_width=3)
-                years = list(db.get("papers", {}).keys())
-                if not years:
-                    _b().answer_callback_query(call.id, "No papers uploaded yet.")
-                    return
-                for yr in years:
-                    kb.add(InlineKeyboardButton(yr, callback_data=f"f_pyq_yr:{yr}"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text("📝 <b>Previous Paper Test</b>\nSelect Year:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_pyq_sub:"):
+        if data.startswith("f_pyq_adv_sub:"):
             subj = data.split(":")[1]
             state["pyq_subj"] = subj
-            import json
-            chapters = []
-            try:
-                with open("data/pyq_master.json") as f: db = json.load(f)
-                extracted = db.get("practice", {}).get(subj, {})
-                chapters = list(extracted.keys())
-            except Exception:
-                pass
-
+            state["is_adv"] = True
             kb = InlineKeyboardMarkup(row_width=1)
-            if not chapters:
-                # Show a proper page instead of an alert
-                msg = f"⏳ <b>{subj} - Still Processing</b>\n\nNo chapters have been extracted yet. Hamilton is working on it in the background. Please check back later."
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-                _b().edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-                return
+            for ch in db.get("practice_adv", {}).get(subj, {}).keys():
+                kb.add(InlineKeyboardButton(ch[:40], callback_data=f"f_pyq_adv_ch:{ch[:40]}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq_adv:practice"))
+            _b().edit_message_text(f"🔥 <b>{subj} - Adv Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-            for ch in chapters:
-                kb.add(InlineKeyboardButton(ch[:30], callback_data=f"f_pyq_ch:{ch}"))
-            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_pyq:practice"))
-            _b().edit_message_text(f"📖 <b>{subj} - Extracted PYQ Chapters</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
-
-        elif data.startswith("f_pyq_ch:"):
+        if data.startswith("f_pyq_adv_ch:"):
             ch = data.split(":", 1)[1]
             subj = state.get("pyq_subj")
-            import json, os
-            print(f"[DEBUG] f_pyq_ch clicked: subj={subj} ch={ch}")
-            q_data = None
-            for attempt in range(6):
-                try:
-                    with open("data/pyq_master.json") as f: db = json.load(f)
-                    q_data = db.get("practice", {}).get(subj, {}).get(ch)
-                    if q_data is not None:
-                        print(f"[DEBUG] JSON OK (attempt {attempt+1})")
-                        break
-                    else:
-                        # Valid JSON, chapter really missing
-                        _b().send_message(uid, f"❌ Chapter not in DB: {subj} / {ch}")
-                        return
-                except json.JSONDecodeError as e:
-                    print(f"[DEBUG] JSON retry {attempt+1}: {e}")
-                    import time as _t; _t.sleep(0.3)
-                except Exception as e:
-                    _b().send_message(uid, f"❌ Load error: {e}")
-                    print(f"[DEBUG] Load error: {e}")
-                    return
-            if q_data is None:
-                _b().send_message(uid, "❌ Could not load (extractor busy). Try again in 2 sec.")
+            q_data = db.get("practice_adv", {}).get(subj, {}).get(ch)
+            if not q_data or not q_data.get("priority"):
+                _b().answer_callback_query(call.id, "No questions found in this chapter.", show_alert=True)
                 return
 
-            if not q_data.get("priority") and not q_data.get("normal"):
-                _b().answer_callback_query(call.id, "⚠️ No questions found in this chapter.", show_alert=True)
-                return
-
-            state["mode"] = "pyq"
-            state["subj"] = subj
-            state["chapter"] = ch
-            state["pyq_phase"] = "priority"
+            state["mode"] = "pyq"; state["subj"] = subj; state["chapter"] = ch
             state["pyq_questions"] = q_data.get("priority", [])
             state["pyq_normal"] = q_data.get("normal", [])
-            state["pyq_index"] = 0
-            
-            # Verify the image path exists before trying to send
-            first_q = state["pyq_questions"][0] if state["pyq_questions"] else None
-            if not first_q:
-                _b().answer_callback_query(call.id, "❌ Priority list is empty.", show_alert=True)
-                return
-                
-            if not os.path.exists(first_q["img"]):
-                _b().send_message(uid, f"❌ <b>Database Error:</b> Image file missing at `{first_q['img']}`. The extraction might have failed to save the image.", parse_mode="HTML")
-                return
+            state["pyq_index"] = 0; state["pyq_is_paper"] = False
             
             try: _b().delete_message(uid, call.message.message_id)
             except: pass
             
-            try:
+            def run_cd_adv():
+                cdown = _b().send_message(uid, "📄 <b>Starting Adv Practice...</b>\n\n5...")
+                for n in [4, 3, 2, 1]:
+                    time.sleep(1)
+                    try: _b().edit_message_text(f"📄 <b>Starting Adv Practice...</b>\n\n{n}...", chat_id=uid, message_id=cdown.message_id)
+                    except: pass
+                time.sleep(1)
+                _b().edit_message_text("🚀 <b>GO!</b>", chat_id=uid, message_id=cdown.message_id)
+                time.sleep(0.5)
                 send_pyq_q(uid)
-            except Exception as e:
-                _b().send_message(uid, f"❌ UI Crash: {e}")
-                print(f"PYQ UI CRASH: {e}")
+            threading.Thread(target=run_cd_adv, daemon=True).start()
+            return
 
-        elif data.startswith("f_back:"):
-            target = data.split(":")[1]
-            if target == "main": cmd_exam(call.message)
-            elif target == "sub":
-                mode = state.get("mode", "practice")
-                kb = InlineKeyboardMarkup(row_width=3)
-                kb.add(InlineKeyboardButton("Physics", callback_data="f_sub:Physics"), InlineKeyboardButton("Chemistry", callback_data="f_sub:Chemistry"), InlineKeyboardButton("Maths", callback_data="f_sub:Maths"))
-                kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_back:main"))
-                _b().edit_message_text(f"Mode: {mode.upper()}\n<b>Select Subject:</b>", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+        # --- PAPERS (From previous fix) ---
+        if data.startswith("f_pyq_papers_cat:"):
+            cat = data.split(":", 1)[1].strip().upper()
+            years = {}
+            for p_name, p_data in db.get("papers", {}).items():
+                if str(p_data.get("exam_type", "JEE MAIN")).strip().upper() == cat:
+                    y = str(p_data.get("year", "Unknown"))
+                    years[y] = years.get(y, 0) + 1
+            if not years: return
+                
+            kb = InlineKeyboardMarkup(row_width=3)
+            for y in sorted(years.keys(), reverse=True):
+                kb.add(InlineKeyboardButton(f"📅 {y} ({years[y]})", callback_data=f"f_pyq_paper_year:{cat}:{y}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="f_mode:pyq"))
+            _b().edit_message_text(f"📝 <b>{cat} - Select Year</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
 
-        elif data.startswith("f_sub:"):
-            subj = data.split(":")[1]
-            state["subj"] = subj
-            exam = state.get("exam", "jee_adv").lower()
-            fn = f"data/{exam}_{subj.lower()}.json"
+        if data.startswith("f_pyq_paper_year:"):
+            _, cat, year = data.split(":", 2)
+            state["paper_list"] = []
+            kb = InlineKeyboardMarkup(row_width=1)
+            for p_name, p_data in db.get("papers", {}).items():
+                if str(p_data.get("exam_type", "JEE MAIN")).strip().upper() == cat and str(p_data.get("year")) == year:
+                    state["paper_list"].append(p_name)
+                    short = p_name.replace(f"{cat} ", "").replace(f"{year} ", "")
+                    kb.add(InlineKeyboardButton(f"📄 {short[:40]}", callback_data=f"f_pyq_paper_idx:{len(state['paper_list'])-1}"))
+            kb.add(InlineKeyboardButton("🔙 Years", callback_data=f"f_pyq_papers_cat:{cat}"))
+            _b().edit_message_text(f"📝 <b>{cat} {year} - Select Paper</b>:", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+            return
+
+        if data.startswith("f_pyq_paper_idx:"):
             try:
-                with open(fn) as f: chapters = _extract_chapters(json.load(f))
-            except: chapters = ["Motion in a Straight Line", "Units and Measurements"]
-            state["chapters"] = chapters
-            state["page"] = 0
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_page:"):
-            state["page"] += int(data.split(":")[1])
-            _show_chapters(uid, call.message.message_id)
-
-        elif data.startswith("f_ch:"):
-            ch = data.split(":", 1)[1]
-            state["chapter"] = ch
-            state["q_count"] = 0
-            _b().edit_message_text(f"⏳ Generating Q1...", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
-            threading.Thread(target=_generate_next, args=(uid, call.message.message_id), daemon=True).start()
-
-        elif data.startswith("f_ans:"):
-            if state.get("processing") or state.get("selected") is not None: return
-            state["selected"] = int(data.split(":")[1])
-            sel = state["selected"]
-            kb = InlineKeyboardMarkup(row_width=4)
-            kb.row(*[InlineKeyboardButton(f"{'✅' if i == sel else ''}{chr(65+i)}", callback_data=f"f_ans:{i}") for i in range(4)])
-            kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-            state["kb"] = kb
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=kb)
-            except: pass
-
-        elif data in ("f_save", "f_skip"):
-            if state.get("processing") or state.get("generating"): return
-            state["processing"] = True
-            state["pyq_timer_active"] = False
-            try: _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            except: pass
-            _b().send_message(uid, "🔎 <b>Verifying your response...</b>", parse_mode="HTML")
-            
-            if data == "f_save":
-                if state.get("selected") is None: 
-                    state["processing"] = False
+                idx = int(data.split(":")[1]); _pl = state.get("paper_list", [])
+                if idx < 0 or idx >= len(_pl):
+                    try: bot.answer_callback_query(call.id, "⚠️ Session expired. Select paper again.", show_alert=True)
+                    except: pass
                     return
-                is_correct = state["selected"] == state["q"].get("correct_index", 0)
-                if is_correct: state["correct"] += 1
-                else: state["wrong"] += 1
-                
-                time_taken = int(time.time() - state.get("q_start_time", time.time()))
-                ideal = state["q"].get("ideal_time", 60)
-                correct_letter = chr(65 + state["q"].get("correct_index", 0))
-                
-                try:
-                    import health
-                    q_subtopic = state["q"].get("subtopic", "General")
-                    health.record_attempt(uid, state["subj"], state["chapter"], q_subtopic, is_correct, time_taken)
+                paper_name = _pl[idx]; paper_data = db.get("papers", {}).get(paper_name)
+                if not isinstance(paper_data, dict) or not paper_data.get("questions"):
+                    try: bot.answer_callback_query(call.id, "⚠️ No questions extracted yet.", show_alert=True)
+                    except: pass
+                    return
+            except Exception as _e:
+                try: bot.answer_callback_query(call.id, f"⚠️ {str(_e)[:80]}", show_alert=True)
                 except: pass
-                
-                msg = f"✅ <b>Correct!</b>\n\n" if is_correct else f"❌ <b>Wrong.</b> Correct answer: <b>Option {correct_letter}</b>.\n\n"
-                msg += f"⏱️ <b>Time Taken:</b> {time_taken}s (Ideal: {ideal}s)\n\n"
-                msg += format_ultimate_solution(state['q'])
-                
-                kb = InlineKeyboardMarkup(row_width=2)
-                kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("💬 Doubt in Explanation", callback_data="f_doubt"))
-                kb.add(InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
-                
-            elif data == "f_skip":
-                state["skipped"] += 1
-                if state.get("q"):
-                    correct = state["q"].get("correct_index", 0)
-                    exp = clean_math(state["q"].get("explanation", ""))
-                    msg = f"⏭ <b>Correct Answer: Option {chr(65+correct)}</b>\n\n📝 <b>Explanation:</b>\n{exp}"
-                    kb = InlineKeyboardMarkup(row_width=2)
-                    kb.add(InlineKeyboardButton("▶️ Continue", callback_data="f_next_q"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-                    _b().send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
+                return
             
-            state["selected"] = None
-            state["processing"] = False
-
-        elif data == "f_pyq_cont":
-            state["pyq_phase"] = "skipped"
-            state["pyq_questions"] = state.get("pyq_skipped", [])
-            state["pyq_index"] = 0
-            send_pyq_q(uid, call.message.message_id)
+            state["mode"] = "pyq"; state["subj"] = "Full Paper"; state["chapter"] = paper_name
+            state["pyq_questions"] = paper_data.get("questions", [])
+            state["pyq_index"] = 0; state["pyq_is_paper"] = True
             
-        elif data == "f_doubt":
-            state["waiting_for_doubt"] = True
-            _b().send_message(uid, "💬 <b>Please type your doubt about this question or explanation.</b>\nHamilton will answer it for you.", parse_mode="HTML")
-            
-        elif data == "f_next_q":
-            _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            state["selected"] = None
-            state["processing"] = False
-            if state.get("mode") == "pyq":
-                state["pyq_timer_active"] = False
-                state["pyq_index"] += 1
-                send_pyq_q(uid, call.message.message_id)
-            else:
-                threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-
-        elif data == "f_stop":
-            state["active"] = False
-            if state.get("mode") == "pyq":
-                c = state.get("correct", 0)
-                w = state.get("wrong", 0)
-                s = state.get("skipped", 0)
-                msg = f"🛑 <b>PYQ Practice Stopped</b>\n\n✅ Correct: {c}\n❌ Wrong: {w}\n⏭ Skipped: {s}"
-                _b().send_message(uid, msg, parse_mode="HTML")
-            state["processing"] = False
-            _b().edit_message_reply_markup(uid, call.message.message_id, reply_markup=None)
-            _generate_report(uid)
-            
-        elif data == "f_retry":
-            if state.get("generating"): return
-            threading.Thread(target=_generate_next, args=(uid, None), daemon=True).start()
-
-    except Exception as e:
-        print(f"[ROUTER-ERR] {e}")
-
-def _generate_report(uid):
-    state = _state.get(uid, {})
-    total = state.get("correct", 0) + state.get("wrong", 0) + state.get("skipped", 0)
-    if total == 0:
-        _b().send_message(uid, "🛑 Session stopped.")
-        return
-    acc = (state["correct"] / total) * 100 if total > 0 else 0
-    health_delta = (state["correct"] * 1.5) - (state["wrong"] * 1.0)
-    msg = f"🏁 <b>SESSION REPORT</b>\n\n📊 <b>Attempted:</b> {total}\n✅ <b>Correct:</b> {state['correct']}\n❌ <b>Wrong:</b> {state['wrong']}\n⏭ <b>Skipped:</b> {state['skipped']}\n\n🎯 <b>Accuracy:</b> {acc:.1f}%\n❤️ <b>Health Update:</b> {health_delta:+.1f}%\n\n📚 <i>Want a personal Mastery Analyzer? Contact us on WhatsApp:</i> <a href='https://wa.me/918074231426'>H&K Publications</a>"
-    _b().send_message(uid, msg, parse_mode="HTML", disable_web_page_preview=True)
-
-def _generate_next(uid, msg_id=None):
-    state = _state.get(uid, {})
-    if not state.get("active"): return
-    state["generating"] = True
-    state["q_count"] = state.get("q_count", 0) + 1
-    count = state["q_count"]
-    
-    if count > 100:
-        state["active"] = False
-        _b().send_message(uid, "🎉 <b>Mastery Complete!</b> You have covered the entire syllabus.")
-        return
-
-    if msg_id: loader_msg = msg_id
-    else:
-        msg = _b().send_message(uid, f"⏳ Generating Q{count}...", parse_mode="HTML")
-        loader_msg = msg.message_id
-        threading.Thread(target=_animate_gen, args=(uid, loader_msg, count), daemon=True).start()
-
-    import ai_client
-    mode = state.get("mode", "practice")
-    diff = random.randint(3, 9)
-    ideal_time = {3: 45, 4: 60, 5: 75, 6: 90, 7: 90, 8: 100, 9: 110}.get(diff, 90)
-    source = random.choice(["JEE Adv 2023", "JEE Main 2024", "Arihant", "Cengage", "JEE Adv 2021"])
-    q_type = random.choice(["MCQ", "Multi-Correct", "Numerical", "Integer", "Assertion-Reason", "Statement-based", "Match-the-following", "Passage-based", "Matrix"])
-    
-    prompt = f"Generate a JEE question for '{state['chapter']}' (Subject: {state['subj']}).\n"
-    prompt += f"Target Difficulty: {diff}/10. Question Type: {q_type}. Source: {source}.\n"
-    prompt += "RULES:\n1. Output strictly as JSON.\n2. NO LATEX. Use Unicode (α, √, π, ⁰, ²).\n3. Explanation must be direct and concise.\n"
-    prompt += '{"question":"...", "subtopic":"...", "concept":"...", "options":["A","B","C","D"], "correct_index":0, "explanation":"..."}\n'
-
-    q = None
-    for attempt in range(3):
-        try:
-            raw = ai_client._call_groq(0, "Output ONLY valid JSON.", prompt, max_tokens=1200, temperature=0.7)
-            if not raw or not raw.strip(): continue
-            txt = raw.strip()
-            if txt.startswith("```"): txt = re.sub(r"^```(?:json)?\s*", "", txt); txt = re.sub(r"\s*```\s*$", "", txt)
-            first, last = txt.find("{"), txt.rfind("}")
-            if first == -1 or last == -1: continue
-            q = json.loads(txt[first:last+1])
-            if "question" in q and "options" in q:
-                q["difficulty"] = diff
-                q["ideal_time"] = ideal_time
-                q["source"] = source
-                q["q_type"] = q_type
-                break
-        except Exception:
-            q = None
-            time.sleep(1)
-            
-    if not q:
-        try: _b().delete_message(uid, loader_msg)
-        except: pass
-        kb = InlineKeyboardMarkup(row_width=2)
-        kb.add(InlineKeyboardButton("🔄 Retry", callback_data="f_retry"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-        _b().send_message(uid, "⚠️ <b>AI faced an error generating this question.</b>\n\nClick Retry to try again.", parse_mode="HTML", reply_markup=kb)
-        state["generating"] = False
-        return
-        
-    state["q"] = q
-    state["selected"] = None
-    state["q_start_time"] = time.time()
-    
-    header = f"<b>[{mode.upper()} | Q{count}]</b>\n"
-    header += f"📖 <b>{state['chapter']}</b> → {q.get('subtopic', 'General')}\n"
-    header += f"🧠 Concept: {q.get('concept', 'General')}\n"
-    header += f"🎯 Pattern: {q.get('q_type', 'MCQ')} | Difficulty: {q.get('difficulty', 5)}/10 | ⏱️ Ideal: {q.get('ideal_time', 60)}s\n"
-    header += f"🏷️ Source: {q.get('source', 'AI')}\n"
-    header += "━━━━━━━━━━━━━━━\n\n"
-    
-    body = header + f"{clean_math(q.get('question', ''))}\n\n"
-    for i, opt in enumerate(q.get("options", [])[:4]):
-        body += f"<b>{chr(65+i)})</b> {clean_math(opt)}\n"
-        
-    kb = InlineKeyboardMarkup(row_width=4)
-    kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
-    kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-    state["kb"] = kb
-    state["generating"] = False
-    state["processing"] = False
-    
-    try:
-        _b().delete_message(uid, loader_msg)
-        msg = _b().send_message(uid, body, parse_mode="HTML", reply_markup=kb)
-        state["msg_id"] = msg.message_id
-        state["question_msg_id"] = msg.message_id
-        
-        timer_msg = _b().send_message(uid, "⏱️ <b>Time Taken:</b> 0s", parse_mode="HTML")
-        threading.Thread(target=_run_floating_timer, args=(uid, timer_msg.message_id, msg.message_id), daemon=True).start()
-    except Exception as e:
-        print(f"[SEND-ERR] {e}")
-
-print("✅ c04_exam: FINAL PYQ & EXAM ENGINE LOADED.")
-
-
-def send_pyq_q(uid, msg_id=None):
-    print(f"[DEBUG] send_pyq_q: uid={uid}")
-    state = _state[uid]
-    print(f"[DEBUG] state: mode={state.get('mode')} idx={state.get('pyq_index')} len={len(state.get('pyq_questions', []))}")
-    if state.get("mode") != "pyq":
-        print(f"[DEBUG] ABORT: mode={state.get('mode')}")
-        return
-    
-    q_list = state.get("pyq_questions", [])
-    idx = state.get("pyq_index", 0)
-    
-    if idx >= len(q_list):
-        if state.get("pyq_phase") == "priority" and state.get("pyq_normal"):
-            state["pyq_phase"] = "normal"
-            state["pyq_questions"] = state["pyq_normal"]
-            state["pyq_index"] = 0
-            kb = InlineKeyboardMarkup(row_width=2)
-            kb.add(InlineKeyboardButton("▶️ Continue with Normal", callback_data="f_pyq_cont"), InlineKeyboardButton("🛑 Stop & Result", callback_data="f_stop"))
-            _b().send_message(uid, "🎓 <b>You have completed all Priority questions.</b>\n\nDo you want to continue with the remaining normal questions?", reply_markup=kb)
-            return
-
-        kb = InlineKeyboardMarkup()
-        kb.add(InlineKeyboardButton("🛑 Stop & View Result", callback_data="f_stop"))
-        _b().send_message(uid, "🏁 <b>All questions from this chapter are completed!</b>", reply_markup=kb)
-        return
-
-    q = q_list[idx]
-    state["q"] = q
-    state["selected"] = None
-    state["q_start_time"] = time.time()
-    state["processing"] = False
-
-    phase_name = "Priority" if state.get("pyq_phase") == "priority" else "Normal"
-    diff_raw = q.get('difficulty', 5)
-    try:
-        diff_num = int(float(diff_raw))
-        diff_text = "Easy" if diff_num <= 4 else ("Medium" if diff_num <= 7 else "Hard")
-        diff_str = f"{diff_num}/10 ({diff_text})"
-    except:
-        diff_str = str(diff_raw)
-        
-    caption = f"📝 <b>PYQ {idx+1}/{len(q_list)} ({phase_name})</b>\n📅 {q.get('source', 'JEE Main')}\n⏱ Ideal Time: {q.get('ideal_time', 90)}s\n📊 Difficulty: {diff_str}"
-    
-    kb = InlineKeyboardMarkup(row_width=4)
-    kb.row(*[InlineKeyboardButton(chr(65+i), callback_data=f"f_ans:{i}") for i in range(4)])
-    kb.row(InlineKeyboardButton("✔️ Save", callback_data="f_save"), InlineKeyboardButton("⏭ Skip", callback_data="f_skip"), InlineKeyboardButton("🛑 Stop", callback_data="f_stop"))
-
-    if msg_id:
-        try: _b().delete_message(uid, msg_id)
-        except: pass
-    
-    print(f"[DEBUG] Attempting send_photo: {q['img']}")
-    try:
-        with open(q["img"], "rb") as f:
-            msg = _b().send_photo(uid, f, caption=caption, parse_mode="HTML", reply_markup=kb)
-            state["pyq_msg_id"] = msg.message_id
-        print(f"[DEBUG] send_photo SUCCESS, msg_id={msg.message_id}")
-    except Exception as e:
-        print(f"[DEBUG] send_photo FAILED: {e}")
-        try:
-            _b().send_message(uid, f"❌ Failed to send photo: {e}\nPath: {q['img']}")
-        except Exception as e2:
-            print(f"[DEBUG] Even fallback failed: {e2}")
-def clean_math(text):
-    if not text: return ""
-    text = text.replace('#', '').replace('*', '')
-    if not text: return ""
-    t = str(text)
-    t = html.unescape(t).replace("*", "").replace("_", " ")
-    t = t.replace("\\alpha", "α").replace("\\beta", "β").replace("\\theta", "θ").replace("\\pi", "π")
-    t = t.replace("\\times", "×").replace("\\cdot", "•").replace("\\sqrt", "√").replace("\\infty", "∞")
-    t = t.replace("\\(", "").replace("\\)", "").replace("\\[", "").replace("\\]", "").replace("$", "")
-    t = t.replace("{", "").replace("}", "").replace("\\", "")
-    sup = str.maketrans("0123456789+-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻")
-    sub = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-    t = re.sub(r'\^([0-9+\-]+)', lambda m: m.group(1).translate(sup), t)
-    t = re.sub(r'_([0-9]+)', lambda m: m.group(1).translate(sub), t)
-    return t.strip()
-
-def _extract_chapters(raw_data):
-    chapters = set()
-    if isinstance(raw_data, dict):
-        for k, v in raw_data.items():
-            if isinstance(v, dict) and "chapter" in v: chapters.add(v["chapter"])
-            else: chapters.add(k)
-    elif isinstance(raw_data, list):
-        for item in raw_data:
-            if isinstance(item, dict):
-                ch = item.get("chapter") or item.get("name") or item.get("topic")
-                if ch: chapters.add(ch)
-    return sorted(list(chapters))
-
-def _animate_gen(uid, msg_id, count):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if not state.get("generating"): return
-        try: _b().edit_message_text(f"⏳ Generating Q{count}... ({elapsed}s)", chat_id=uid, message_id=msg_id, parse_mode="HTML")
-        except: pass
-
-def _run_floating_timer(uid, timer_msg_id, question_msg_id):
-    elapsed = 0
-    while True:
-        time.sleep(1)
-        elapsed += 1
-        state = _state.get(uid, {})
-        if state.get("question_msg_id") != question_msg_id or state.get("processing") or not state.get("active"):
-            try: _b().delete_message(uid, timer_msg_id)
+            try: _b().delete_message(uid, call.message.message_id)
             except: pass
+            
+            inst_img = paper_data.get("instructions_img")
+            if inst_img and os.path.exists(inst_img):
+                kb = InlineKeyboardMarkup()
+                kb.add(InlineKeyboardButton("✅ I have read the instructions, Start Test", callback_data="f_start_paper"))
+                with open(inst_img, "rb") as f:
+                    _b().send_photo(uid, f, caption="📜 <b>Instructions</b>", parse_mode="HTML", reply_markup=kb)
+            else:
+                def run_cd_paper():
+                    cdown = _b().send_message(uid, "📄 <b>Starting Paper...</b>\n\n5...")
+                    for n in [4, 3, 2, 1]:
+                        time.sleep(1)
+                        try: _b().edit_message_text(f"📄 <b>Starting Paper...</b>\n\n{n}...", chat_id=uid, message_id=cdown.message_id)
+                        except: pass
+                    time.sleep(1)
+                    _b().edit_message_text("🚀 <b>GO!</b>", chat_id=uid, message_id=cdown.message_id)
+                    time.sleep(0.5)
+                    send_pyq_q(uid)
+                threading.Thread(target=run_cd_paper, daemon=True).start()
             return
-        try: 
-            _b().edit_message_text(f"⏱️ <b>Time Taken:</b> {elapsed}s", chat_id=uid, message_id=timer_msg_id, parse_mode="HTML")
-        except: pass
 
-def _strip_old_buttons(uid):
-    state = _state.get(uid, {})
-    old_msg = state.get("msg_id")
-    if old_msg:
-        try: _b().edit_message_reply_markup(uid, old_msg, reply_markup=None)
-        except: pass
-    state["msg_id"] = None
+        if data == "f_start_paper":
+            try: _b().delete_message(uid, call.message.message_id)
+            except: pass
+            def run_cd_start():
+                cdown = _b().send_message(uid, "📄 <b>Starting Paper...</b>\n\n5...")
+                for n in [4, 3, 2, 1]:
+                    time.sleep(1)
+                    try: _b().edit_message_text(f"📄 <b>Starting Paper...</b>\n\n{n}...", chat_id=uid, message_id=cdown.message_id)
+                    except: pass
+                time.sleep(1)
+                _b().edit_message_text("🚀 <b>GO!</b>", chat_id=uid, message_id=cdown.message_id)
+                time.sleep(0.5)
+                send_pyq_q(uid)
+            threading.Thread(target=run_cd_start, daemon=True).start()
+            return
 
-@bot.message_handler(commands=['exam'])
-def cmd_exam(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("📖 Practice", callback_data="f_mode:practice"),
-        InlineKeyboardButton("📝 Test", callback_data="f_mode:test")
-    )
-    kb.add(InlineKeyboardButton("🔍 PYQs", callback_data="f_mode:pyq"))
-    _b().send_message(message.chat.id, "🎓 <b>Exam Center</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
-
-@bot.message_handler(commands=['conceptual'])
-def cmd_conceptual(message):
-    _state[message.chat.id] = {"active": False, "processing": False, "generating": False}
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        InlineKeyboardButton("💡 Conceptual", callback_data="f_mode:conceptual"),
-        InlineKeyboardButton("⚠️ Exceptional", callback_data="f_mode:exceptional")
-    )
-    _b().send_message(message.chat.id, "🧠 <b>Concept Mastery</b>\n\nSelect Mode:", parse_mode="HTML", reply_markup=kb)
+        # --- NAVIGATION ---
+        if data.startswith("nav_jump:"):
+            target = int(data.split(":")[1])
+            state["pyq_timer_active"] = False
+            try: _b().delete_message(uid, state.get("pyq_timer_msg_id"))
+            except: pass
+            try: _b().delete_message(uid, state.get("pyq_nav_msg_id"))
+            except: pass
+            try: _b().delete_message(uid, state.get("pyq_photo_msg_id"))
+            except: pass
+            state["pyq_index"] = target
+            send_pyq_q(uid)
+            return
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        _b().send_message(uid, f"❌ Error: {e}")
 
 
 
@@ -6261,10 +5926,25 @@ def _in_subreg_flow(uid):
 
 
 @bot.message_handler(
-    func=lambda m: not _in_subreg_flow(m.chat.id),
+    func=lambda m: not _in_subreg_flow(m.chat.id) and not (m.text and m.text.startswith('/')),
     content_types=['text']
 )
 def free_text_handler(message):
+    # PLANNER INTERCEPT: Do not interfere if user is in planner
+    try:
+        import c50_planner
+        if message.chat.id in c50_planner.PLANNER_STATE and c50_planner.PLANNER_STATE[message.chat.id].get('active'):
+            return
+    except: pass
+
+    if message.text and message.text.startswith('/'): return # Ignore commands
+    if message.text and message.text.startswith('/'): return # Ignore commands
+    if message.text and message.text.startswith('/'): return
+    if message.text and message.text.startswith('/'): return
+    if message.text and message.text.startswith("/"): return False
+    if message.text and message.text.startswith("/"):
+        return # Let command handlers (/plan, /exam, etc.) handle this
+        
     # --- STOP AI FROM HIJACKING COMMANDS ---
     if message.text and message.text.startswith('/'):
         return
@@ -6576,12 +6256,15 @@ def free_text_handler(message):
                         "started": __import__("time").time(),
                     }
                     try:
-                        safe_send(uid,
+                        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+                        close_kb = InlineKeyboardMarkup()
+                        close_kb.add(InlineKeyboardButton("❌ Close Chat", callback_data=f"admin_close_chat:{_target}"))
+                        bot.send_message(uid,
                             f"🔗 *Chat opened with user {_target}*\n"
-                            f"Type `/end_chat {_target}` to close when done.",
-                            parse_mode="Markdown")
-                    except Exception:
-                        pass
+                            f"Messages are now forwarded. Click below to close.",
+                            parse_mode="Markdown", reply_markup=close_kb)
+                    except Exception as e:
+                        print(f"[chat_open_kb_err] {e}")
                 except Exception as _e:
                     safe_send(uid, f"⚠️ Send failed: {_e}")
                 # Keep personal_text flow alive so admin can send multiple messages
@@ -7352,6 +7035,64 @@ def _is_in_two_way_chat(uid):
 # ==========================================================
 PENDING_ADMIN_FLOW = {}   # {admin_uid: {"action": ..., "data": {...}, "at": ts}}
 
+
+
+
+@bot.message_handler(content_types=['photo', 'document', 'video'])
+def admin_forward_files(message):
+    uid = message.chat.id
+    import sys
+    ADMIN_ID = 8857708587
+    if uid != ADMIN_ID: return
+    
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT") and _mo.TWO_WAY_CHAT:
+            for target_uid, data in _mo.TWO_WAY_CHAT.items():
+                if data.get("admin_uid") == uid:
+                    try:
+                        if message.content_type == 'photo':
+                            bot.send_photo(target_uid, message.photo[-1].file_id, caption=message.caption)
+                        elif message.content_type == 'document':
+                            bot.send_document(target_uid, message.document.file_id, caption=message.caption)
+                        elif message.content_type == 'video':
+                            bot.send_video(target_uid, message.video.file_id, caption=message.caption)
+                        bot.send_message(uid, "✅ File forwarded.")
+                    except Exception as e:
+                        bot.send_message(uid, f"❌ Failed: {e}")
+                    return
+
+
+
+MEDIA_GROUPS = {}
+
+@bot.message_handler(content_types=['photo', 'document', 'video'])
+def handle_media_groups(message):
+    uid = message.chat.id
+    import sys
+    ADMIN_ID = 8857708587
+    if uid != ADMIN_ID: return
+    if not hasattr(message, 'media_group_id') or not message.media_group_id: return
+    
+    group_id = message.media_group_id
+    if group_id not in MEDIA_GROUPS:
+        MEDIA_GROUPS[group_id] = {"files": [], "timer": None}
+        
+    MEDIA_GROUPS[group_id]["files"].append(message)
+    
+    # Wait 2 seconds to collect all files in the album
+    if MEDIA_GROUPS[group_id]["timer"]:
+        MEDIA_GROUPS[group_id]["timer"].cancel()
+        
+    import threading
+    def process_album():
+        time.sleep(2.5)
+        files = MEDIA_GROUPS[group_id]["files"]
+        bot.send_message(uid, f"📦 <b>Detected Album with {len(files)} files.</b>", parse_mode="HTML")
+        # Here we would trigger the broadcast save/send logic for the batch.
+        # The existing broadcast flow will pick these up.
+        
+    MEDIA_GROUPS[group_id]["timer"] = threading.Timer(2.5, process_album)
+    MEDIA_GROUPS[group_id]["timer"].start()
 
 
 # ==========================================================
@@ -9785,6 +9526,8 @@ def _rich_progress_svg(profile):
 # Override /graph to use the rich SVG
 @bot.message_handler(commands=['graph'])
 def cmd_graph(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -9793,7 +9536,7 @@ def cmd_graph(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
 
     svg = _rich_progress_svg(p)
@@ -12690,235 +12433,236 @@ def _send_lockin_with_timer(uid, code, mins):
     Thread(target=_tick, daemon=True).start()
 
 
-@bot.message_handler(func=lambda m: True, content_types=['text'])
-def _auth_text_router(message):
-    # _sfg_guard: skip if user in c03v sub-admin flow
-    try:
-        _sfg = globals().get('_SUBREG_V2_STATE')
-        if _sfg and message.chat.id in _sfg:
-            print(f'[auth-text-guard] skipping uid={message.chat.id} (in sub flow)')
-            return
-    except Exception:
-        pass
-    # _subreg_flow_guard: skip if user in c03v sub-admin flow
-    try:
-        _sfg = globals().get('_SUBREG_V2_STATE')
-        if _sfg and message.chat.id in _sfg:
-            return
-    except Exception:
-        pass
-    print(f"[DEBUG] _auth_text_router: uid={message.chat.id} text={message.text!r}")
-    uid = message.chat.id
-    text = (message.text or "").strip()
-
-    # ---- Direct dispatch: if this is an entry code, handle it here ----
-    if text == config.ADMIN_PANEL_CODE:
-        _handle_admin_entry(uid)
-        return
-    if text == getattr(config, "SUB_ADMIN_CODE", None):
-        _handle_sub_entry(uid)
-        return
-    if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
-        code, mins = auth.generate_lockin_code()
-        auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
-        _send_lockin_with_timer(uid, code, mins)
-        return
-    if text.startswith("/"):
-        return
-
-    # ---- Lock-in GENERATOR code intercept (bypasses privacy) ----
-    if text == config.LOCKIN_GENERATOR_CODE:
-        code, mins = auth.generate_lockin_code()
-        auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
-        safe_send(uid,
-            f"🔑 *Lock-in Generator Access*\n\n"
-            f"Your one-time code:\n\n"
-            f"`{code}`\n\n"
-            f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
-            f"Type this code anywhere in the chat to unlock any lockout.",
-            parse_mode="Markdown")
-        return
-
-    # ---- Lock-in code intercept (before any pending flow) ----
-    if auth.is_hex_lockin_code(text):
-        ok, entry = auth.verify_lockin_code(text, requester_uid=uid)
-        if ok:
-            auth.unlock_primary()
-            auth.unlock_sub_admin(uid)
-            auth.clear_user_block(uid)
-            auth.audit("lockin_used", uid, {})
-            safe_send(uid,
-                "🔓 *Lock-in accepted.*\n"
-                "Your lockout and any block have been cleared.\n"
-                "Type the entry code to try again.",
-                parse_mode="Markdown")
-        else:
-            safe_send(uid, "❌ Invalid or expired lock-in code.")
-        return
-
-    pend = _get_pending(uid)
-    if not pend:
-        return   # not in our flow → let other handlers process
-
-    action = pend["action"]
-
-    # ---- Primary privacy ----
-    if action == "primary_priv":
-        locked, mins = auth.is_locked(uid, "primary")
-        if locked:
-            safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
-            _pop_pending(uid)
-            return
-        if auth.verify_primary_privacy(text):
-            auth.reset_failed_attempts(uid, "primary")
-            auth.start_session(uid, "primary")
-            auth.audit("primary_login_ok", uid, {})
-            _pop_pending(uid)
-            _open_primary_panel(uid)
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            auth.audit("primary_login_fail", uid, {})
-            _pop_pending(uid)
-            left = max(0, auth.MAX_FAILED - 1)
-            safe_send(uid,
-                f"❌ Wrong privacy code.\n"
-                f"_Type the entry code again to retry._",
-                parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: verification code (new device) ----
-    if action == "sub_verify_code":
-        if auth.verify_sub_admin_verify_code(text):
-            _set_pending(uid, "sub_new_name")
-            safe_send(uid, "✅ Verified. Please enter your *name*.", parse_mode="Markdown")
-        else:
-            auth.record_failed_attempt(uid, "sub")
-            auth.audit("sub_verify_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong verification code. Entry cancelled.",
-                      parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: choose name ----
-    if action == "sub_new_name":
-        _PENDING[uid]["data"]["name"] = text[:60]
-        _set_pending(uid, "sub_new_privacy", name=text[:60])
-        safe_send(uid,
-            "🔐 Now choose a *privacy code* (6–20 characters).\n"
-            "_You will use this to log in later._",
-            parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: choose privacy code ----
-    if action == "sub_new_privacy":
-        if len(text) < 6 or len(text) > 20:
-            safe_send(uid, "❌ Privacy code must be 6–20 characters. Try again.")
-            return
-        name = pend["data"].get("name", "Sub-Admin")
-        auth.register_sub_admin(uid, name, text)
-        auth.start_session(uid, "sub")
-        auth.audit("sub_login_ok", uid, {"name": name})
-        _pop_pending(uid)
-        safe_send(uid, "✅ Sub-admin registered. Opening panel…")
-        _open_sub_panel(uid)
-        return
-
-    # ---- Sub-admin: existing privacy ----
-    if action == "sub_priv":
-        locked, mins = auth.is_locked(uid, "sub")
-        if locked:
-            safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
-            _pop_pending(uid)
-            return
-        if auth.verify_sub_admin_privacy(uid, text):
-            auth.reset_failed_attempts(uid, "sub")
-            auth.start_session(uid, "sub")
-            auth.update_sub_admin_last_seen(uid)
-            auth.audit("sub_login_ok", uid, {})
-            _pop_pending(uid)
-            _open_sub_panel(uid)
-        else:
-            auth.record_failed_attempt(uid, "sub")
-            auth.audit("sub_login_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Entry cancelled.")
-        return
-
-    # ---- Primary forgot: reset key ----
-    if action == "primary_reset_key":
-        if auth.verify_primary_reset(text):
-            _set_pending(uid, "primary_new_priv")
-            safe_send(uid,
-                "✅ Reset key verified.\n\n"
-                "Enter your *new privacy code* (6–20 characters).",
-                parse_mode="Markdown")
-        else:
-            auth.audit("primary_reset_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong reset key. Recovery cancelled.")
-        return
-
-    # ---- Primary new privacy code ----
-    if action == "primary_new_priv":
-        if len(text) < 6 or len(text) > 20:
-            safe_send(uid, "❌ Must be 6–20 characters. Try again.")
-            return
-        auth.set_primary_privacy(text)
-        auth.reset_failed_attempts(uid, "primary")
-        auth.start_session(uid, "primary")
-        auth.audit("primary_priv_reset_ok", uid, {})
-        _pop_pending(uid)
-        safe_send(uid, "✅ Privacy code updated. Opening panel…")
-        _open_primary_panel(uid)
-        return
-
-    # ---- Confirm destructive action (privacy re-check) ----
-    if action == "confirm_action":
-        act = pend["data"].get("action")
-        target = pend["data"].get("target")
-        session = auth.get_session(uid)
-        if not session or session["role"] != "primary":
-            safe_send(uid, "❌ Only primary admin can do this.")
-            _pop_pending(uid)
-            return
-        if auth.verify_primary_privacy(text):
-            auth.audit("action_confirmed", uid, {"action": act, "target": target})
-            _pop_pending(uid)
-            _execute_action(uid, act, target)
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            auth.audit("action_confirm_fail", uid, {"action": act})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Action cancelled.")
-        return
-
-    # ---- Generate lock-in (primary only) ----
-    if action == "primary_gen_lockin":
-        if auth.verify_primary_privacy(text):
-            auth.reset_failed_attempts(uid, "primary")
-            code, mins = auth.generate_lockin_code()
-            auth.audit("lockin_generated", uid, {"expires_in_min": mins})
-            _pop_pending(uid)
-            safe_send(uid,
-                f"🔑 *Lock-in Code Generated*\n\n"
-                f"`{code}`\n\n"
-                f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
-                f"Share with the locked-out person.",
-                parse_mode="Markdown")
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Generator cancelled.")
-        return
-
-    # Unknown pending action → clear
-    _pop_pending(uid)
-
-
-# ----------------------------------------------------------
-# Panel openers (real panels are in c30b_admin.py, but if not
-# yet rewritten, fallback to old behavior)
-# ----------------------------------------------------------
+# def _auth_text_router(message):
+#     if message.text and message.text.startswith("/"):
+#         return # Ignore commands, let other handlers process them
+#     # _sfg_guard: skip if user in c03v sub-admin flow
+#     try:
+#         _sfg = globals().get('_SUBREG_V2_STATE')
+#         if _sfg and message.chat.id in _sfg:
+#             print(f'[auth-text-guard] skipping uid={message.chat.id} (in sub flow)')
+#             return
+#     except Exception:
+#         pass
+#     # _subreg_flow_guard: skip if user in c03v sub-admin flow
+#     try:
+#         _sfg = globals().get('_SUBREG_V2_STATE')
+#         if _sfg and message.chat.id in _sfg:
+#             return
+#     except Exception:
+#         pass
+#     print(f"[DEBUG] _auth_text_router: uid={message.chat.id} text={message.text!r}")
+#     uid = message.chat.id
+#     text = (message.text or "").strip()
+# 
+#     # ---- Direct dispatch: if this is an entry code, handle it here ----
+#     if text == config.ADMIN_PANEL_CODE:
+#         _handle_admin_entry(uid)
+#         return
+#     if text == getattr(config, "SUB_ADMIN_CODE", None):
+#         _handle_sub_entry(uid)
+#         return
+#     if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
+#         code, mins = auth.generate_lockin_code()
+#         auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+#         _send_lockin_with_timer(uid, code, mins)
+#         return
+#     if text.startswith("/"):
+#         return
+# 
+#     # ---- Lock-in GENERATOR code intercept (bypasses privacy) ----
+#     if text == config.LOCKIN_GENERATOR_CODE:
+#         code, mins = auth.generate_lockin_code()
+#         auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+#         safe_send(uid,
+#             f"🔑 *Lock-in Generator Access*\n\n"
+#             f"Your one-time code:\n\n"
+#             f"`{code}`\n\n"
+#             f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+#             f"Type this code anywhere in the chat to unlock any lockout.",
+#             parse_mode="Markdown")
+#         return
+# 
+#     # ---- Lock-in code intercept (before any pending flow) ----
+#     if auth.is_hex_lockin_code(text):
+#         ok, entry = auth.verify_lockin_code(text, requester_uid=uid)
+#         if ok:
+#             auth.unlock_primary()
+#             auth.unlock_sub_admin(uid)
+#             auth.clear_user_block(uid)
+#             auth.audit("lockin_used", uid, {})
+#             safe_send(uid,
+#                 "🔓 *Lock-in accepted.*\n"
+#                 "Your lockout and any block have been cleared.\n"
+#                 "Type the entry code to try again.",
+#                 parse_mode="Markdown")
+#         else:
+#             safe_send(uid, "❌ Invalid or expired lock-in code.")
+#         return
+# 
+#     pend = _get_pending(uid)
+#     if not pend:
+#         return   # not in our flow → let other handlers process
+# 
+#     action = pend["action"]
+# 
+#     # ---- Primary privacy ----
+#     if action == "primary_priv":
+#         locked, mins = auth.is_locked(uid, "primary")
+#         if locked:
+#             safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_primary_privacy(text):
+#             auth.reset_failed_attempts(uid, "primary")
+#             auth.start_session(uid, "primary")
+#             auth.audit("primary_login_ok", uid, {})
+#             _pop_pending(uid)
+#             _open_primary_panel(uid)
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             auth.audit("primary_login_fail", uid, {})
+#             _pop_pending(uid)
+#             left = max(0, auth.MAX_FAILED - 1)
+#             safe_send(uid,
+#                 f"❌ Wrong privacy code.\n"
+#                 f"_Type the entry code again to retry._",
+#                 parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: verification code (new device) ----
+#     if action == "sub_verify_code":
+#         if auth.verify_sub_admin_verify_code(text):
+#             _set_pending(uid, "sub_new_name")
+#             safe_send(uid, "✅ Verified. Please enter your *name*.", parse_mode="Markdown")
+#         else:
+#             auth.record_failed_attempt(uid, "sub")
+#             auth.audit("sub_verify_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong verification code. Entry cancelled.",
+#                       parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: choose name ----
+#     if action == "sub_new_name":
+#         _PENDING[uid]["data"]["name"] = text[:60]
+#         _set_pending(uid, "sub_new_privacy", name=text[:60])
+#         safe_send(uid,
+#             "🔐 Now choose a *privacy code* (6–20 characters).\n"
+#             "_You will use this to log in later._",
+#             parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: choose privacy code ----
+#     if action == "sub_new_privacy":
+#         if len(text) < 6 or len(text) > 20:
+#             safe_send(uid, "❌ Privacy code must be 6–20 characters. Try again.")
+#             return
+#         name = pend["data"].get("name", "Sub-Admin")
+#         auth.register_sub_admin(uid, name, text)
+#         auth.start_session(uid, "sub")
+#         auth.audit("sub_login_ok", uid, {"name": name})
+#         _pop_pending(uid)
+#         safe_send(uid, "✅ Sub-admin registered. Opening panel…")
+#         _open_sub_panel(uid)
+#         return
+# 
+#     # ---- Sub-admin: existing privacy ----
+#     if action == "sub_priv":
+#         locked, mins = auth.is_locked(uid, "sub")
+#         if locked:
+#             safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_sub_admin_privacy(uid, text):
+#             auth.reset_failed_attempts(uid, "sub")
+#             auth.start_session(uid, "sub")
+#             auth.update_sub_admin_last_seen(uid)
+#             auth.audit("sub_login_ok", uid, {})
+#             _pop_pending(uid)
+#             _open_sub_panel(uid)
+#         else:
+#             auth.record_failed_attempt(uid, "sub")
+#             auth.audit("sub_login_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Entry cancelled.")
+#         return
+# 
+#     # ---- Primary forgot: reset key ----
+#     if action == "primary_reset_key":
+#         if auth.verify_primary_reset(text):
+#             _set_pending(uid, "primary_new_priv")
+#             safe_send(uid,
+#                 "✅ Reset key verified.\n\n"
+#                 "Enter your *new privacy code* (6–20 characters).",
+#                 parse_mode="Markdown")
+#         else:
+#             auth.audit("primary_reset_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong reset key. Recovery cancelled.")
+#         return
+# 
+#     # ---- Primary new privacy code ----
+#     if action == "primary_new_priv":
+#         if len(text) < 6 or len(text) > 20:
+#             safe_send(uid, "❌ Must be 6–20 characters. Try again.")
+#             return
+#         auth.set_primary_privacy(text)
+#         auth.reset_failed_attempts(uid, "primary")
+#         auth.start_session(uid, "primary")
+#         auth.audit("primary_priv_reset_ok", uid, {})
+#         _pop_pending(uid)
+#         safe_send(uid, "✅ Privacy code updated. Opening panel…")
+#         _open_primary_panel(uid)
+#         return
+# 
+#     # ---- Confirm destructive action (privacy re-check) ----
+#     if action == "confirm_action":
+#         act = pend["data"].get("action")
+#         target = pend["data"].get("target")
+#         session = auth.get_session(uid)
+#         if not session or session["role"] != "primary":
+#             safe_send(uid, "❌ Only primary admin can do this.")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_primary_privacy(text):
+#             auth.audit("action_confirmed", uid, {"action": act, "target": target})
+#             _pop_pending(uid)
+#             _execute_action(uid, act, target)
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             auth.audit("action_confirm_fail", uid, {"action": act})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Action cancelled.")
+#         return
+# 
+#     # ---- Generate lock-in (primary only) ----
+#     if action == "primary_gen_lockin":
+#         if auth.verify_primary_privacy(text):
+#             auth.reset_failed_attempts(uid, "primary")
+#             code, mins = auth.generate_lockin_code()
+#             auth.audit("lockin_generated", uid, {"expires_in_min": mins})
+#             _pop_pending(uid)
+#             safe_send(uid,
+#                 f"🔑 *Lock-in Code Generated*\n\n"
+#                 f"`{code}`\n\n"
+#                 f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+#                 f"Share with the locked-out person.",
+#                 parse_mode="Markdown")
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Generator cancelled.")
+#         return
+# 
+#     # Unknown pending action → clear
+#     _pop_pending(uid)
+# 
+# 
+# # ----------------------------------------------------------
+# # Panel openers (real panels are in c30b_admin.py, but if not
+# # yet rewritten, fallback to old behavior)
+# # ----------------------------------------------------------
 def _open_primary_panel(uid):
     fn = globals().get("_show_admin_panel")
     if callable(fn):
@@ -13645,10 +13389,59 @@ def _cb_back(call):
 @bot.callback_query_handler(func=lambda c: c.data == "admin_close")
 def _cb_admin_close(call):
     uid = call.from_user.id
+    import sys
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = [k for k, v in _mo.TWO_WAY_CHAT.items() if v.get("admin_uid") == uid]
+            for t in to_remove: 
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                try: bot.send_message(t, "🔒 The admin has closed this chat session.")
+                except: pass
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+    uid = call.from_user.id
+    import sys
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = [k for k, v in _mo.TWO_WAY_CHAT.items() if v.get("admin_uid") == uid]
+            for t in to_remove: 
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                try: bot.send_message(t, "🔒 The admin has closed this chat session.")
+                except: pass
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+    uid = call.from_user.id
     try:
         bot.answer_callback_query(call.id, "Closing...")
     except Exception:
         pass
+        
+    # --- CLOSE ACTIVE TWO-WAY CHATS ---
+    import sys as _sys_close
+    _closed_targets = []
+    for _mn, _mo in _sys_close.modules.items():
+        # Clear admin pending input flow
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            if _mo.PENDING_ADMIN_FLOW.pop(uid, None):
+                print(f"[admin_close] Cleared PENDING_ADMIN_FLOW for {uid}")
+        
+        # Clear TWO_WAY_CHAT where this admin is the one chatting
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = []
+            for target_uid, data in _mo.TWO_WAY_CHAT.items():
+                if data.get("admin_uid") == uid:
+                    to_remove.append(target_uid)
+            for t in to_remove:
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                _closed_targets.append(t)
+    
+    # Notify the users that the chat was closed by the admin
+    for t in _closed_targets:
+        try:
+            bot.send_message(t, "🔒 The admin has closed this chat session. You can continue using the bot normally.")
+        except Exception as e:
+            print(f"[admin_close] failed to notify {t}: {e}")
+
     deleted = 0
     # 1. Delete every tracked message
     _del = globals().get("delete_all_admin_msgs")
@@ -13787,6 +13580,36 @@ def _cmd_find(message):
         kb.add(InlineKeyboardButton(f"→ {hku} · {name}", callback_data=f"admin_profile:{u}"))
     kb.add(InlineKeyboardButton("❌ Close", callback_data="admin_close"))
     bot.reply_to(message, text, reply_markup=kb, parse_mode="Markdown")
+
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_close_chat:"))
+def _cb_admin_close_chat(call):
+    uid = call.from_user.id
+    try:
+        target_uid = int(call.data.split(":")[1])
+    except:
+        return
+        
+    import sys as _sys_close
+    for _mn, _mo in _sys_close.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            if target_uid in _mo.TWO_WAY_CHAT:
+                _mo.TWO_WAY_CHAT.pop(target_uid, None)
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            if uid in _mo.PENDING_ADMIN_FLOW:
+                _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+
+    try:
+        bot.answer_callback_query(call.id, "Chat Closed")
+        bot.edit_message_text("🔒 *Chat closed with user.*", chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+    except:
+        pass
+        
+    try:
+        bot.send_message(target_uid, "🔒 The admin has closed this chat session. You can now continue using the bot normally.")
+    except:
+        pass
 
 
 print("c30b_admin: loaded (panel v2).")
@@ -16118,193 +15941,6 @@ print("c30r_activity_tracker: loaded (v2).")
 
 
 # ==========================================================
-# c30s_admin_cleanup.py — v2
-# - Auto-tracks ALL bot->admin messages during admin session
-# - Auto-close after 5 min inactivity
-# ==========================================================
-import threading, time as _t
-from datetime import datetime
-import admin_auth as auth
-
-_ADMIN_MSGS = {}
-_ADMIN_MSG_TYPES = {}
-_PAUSE_TRACKING = {"active": False}
-
-def track_admin_msg(uid, msg_id, mtype="panel"):
-    if not uid or not msg_id: return
-    try:
-        _ADMIN_MSGS.setdefault(int(uid), []).append(int(msg_id))
-        _ADMIN_MSG_TYPES[int(msg_id)] = mtype
-        if len(_ADMIN_MSGS[int(uid)]) > 500:
-            _ADMIN_MSGS[int(uid)] = _ADMIN_MSGS[int(uid)][-500:]
-    except Exception:
-        pass
-
-
-def clear_tracked(uid):
-    try:
-        _ADMIN_MSGS.pop(int(uid), None)
-    except Exception:
-        pass
-
-
-def delete_all_admin_msgs(uid):
-    deleted = 0; failed = 0
-    try:
-        ids = list(_ADMIN_MSGS.get(int(uid), []))
-        for mid in ids:
-            try:
-                bot.delete_message(uid, mid)
-                deleted += 1
-            except Exception:
-                failed += 1
-        _ADMIN_MSGS[int(uid)] = []
-    except Exception as e:
-        print(f"[cleanup] delete err: {e}")
-    return deleted, failed
-
-
-# ---- Auto-track every bot->admin send while session active ----
-def _has_pending_auth(uid):
-    try:
-        for _mn, _mo in __import__("sys").modules.items():
-            if hasattr(_mo, "PENDING_AUTH_FLOW") and uid in _mo.PENDING_AUTH_FLOW:
-                return True
-    except Exception:
-        pass
-    return False
-
-
-try:
-    _orig_send = bot.send_message
-    def _tracking_send(chat_id, *args, **kwargs):
-        r = _orig_send(chat_id, *args, **kwargs)
-        try:
-            if _PAUSE_TRACKING.get("active"):
-                return r
-            if isinstance(chat_id, int):
-                if (auth.get_session(chat_id)
-                        or _has_pending_auth(chat_id)
-                        or _ADMIN_MSGS.get(int(chat_id))):
-                    track_admin_msg(chat_id, r.message_id)
-        except Exception:
-            pass
-        return r
-    bot.send_message = _tracking_send
-    print("[cleanup] bot.send_message auto-track installed (v3)")
-except Exception as _e:
-    print(f"[cleanup] wrapper fail: {_e}")
-
-
-# ---- Auto-close after 5 min inactivity ----
-def _autoclose_loop():
-    print("[cleanup] autoclose thread started (5 min idle)")
-    while True:
-        try:
-            for uid in list(auth._SESSIONS.keys()):
-                s = auth._SESSIONS.get(uid)
-                if not s: continue
-                la = s.get("last_activity")
-                if not la: continue
-                try:
-                    diff = (datetime.now() - datetime.fromisoformat(la)).total_seconds()
-                except Exception:
-                    continue
-                if diff > 300:
-                    print(f"[autoclose] {uid} idle {int(diff)}s — refreshing panel")
-                    # Refresh instead of delete — keep current device alive
-                    try:
-                        _sp = globals().get("_show_admin_panel")
-                        if _sp:
-                            _sp(uid)
-                            print(f"[autoclose] {uid} panel refreshed")
-                            # Bump activity so no re-trigger
-                            s["last_activity"] = __import__("datetime").datetime.now().isoformat()
-                            continue
-                    except Exception as _e:
-                        print(f"[autoclose] refresh err: {_e}")
-                    # Fallback: delete if refresh fails
-                    dc, _ = delete_all_admin_msgs(uid)
-                    try: auth._SESSIONS.pop(uid, None)
-                    except Exception: pass
-                    for gname in ("_STATS_MSGS", "_BTN_MSGS"):
-                        g = globals().get(gname)
-                        if g is not None:
-                            try: g.pop(uid, None)
-                            except Exception: pass
-                    try:
-                        unreg = globals().get("unregister_panel")
-                        if unreg: unreg(uid)
-                    except Exception: pass
-                    try:
-                        m = bot.send_message(uid,
-                            f"⏰ Auto-closed after 5 min idle. {dc} messages cleared.")
-                        def _dn(mid=m.message_id, u=uid):
-                            _t.sleep(5)
-                            try: bot.delete_message(u, mid)
-                            except Exception: pass
-                        threading.Thread(target=_dn, daemon=True).start()
-                    except Exception as e:
-                        print(f"[autoclose] notice fail: {e}")
-        except Exception as e:
-            print(f"[autoclose] loop err: {e}")
-        _t.sleep(5)
-
-
-threading.Thread(target=_autoclose_loop, daemon=True).start()
-print("c30s_admin_cleanup: loaded (v2, auto-close + auto-track).")
-
-
-def maybe_watch_lock(uid):
-    """Called after any strike. If user is watched, apply 10-day lock."""
-    try:
-        from datetime import datetime as _dt, timedelta as _td
-        import os as _o, json as _j
-        pdir = globals().get("PROFILE_DIR") or "profiles"
-        path = _o.path.join(pdir, f"{uid}.json")
-        if not _o.path.exists(path):
-            return False
-        with open(path) as f:
-            p = _j.load(f)
-        if not p.get("watched"):
-            return False
-        beh = p.get("behavior", {})
-        if beh.get("watch_lock"):
-            return False
-        now = _dt.now()
-        until = now + _td(days=10)
-        p.setdefault("behavior", {})
-        p["behavior"]["blocked_until"] = until.isoformat()
-        p["behavior"]["watch_lock"] = True
-        p["behavior"]["watch_locked_at"] = now.isoformat()
-        with open(path, "w") as f:
-            _j.dump(p, f, indent=2)
-        _ss = globals().get("safe_send")
-        if _ss:
-            try:
-                _ss(uid,
-                    f"\U0001f512 *WATCHED ACCOUNT LOCKED*\n\n"
-                    f"You are on the admin watchlist.\n"
-                    f"Any strike results in an automatic 10-day lock.\n\n"
-                    f"\U0001f513 Unlock via *lock-in code* from admin.\n\n"
-                    f"Locked until: {until.strftime('%Y-%m-%d %H:%M')}",
-                    parse_mode="Markdown")
-            except Exception: pass
-        if _ss:
-            try:
-                _ss(8857708587,
-                    f"\u26a0\ufe0f *Watch-lock triggered*\n\n"
-                    f"User {uid} ({p.get('name') or '?'}) got a strike.\n"
-                    f"Locked 10 days until {until.strftime('%Y-%m-%d %H:%M')}")
-            except Exception: pass
-        print(f"[watch-lock] {uid} locked until {until.isoformat()}")
-        return True
-    except Exception as e:
-        print(f"[watch-lock] err: {e}")
-        return False
-
-
-# ==========================================================
 # c31 — Developer credit footer
 # ==========================================================
 
@@ -16344,7 +15980,7 @@ while True:
         continue
 
 
-import telebot, base64, urllib.request, json, os, subprocess
+import telebot, urllib.request, json, os, subprocess
 
 GROQ_KEYS = [
     "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",
@@ -16352,81 +15988,223 @@ GROQ_KEYS = [
     "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",
     "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"
 ]
+MODEL = "openai/gpt-oss-120b"
 groq_idx = 0
 
-def get_vision_solution(img_path):
-    """Takes an image path, sends it to Groq Vision, returns the 5-part solution."""
+def _call_ai(prompt, max_tokens=600):
     global groq_idx
-    if not os.path.exists(img_path):
-        return "❌ Image not found."
-        
-    with open(img_path, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode('utf-8')
-        
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    prompt = """You are Hamilton, an elite JEE tutor. Solve this question from the image.
-    Return ONLY this exact 5-part format:
-    **1. General Process:** (Standard steps)
-    **2. Different Angle:** (Visualizing the data)
-    **3. Shortcut:** (Fast elimination or trick)
-    **4. Generalization:** (How it applies to similar models)
-    **5. Formula:** (Core formula used)"""
-    
-    while True:
-        if groq_idx >= len(GROQ_KEYS): 
-            return "❌ All API keys exhausted. Please try again later."
-            
-        headers = {
-            "Authorization": f"Bearer {GROQ_KEYS[groq_idx]}",
-            "Content-Type": "application/json"
-        }
+    for _ in range(len(GROQ_KEYS) * 2):
+        if groq_idx >= len(GROQ_KEYS):
+            groq_idx = 0
+        key = GROQ_KEYS[groq_idx]
+        url = "https://api.groq.com/openai/v1/chat/completions"
         data = {
-            "model": "llama-3.2-11b-vision-preview",
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
-                ]
-            }],
-            "temperature": 0.1
+            "model": MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "max_tokens": max_tokens
         }
-        
-        cmd = ["curl", "-s", "-X", "POST", url, "-H", f"Authorization: Bearer {GROQ_KEYS[groq_idx]}", "-H", "Content-Type: application/json", "-d", json.dumps(data)]
-        
+        cmd = ["curl", "-s", "-X", "POST", url,
+               "-H", f"Authorization: Bearer {key}",
+               "-H", "Content-Type: application/json",
+               "-d", json.dumps(data),
+               "--max-time", "25"]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             result = json.loads(res.stdout)
             if "error" in result:
-                print(f"Vision API Error: {result['error']}")
+                print(f"[AI] Key {groq_idx+1} err: {result['error'].get('message','')[:80]}")
                 groq_idx += 1
                 continue
             return result["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"Curl Error: {e}")
+            print(f"[AI] Key {groq_idx+1} timeout: {e}")
             groq_idx += 1
+    return "❌ All AI keys failed. Try again."
 
-# Handle user sending photo directly to bot
+def get_ai_solution(q_text):
+    if not q_text:
+        return "❌ No question text available."
+    prompt = f"""Solve this JEE Main question with a SHORTCUT-focused approach.
+
+Question: {q_text}
+
+Use EXACTLY this 5-part format. DO NOT use LaTeX formatting like $ or \boxed. Use Unicode (e.g. y² = 4ax) instead:
+
+**1. General Process:** Standard textbook approach (brief, 1-2 lines)
+**2. Shortcut:** Fastest trick to solve in exam (main focus)
+**3. Guess & Predict:** How to eliminate wrong options or guess if stuck
+**4. Skip Calculation:** Round-off / approximation tricks to skip long math
+**5. Formula:** Core formula used
+
+Emphasize shortcuts, guessing strategy, and skip-calculation tricks. Keep each part tight (1-2 sentences)."""
+    return _call_ai(prompt, max_tokens=600)
+
+
+def ai_scan_questions(q_list, batch_size=10):
+    """Returns dict {q_num: importance_score} and sorted list of (q_num, score)."""
+    scores = {}
+    for i in range(0, len(q_list), batch_size):
+        batch = q_list[i:i+batch_size]
+        joined = "\n\n".join([f"ID:{q['q_num']} - {q.get('q_text','')[:300]}" for q in batch])
+        prompt = f"""Rank these {len(batch)} JEE Main questions by importance for exam prep.
+Return ONLY JSON: {{"scores": {{"123": 8, "124": 5, ...}}}}
+Score 1-10 where 10 = must-do unique concept, 1 = repeated/redundant.
+
+{joined}"""
+        try:
+            raw = _call_ai(prompt, max_tokens=400)
+            data = json.loads(raw)
+            for qid, sc in data.get("scores", {}).items():
+                scores[int(qid)] = float(sc)
+        except Exception as e:
+            print(f"[Scan] Batch {i} failed: {e}")
+    return scores
+
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
+    bot.reply_to(message, "📸 Image solution coming soon. For now, type your question as text.")
+
+print("✅ c40_vision_ai: AI router loaded (text mode + scanning)")
+
+
+import telebot, base64, requests, os, re
+from fpdf import FPDF
+import ai_client
+
+# The Prompt
+PROMPT = """
+You are an expert JEE Mathematics professor and typesetter.
+Analyze this image of handwritten short notes. Transcribe it into a highly structured HTML document.
+
+RULES:
+1. Use LaTeX for all mathematical formulas (e.g., \\( m = \\tan \\theta \\)).
+2. Use strict bullet points for conditions and properties.
+3. For every diagram, do NOT attempt to draw it. Insert a text description in this format: [FIGURE: Describe the diagram in 10 words or less]
+4. Organize the notes into clean sections (e.g., "1. Slope", "2. Forms of Lines").
+5. Keep explanations extremely concise.
+6. Output ONLY valid HTML (using <h1>, <h2>, <ul>, <li>, <p>). No markdown blocks.
+
+Return the HTML.
+"""
+
+def clean_math_for_pdf(text):
+    text = text.replace("\\(", "").replace("\\)", "")
+    text = text.replace("\\frac{", "").replace("}{", "/").replace("}", "")
+    text = text.replace("\\sqrt{", "√(").replace("\\tan", "tan").replace("\\theta", "θ")
+    text = text.replace("\\infty", "∞").replace("\\leq", "≤").replace("\\geq", "≥")
+    text = text.replace("\\cdot", "·").replace("\\left|", "|").replace("\\right|", "|")
+    text = text.replace("\\alpha", "α").replace("\\beta", "β").replace("\\pi", "π")
+    return text
+
+class NotePDF(FPDF):
+    def header(self):
+        self.set_font('Helvetica', 'B', 14)
+        self.cell(0, 10, 'Hamilton - JEE Short Notes', align='C')
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Helvetica', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', align='C')
+
+def create_pdf(html_content, filename):
+    pdf = NotePDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    lines = html_content.split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        clean_line = clean_math_for_pdf(line)
+        clean_line = re.sub(r'<[^>]+>', '', clean_line)
+        
+        if "<h1>" in line:
+            pdf.set_font('Helvetica', 'B', 16)
+            pdf.multi_cell(0, 8, clean_line)
+            pdf.ln(4)
+        elif "<h2>" in line:
+            pdf.set_font('Helvetica', 'B', 13)
+            pdf.multi_cell(0, 6, clean_line)
+            pdf.ln(2)
+        elif "<li>" in line:
+            pdf.set_font('Helvetica', '', 11)
+            pdf.multi_cell(0, 6, "• " + clean_line)
+        elif "[FIGURE:" in line:
+            pdf.set_font('Helvetica', 'I', 10)
+            pdf.set_text_color(100, 100, 100)
+            pdf.multi_cell(0, 6, clean_line)
+            pdf.set_text_color(0, 0, 0)
+        else:
+            pdf.set_font('Helvetica', '', 11)
+            pdf.multi_cell(0, 6, clean_line)
+
+    pdf.output(filename)
+
+@bot.message_handler(commands=['notes'])
+def handle_notes_command(message):
+    bot.reply_to(message, "📸 Please send me the photo of your handwritten notes right now.")
+
+@bot.message_handler(content_types=['photo'])
+def handle_notes_photo(message):
+    # Only process if the user is replying to the notes prompt or added a specific caption
+    # For now, we will just ask them to confirm
     uid = message.chat.id
-    msg = bot.reply_to(message, "📸 Analyzing your image...")
+    msg = bot.reply_to(message, "🧠 Analyzing handwritten notes with Gemini AI... Please wait (this takes 10-15 seconds).")
     
-    file_info = bot.get_file(message.photo[-1].file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    
-    temp_path = f"temp_{uid}.jpg"
-    with open(temp_path, 'wb') as new_file:
-        new_file.write(downloaded_file)
+    try:
+        # Download the photo
+        file_info = bot.get_file(message.photo[-1].file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
         
-    sol = get_vision_solution(temp_path)
-    os.remove(temp_path)
-    
-    if "REJECT" in sol or "not related" in sol.lower():
-        bot.edit_message_text("🚫 Please upload a study-related question.", chat_id=uid, message_id=msg.message_id)
-    else:
-        bot.edit_message_text(sol, chat_id=uid, message_id=msg.message_id, parse_mode="Markdown")
+        temp_img = f"temp_notes_{uid}.jpg"
+        with open(temp_img, 'wb') as new_file:
+            new_file.write(downloaded_file)
+            
+        with open(temp_img, "rb") as f:
+            img_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+        gemini_keys = getattr(ai_client, "GEMINI_KEYS", [])
+        if not gemini_keys:
+            bot.edit_message_text("❌ No Gemini keys found.", chat_id=uid, message_id=msg.message_id)
+            return
+            
+        key = gemini_keys[0]
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
         
-print("✅ c40_vision_ai: Vision Doubt Solver loaded.")
+        payload = {
+            "contents": [{"parts": [{"text": PROMPT}, {"inlineData": {"mimeType": "image/jpeg", "data": img_b64}}]}],
+            "generationConfig": {"temperature": 0.2}
+        }
+        
+        res = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=45)
+        data = res.json()
+        
+        if "error" in data:
+            bot.edit_message_text(f"❌ AI Error: {data['error']['message']}", chat_id=uid, message_id=msg.message_id)
+            os.remove(temp_img)
+            return
+            
+        html_content = data["candidates"][0]["content"]["parts"][0]["text"]
+        html_content = re.sub(r'^```html\s*', '', html_content)
+        html_content = re.sub(r'```$', '', html_content)
+        
+        pdf_filename = f"Short_Notes_{uid}.pdf"
+        create_pdf(html_content, pdf_filename)
+        
+        bot.edit_message_text("✅ PDF Generated! Sending now...", chat_id=uid, message_id=msg.message_id)
+        
+        with open(pdf_filename, "rb") as pdf_file:
+            bot.send_document(uid, pdf_file, caption="📚 Here are your perfectly typed Short Notes!")
+            
+        os.remove(temp_img)
+        os.remove(pdf_filename)
+        
+    except Exception as e:
+        bot.edit_message_text(f"❌ Failed: {e}", chat_id=uid, message_id=msg.message_id)
+
+print("✅ c60_notes_pdf: Handwritten Notes to PDF loaded.")
 
 

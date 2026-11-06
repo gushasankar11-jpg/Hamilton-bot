@@ -466,6 +466,8 @@ def _rich_progress_svg(profile):
 # Override /graph to use the rich SVG
 @bot.message_handler(commands=['graph'])
 def cmd_graph(message):
+    if message.text and message.text.startswith('/plan'):
+        return
     uid = message.chat.id
     ready, reason = _profile_ready(uid)
     if not ready:
@@ -474,7 +476,7 @@ def cmd_graph(message):
     p = load_profile(uid)
     r = health.overall_health(p)
     if r["overall"] is None:
-        bot.reply_to(message, "📭 No data yet. /exam first.")
+#         bot.reply_to(message, "📭 No data yet. /exam first.")
         return
 
     svg = _rich_progress_svg(p)

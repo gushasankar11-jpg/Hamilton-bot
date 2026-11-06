@@ -166,235 +166,236 @@ def _send_lockin_with_timer(uid, code, mins):
     Thread(target=_tick, daemon=True).start()
 
 
-@bot.message_handler(func=lambda m: True, content_types=['text'])
-def _auth_text_router(message):
-    # _sfg_guard: skip if user in c03v sub-admin flow
-    try:
-        _sfg = globals().get('_SUBREG_V2_STATE')
-        if _sfg and message.chat.id in _sfg:
-            print(f'[auth-text-guard] skipping uid={message.chat.id} (in sub flow)')
-            return
-    except Exception:
-        pass
-    # _subreg_flow_guard: skip if user in c03v sub-admin flow
-    try:
-        _sfg = globals().get('_SUBREG_V2_STATE')
-        if _sfg and message.chat.id in _sfg:
-            return
-    except Exception:
-        pass
-    print(f"[DEBUG] _auth_text_router: uid={message.chat.id} text={message.text!r}")
-    uid = message.chat.id
-    text = (message.text or "").strip()
-
-    # ---- Direct dispatch: if this is an entry code, handle it here ----
-    if text == config.ADMIN_PANEL_CODE:
-        _handle_admin_entry(uid)
-        return
-    if text == getattr(config, "SUB_ADMIN_CODE", None):
-        _handle_sub_entry(uid)
-        return
-    if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
-        code, mins = auth.generate_lockin_code()
-        auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
-        _send_lockin_with_timer(uid, code, mins)
-        return
-    if text.startswith("/"):
-        return
-
-    # ---- Lock-in GENERATOR code intercept (bypasses privacy) ----
-    if text == config.LOCKIN_GENERATOR_CODE:
-        code, mins = auth.generate_lockin_code()
-        auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
-        safe_send(uid,
-            f"🔑 *Lock-in Generator Access*\n\n"
-            f"Your one-time code:\n\n"
-            f"`{code}`\n\n"
-            f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
-            f"Type this code anywhere in the chat to unlock any lockout.",
-            parse_mode="Markdown")
-        return
-
-    # ---- Lock-in code intercept (before any pending flow) ----
-    if auth.is_hex_lockin_code(text):
-        ok, entry = auth.verify_lockin_code(text, requester_uid=uid)
-        if ok:
-            auth.unlock_primary()
-            auth.unlock_sub_admin(uid)
-            auth.clear_user_block(uid)
-            auth.audit("lockin_used", uid, {})
-            safe_send(uid,
-                "🔓 *Lock-in accepted.*\n"
-                "Your lockout and any block have been cleared.\n"
-                "Type the entry code to try again.",
-                parse_mode="Markdown")
-        else:
-            safe_send(uid, "❌ Invalid or expired lock-in code.")
-        return
-
-    pend = _get_pending(uid)
-    if not pend:
-        return   # not in our flow → let other handlers process
-
-    action = pend["action"]
-
-    # ---- Primary privacy ----
-    if action == "primary_priv":
-        locked, mins = auth.is_locked(uid, "primary")
-        if locked:
-            safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
-            _pop_pending(uid)
-            return
-        if auth.verify_primary_privacy(text):
-            auth.reset_failed_attempts(uid, "primary")
-            auth.start_session(uid, "primary")
-            auth.audit("primary_login_ok", uid, {})
-            _pop_pending(uid)
-            _open_primary_panel(uid)
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            auth.audit("primary_login_fail", uid, {})
-            _pop_pending(uid)
-            left = max(0, auth.MAX_FAILED - 1)
-            safe_send(uid,
-                f"❌ Wrong privacy code.\n"
-                f"_Type the entry code again to retry._",
-                parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: verification code (new device) ----
-    if action == "sub_verify_code":
-        if auth.verify_sub_admin_verify_code(text):
-            _set_pending(uid, "sub_new_name")
-            safe_send(uid, "✅ Verified. Please enter your *name*.", parse_mode="Markdown")
-        else:
-            auth.record_failed_attempt(uid, "sub")
-            auth.audit("sub_verify_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong verification code. Entry cancelled.",
-                      parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: choose name ----
-    if action == "sub_new_name":
-        _PENDING[uid]["data"]["name"] = text[:60]
-        _set_pending(uid, "sub_new_privacy", name=text[:60])
-        safe_send(uid,
-            "🔐 Now choose a *privacy code* (6–20 characters).\n"
-            "_You will use this to log in later._",
-            parse_mode="Markdown")
-        return
-
-    # ---- Sub-admin: choose privacy code ----
-    if action == "sub_new_privacy":
-        if len(text) < 6 or len(text) > 20:
-            safe_send(uid, "❌ Privacy code must be 6–20 characters. Try again.")
-            return
-        name = pend["data"].get("name", "Sub-Admin")
-        auth.register_sub_admin(uid, name, text)
-        auth.start_session(uid, "sub")
-        auth.audit("sub_login_ok", uid, {"name": name})
-        _pop_pending(uid)
-        safe_send(uid, "✅ Sub-admin registered. Opening panel…")
-        _open_sub_panel(uid)
-        return
-
-    # ---- Sub-admin: existing privacy ----
-    if action == "sub_priv":
-        locked, mins = auth.is_locked(uid, "sub")
-        if locked:
-            safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
-            _pop_pending(uid)
-            return
-        if auth.verify_sub_admin_privacy(uid, text):
-            auth.reset_failed_attempts(uid, "sub")
-            auth.start_session(uid, "sub")
-            auth.update_sub_admin_last_seen(uid)
-            auth.audit("sub_login_ok", uid, {})
-            _pop_pending(uid)
-            _open_sub_panel(uid)
-        else:
-            auth.record_failed_attempt(uid, "sub")
-            auth.audit("sub_login_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Entry cancelled.")
-        return
-
-    # ---- Primary forgot: reset key ----
-    if action == "primary_reset_key":
-        if auth.verify_primary_reset(text):
-            _set_pending(uid, "primary_new_priv")
-            safe_send(uid,
-                "✅ Reset key verified.\n\n"
-                "Enter your *new privacy code* (6–20 characters).",
-                parse_mode="Markdown")
-        else:
-            auth.audit("primary_reset_fail", uid, {})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong reset key. Recovery cancelled.")
-        return
-
-    # ---- Primary new privacy code ----
-    if action == "primary_new_priv":
-        if len(text) < 6 or len(text) > 20:
-            safe_send(uid, "❌ Must be 6–20 characters. Try again.")
-            return
-        auth.set_primary_privacy(text)
-        auth.reset_failed_attempts(uid, "primary")
-        auth.start_session(uid, "primary")
-        auth.audit("primary_priv_reset_ok", uid, {})
-        _pop_pending(uid)
-        safe_send(uid, "✅ Privacy code updated. Opening panel…")
-        _open_primary_panel(uid)
-        return
-
-    # ---- Confirm destructive action (privacy re-check) ----
-    if action == "confirm_action":
-        act = pend["data"].get("action")
-        target = pend["data"].get("target")
-        session = auth.get_session(uid)
-        if not session or session["role"] != "primary":
-            safe_send(uid, "❌ Only primary admin can do this.")
-            _pop_pending(uid)
-            return
-        if auth.verify_primary_privacy(text):
-            auth.audit("action_confirmed", uid, {"action": act, "target": target})
-            _pop_pending(uid)
-            _execute_action(uid, act, target)
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            auth.audit("action_confirm_fail", uid, {"action": act})
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Action cancelled.")
-        return
-
-    # ---- Generate lock-in (primary only) ----
-    if action == "primary_gen_lockin":
-        if auth.verify_primary_privacy(text):
-            auth.reset_failed_attempts(uid, "primary")
-            code, mins = auth.generate_lockin_code()
-            auth.audit("lockin_generated", uid, {"expires_in_min": mins})
-            _pop_pending(uid)
-            safe_send(uid,
-                f"🔑 *Lock-in Code Generated*\n\n"
-                f"`{code}`\n\n"
-                f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
-                f"Share with the locked-out person.",
-                parse_mode="Markdown")
-        else:
-            auth.record_failed_attempt(uid, "primary")
-            _pop_pending(uid)
-            safe_send(uid, "❌ Wrong privacy code. Generator cancelled.")
-        return
-
-    # Unknown pending action → clear
-    _pop_pending(uid)
-
-
-# ----------------------------------------------------------
-# Panel openers (real panels are in c30b_admin.py, but if not
-# yet rewritten, fallback to old behavior)
-# ----------------------------------------------------------
+# def _auth_text_router(message):
+#     if message.text and message.text.startswith("/"):
+#         return # Ignore commands, let other handlers process them
+#     # _sfg_guard: skip if user in c03v sub-admin flow
+#     try:
+#         _sfg = globals().get('_SUBREG_V2_STATE')
+#         if _sfg and message.chat.id in _sfg:
+#             print(f'[auth-text-guard] skipping uid={message.chat.id} (in sub flow)')
+#             return
+#     except Exception:
+#         pass
+#     # _subreg_flow_guard: skip if user in c03v sub-admin flow
+#     try:
+#         _sfg = globals().get('_SUBREG_V2_STATE')
+#         if _sfg and message.chat.id in _sfg:
+#             return
+#     except Exception:
+#         pass
+#     print(f"[DEBUG] _auth_text_router: uid={message.chat.id} text={message.text!r}")
+#     uid = message.chat.id
+#     text = (message.text or "").strip()
+# 
+#     # ---- Direct dispatch: if this is an entry code, handle it here ----
+#     if text == config.ADMIN_PANEL_CODE:
+#         _handle_admin_entry(uid)
+#         return
+#     if text == getattr(config, "SUB_ADMIN_CODE", None):
+#         _handle_sub_entry(uid)
+#         return
+#     if text == getattr(config, "LOCKIN_GENERATOR_CODE", None):
+#         code, mins = auth.generate_lockin_code()
+#         auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+#         _send_lockin_with_timer(uid, code, mins)
+#         return
+#     if text.startswith("/"):
+#         return
+# 
+#     # ---- Lock-in GENERATOR code intercept (bypasses privacy) ----
+#     if text == config.LOCKIN_GENERATOR_CODE:
+#         code, mins = auth.generate_lockin_code()
+#         auth.audit("lockin_generator_used", uid, {"expires_in_min": mins})
+#         safe_send(uid,
+#             f"🔑 *Lock-in Generator Access*\n\n"
+#             f"Your one-time code:\n\n"
+#             f"`{code}`\n\n"
+#             f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+#             f"Type this code anywhere in the chat to unlock any lockout.",
+#             parse_mode="Markdown")
+#         return
+# 
+#     # ---- Lock-in code intercept (before any pending flow) ----
+#     if auth.is_hex_lockin_code(text):
+#         ok, entry = auth.verify_lockin_code(text, requester_uid=uid)
+#         if ok:
+#             auth.unlock_primary()
+#             auth.unlock_sub_admin(uid)
+#             auth.clear_user_block(uid)
+#             auth.audit("lockin_used", uid, {})
+#             safe_send(uid,
+#                 "🔓 *Lock-in accepted.*\n"
+#                 "Your lockout and any block have been cleared.\n"
+#                 "Type the entry code to try again.",
+#                 parse_mode="Markdown")
+#         else:
+#             safe_send(uid, "❌ Invalid or expired lock-in code.")
+#         return
+# 
+#     pend = _get_pending(uid)
+#     if not pend:
+#         return   # not in our flow → let other handlers process
+# 
+#     action = pend["action"]
+# 
+#     # ---- Primary privacy ----
+#     if action == "primary_priv":
+#         locked, mins = auth.is_locked(uid, "primary")
+#         if locked:
+#             safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_primary_privacy(text):
+#             auth.reset_failed_attempts(uid, "primary")
+#             auth.start_session(uid, "primary")
+#             auth.audit("primary_login_ok", uid, {})
+#             _pop_pending(uid)
+#             _open_primary_panel(uid)
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             auth.audit("primary_login_fail", uid, {})
+#             _pop_pending(uid)
+#             left = max(0, auth.MAX_FAILED - 1)
+#             safe_send(uid,
+#                 f"❌ Wrong privacy code.\n"
+#                 f"_Type the entry code again to retry._",
+#                 parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: verification code (new device) ----
+#     if action == "sub_verify_code":
+#         if auth.verify_sub_admin_verify_code(text):
+#             _set_pending(uid, "sub_new_name")
+#             safe_send(uid, "✅ Verified. Please enter your *name*.", parse_mode="Markdown")
+#         else:
+#             auth.record_failed_attempt(uid, "sub")
+#             auth.audit("sub_verify_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong verification code. Entry cancelled.",
+#                       parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: choose name ----
+#     if action == "sub_new_name":
+#         _PENDING[uid]["data"]["name"] = text[:60]
+#         _set_pending(uid, "sub_new_privacy", name=text[:60])
+#         safe_send(uid,
+#             "🔐 Now choose a *privacy code* (6–20 characters).\n"
+#             "_You will use this to log in later._",
+#             parse_mode="Markdown")
+#         return
+# 
+#     # ---- Sub-admin: choose privacy code ----
+#     if action == "sub_new_privacy":
+#         if len(text) < 6 or len(text) > 20:
+#             safe_send(uid, "❌ Privacy code must be 6–20 characters. Try again.")
+#             return
+#         name = pend["data"].get("name", "Sub-Admin")
+#         auth.register_sub_admin(uid, name, text)
+#         auth.start_session(uid, "sub")
+#         auth.audit("sub_login_ok", uid, {"name": name})
+#         _pop_pending(uid)
+#         safe_send(uid, "✅ Sub-admin registered. Opening panel…")
+#         _open_sub_panel(uid)
+#         return
+# 
+#     # ---- Sub-admin: existing privacy ----
+#     if action == "sub_priv":
+#         locked, mins = auth.is_locked(uid, "sub")
+#         if locked:
+#             safe_send(uid, f"🔒 Locked for *{mins} min*.", parse_mode="Markdown")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_sub_admin_privacy(uid, text):
+#             auth.reset_failed_attempts(uid, "sub")
+#             auth.start_session(uid, "sub")
+#             auth.update_sub_admin_last_seen(uid)
+#             auth.audit("sub_login_ok", uid, {})
+#             _pop_pending(uid)
+#             _open_sub_panel(uid)
+#         else:
+#             auth.record_failed_attempt(uid, "sub")
+#             auth.audit("sub_login_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Entry cancelled.")
+#         return
+# 
+#     # ---- Primary forgot: reset key ----
+#     if action == "primary_reset_key":
+#         if auth.verify_primary_reset(text):
+#             _set_pending(uid, "primary_new_priv")
+#             safe_send(uid,
+#                 "✅ Reset key verified.\n\n"
+#                 "Enter your *new privacy code* (6–20 characters).",
+#                 parse_mode="Markdown")
+#         else:
+#             auth.audit("primary_reset_fail", uid, {})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong reset key. Recovery cancelled.")
+#         return
+# 
+#     # ---- Primary new privacy code ----
+#     if action == "primary_new_priv":
+#         if len(text) < 6 or len(text) > 20:
+#             safe_send(uid, "❌ Must be 6–20 characters. Try again.")
+#             return
+#         auth.set_primary_privacy(text)
+#         auth.reset_failed_attempts(uid, "primary")
+#         auth.start_session(uid, "primary")
+#         auth.audit("primary_priv_reset_ok", uid, {})
+#         _pop_pending(uid)
+#         safe_send(uid, "✅ Privacy code updated. Opening panel…")
+#         _open_primary_panel(uid)
+#         return
+# 
+#     # ---- Confirm destructive action (privacy re-check) ----
+#     if action == "confirm_action":
+#         act = pend["data"].get("action")
+#         target = pend["data"].get("target")
+#         session = auth.get_session(uid)
+#         if not session or session["role"] != "primary":
+#             safe_send(uid, "❌ Only primary admin can do this.")
+#             _pop_pending(uid)
+#             return
+#         if auth.verify_primary_privacy(text):
+#             auth.audit("action_confirmed", uid, {"action": act, "target": target})
+#             _pop_pending(uid)
+#             _execute_action(uid, act, target)
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             auth.audit("action_confirm_fail", uid, {"action": act})
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Action cancelled.")
+#         return
+# 
+#     # ---- Generate lock-in (primary only) ----
+#     if action == "primary_gen_lockin":
+#         if auth.verify_primary_privacy(text):
+#             auth.reset_failed_attempts(uid, "primary")
+#             code, mins = auth.generate_lockin_code()
+#             auth.audit("lockin_generated", uid, {"expires_in_min": mins})
+#             _pop_pending(uid)
+#             safe_send(uid,
+#                 f"🔑 *Lock-in Code Generated*\n\n"
+#                 f"`{code}`\n\n"
+#                 f"⏱️ Valid *{mins} minutes* · *one-time use*.\n"
+#                 f"Share with the locked-out person.",
+#                 parse_mode="Markdown")
+#         else:
+#             auth.record_failed_attempt(uid, "primary")
+#             _pop_pending(uid)
+#             safe_send(uid, "❌ Wrong privacy code. Generator cancelled.")
+#         return
+# 
+#     # Unknown pending action → clear
+#     _pop_pending(uid)
+# 
+# 
+# # ----------------------------------------------------------
+# # Panel openers (real panels are in c30b_admin.py, but if not
+# # yet rewritten, fallback to old behavior)
+# # ----------------------------------------------------------
 def _open_primary_panel(uid):
     fn = globals().get("_show_admin_panel")
     if callable(fn):

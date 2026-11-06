@@ -1,0 +1,25 @@
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/Cengage/Cengage Cordinate Geometry G Tewani.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/Cengage/Cengage Calculus G Tewani.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/Cengage/Cengage Trigonometry G Tewani.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/Cengage/Cengage Vectors And 3D Geometry G Tewani.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/Cengage/Cengage Algebra G Tewani.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/BlackBook/Advance_Problems_in_Mathematics_Solutions_By_Vikas_Gupta_www_jeebooks.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Maths/BlackBook/Advanced_Problem_in_Mathematics_By_Vikas_Gupta_www_jeebooks_in.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/B. M. Sharma - Optics and Modern Physics for JEE (Advanced)-CENGAGE INDIA (2019)_11zon.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/Cengage Magnetism.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/B. M. Sharma - Electrostatics and Current Electricity for JEE (Advanced)-CENGAGE INDIA (2019).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/B.M Sharma - Physics For IIT-JEE 2012-2013 _ Mechanics - II-Cengage (2012).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/B.M Sharma - Physics For IIT-JEE 2012-2013 _ Mechanics - I-Cengage (2012).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Cengage/Cengage Waves and Thermodynamics.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Pearson/Rahul Sardana - JEE Advanced Physics-Magnetic Effects of Current and Electromagnetic Induction (2020, Pearson India Education Services Pvt. Ltd) - libgen.li.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Pearson/Rahul Sardana - JEE advanced Physics.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Balaji/Anurag Mishra Optics.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Balaji/Anurag Mishra Heat and Thermodynamics.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Balaji/Anurag Mishra Electricity and Magnetism.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Balaji/Anurag Mishra Mechanics Volume - II.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Physics/Balaji/Anurag Mishra Mechanics Volume - I.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Chemistry/Balaji_Problems/VK Jaiswal Inorganic Chemistry.pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Chemistry/Balaji_Problems/Advanced Problems in Organic Chemistry for JEE by M.S. Chouhan (16th edition).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Chemistry/Balaji_Problems/Problems in Physical Chemistry by Narendra Awasthi for JEE (15th edition).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Chemistry/MSChauhan_Theory/Advanced Theory in Organic Chemistry for JEE Volume-I by M.S. Chouhan (2nd edition).pdf
+/data/data/com.termux/files/home/storage/shared/Hamilton_uploads_abv/books/Chemistry/MSChauhan_Solutions_15th/Solution Manual Advanced Problems in Organic Chemistry for JEE by M.S. Chouhan (15th edition).pdf

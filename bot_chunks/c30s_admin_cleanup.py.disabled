@@ -35,7 +35,7 @@ def delete_all_admin_msgs(uid):
         ids = list(_ADMIN_MSGS.get(int(uid), []))
         for mid in ids:
             try:
-                bot.delete_message(uid, mid)
+                pass # bot.delete_message(uid, mid.message_id)
                 deleted += 1
             except Exception:
                 failed += 1
@@ -122,7 +122,7 @@ def _autoclose_loop():
                             f"⏰ Auto-closed after 5 min idle. {dc} messages cleared.")
                         def _dn(mid=m.message_id, u=uid):
                             _t.sleep(5)
-                            try: bot.delete_message(u, mid)
+                            try: pass # bot.delete_message(u, mid.message_id)
                             except Exception: pass
                         threading.Thread(target=_dn, daemon=True).start()
                     except Exception as e:

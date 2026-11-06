@@ -1,7 +1,32 @@
-pyq_images/
+# ═══ Large binaries (never commit) ═══
 pyq_pdfs/
-*.png
+pyq_images/
+exam_packages/
 *.pdf
-bot.log
-pdf_process.log
+*.png
+*.jpg
+*.jpeg
+
+# ═══ Extractor outputs (large) ═══
+data/extracted_v3/
+data/extracted_books_v3/
+data/extracted_books_v3_backup_*/
+data/routines/
+_tmp.jpg
+_ckpt_*.json
+
+# ═══ Build artifacts ═══
+bot.py.new
 __pycache__/
+*.pyc
+*.log
+nohup.out
+
+# ═══ Per-user profiles (privacy) ═══
+profiles/
+
+# ═══ BUT KEEP SMALL CRITICAL DBs ═══
+# NOT ignoring: data/pyq_master.json  ← extracted Qs, ~5MB, must persist
+# NOT ignoring: data/pyq_db.json      ← syllabus index
+# NOT ignoring: data/lifetime_stats.json
+# NOT ignoring: data/jee_*.json       ← syllabus

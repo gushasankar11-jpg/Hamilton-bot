@@ -1,34 +1,41 @@
 {
-  "secured": false,
-  "name": null,
-  "institute": null,
-  "level": null,
-  "exams": [],
-  "priority": null,
+  "secured": true,
+  "name": "D V S DEEPAK",
+  "institute": "Viswasai",
+  "level": "Junior",
+  "exams": [
+    "JEE_MAIN"
+  ],
+  "priority": "JEE_MAIN",
   "priority_pct": 100,
-  "target_year": null,
+  "target_year": 2028,
   "target_marks": {},
   "selected_chapters": {},
   "subtopic_stats": {},
-  "onboarding_step": "name",
+  "onboarding_step": "done",
   "behavior": {
     "strikes": 0,
     "blocked_until": null
   },
   "strikes_total": 0,
   "blocks_total": 0,
-  "api_calls_total": 0,
-  "last_strike_at": null,
+  "api_calls_total": 49,
+  "last_strike_at": "2026-11-01T14:43:51.663898",
   "last_block_at": null,
   "leaderboard_optin": true,
-  "story_shown": false,
-  "no_key_attempts": 4,
-  "hku_id": null,
-  "activation_key": null,
+  "story_shown": true,
+  "no_key_attempts": 12,
+  "hku_id": "HKU-000018",
+  "activation_key": "HK Publications 2026-27",
   "key_expired": false,
   "_practice_active": false,
   "_practice_exam": null,
   "_practice_level": "medium",
   "created_at": "2026-10-29T13:43:38.694953",
-  "last_seen": "2026-10-30T05:24:33.315832"
+  "last_seen": "2026-11-02T12:23:27.467104",
+  "name_strikes": 0,
+  "phone": "9573424473",
+  "_marks_queue": [
+    "JEE_MAIN"
+  ]
 }

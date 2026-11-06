@@ -504,10 +504,25 @@ def _in_subreg_flow(uid):
 
 
 @bot.message_handler(
-    func=lambda m: not _in_subreg_flow(m.chat.id),
+    func=lambda m: not _in_subreg_flow(m.chat.id) and not (m.text and m.text.startswith('/')),
     content_types=['text']
 )
 def free_text_handler(message):
+    # PLANNER INTERCEPT: Do not interfere if user is in planner
+    try:
+        import c50_planner
+        if message.chat.id in c50_planner.PLANNER_STATE and c50_planner.PLANNER_STATE[message.chat.id].get('active'):
+            return
+    except: pass
+
+    if message.text and message.text.startswith('/'): return # Ignore commands
+    if message.text and message.text.startswith('/'): return # Ignore commands
+    if message.text and message.text.startswith('/'): return
+    if message.text and message.text.startswith('/'): return
+    if message.text and message.text.startswith("/"): return False
+    if message.text and message.text.startswith("/"):
+        return # Let command handlers (/plan, /exam, etc.) handle this
+        
     # --- STOP AI FROM HIJACKING COMMANDS ---
     if message.text and message.text.startswith('/'):
         return
@@ -819,12 +834,15 @@ def free_text_handler(message):
                         "started": __import__("time").time(),
                     }
                     try:
-                        safe_send(uid,
+                        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+                        close_kb = InlineKeyboardMarkup()
+                        close_kb.add(InlineKeyboardButton("❌ Close Chat", callback_data=f"admin_close_chat:{_target}"))
+                        bot.send_message(uid,
                             f"🔗 *Chat opened with user {_target}*\n"
-                            f"Type `/end_chat {_target}` to close when done.",
-                            parse_mode="Markdown")
-                    except Exception:
-                        pass
+                            f"Messages are now forwarded. Click below to close.",
+                            parse_mode="Markdown", reply_markup=close_kb)
+                    except Exception as e:
+                        print(f"[chat_open_kb_err] {e}")
                 except Exception as _e:
                     safe_send(uid, f"⚠️ Send failed: {_e}")
                 # Keep personal_text flow alive so admin can send multiple messages
@@ -1595,3 +1613,61 @@ def _is_in_two_way_chat(uid):
 # ==========================================================
 PENDING_ADMIN_FLOW = {}   # {admin_uid: {"action": ..., "data": {...}, "at": ts}}
 
+
+
+
+@bot.message_handler(content_types=['photo', 'document', 'video'])
+def admin_forward_files(message):
+    uid = message.chat.id
+    import sys
+    ADMIN_ID = 8857708587
+    if uid != ADMIN_ID: return
+    
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT") and _mo.TWO_WAY_CHAT:
+            for target_uid, data in _mo.TWO_WAY_CHAT.items():
+                if data.get("admin_uid") == uid:
+                    try:
+                        if message.content_type == 'photo':
+                            bot.send_photo(target_uid, message.photo[-1].file_id, caption=message.caption)
+                        elif message.content_type == 'document':
+                            bot.send_document(target_uid, message.document.file_id, caption=message.caption)
+                        elif message.content_type == 'video':
+                            bot.send_video(target_uid, message.video.file_id, caption=message.caption)
+                        bot.send_message(uid, "✅ File forwarded.")
+                    except Exception as e:
+                        bot.send_message(uid, f"❌ Failed: {e}")
+                    return
+
+
+
+MEDIA_GROUPS = {}
+
+@bot.message_handler(content_types=['photo', 'document', 'video'])
+def handle_media_groups(message):
+    uid = message.chat.id
+    import sys
+    ADMIN_ID = 8857708587
+    if uid != ADMIN_ID: return
+    if not hasattr(message, 'media_group_id') or not message.media_group_id: return
+    
+    group_id = message.media_group_id
+    if group_id not in MEDIA_GROUPS:
+        MEDIA_GROUPS[group_id] = {"files": [], "timer": None}
+        
+    MEDIA_GROUPS[group_id]["files"].append(message)
+    
+    # Wait 2 seconds to collect all files in the album
+    if MEDIA_GROUPS[group_id]["timer"]:
+        MEDIA_GROUPS[group_id]["timer"].cancel()
+        
+    import threading
+    def process_album():
+        time.sleep(2.5)
+        files = MEDIA_GROUPS[group_id]["files"]
+        bot.send_message(uid, f"📦 <b>Detected Album with {len(files)} files.</b>", parse_mode="HTML")
+        # Here we would trigger the broadcast save/send logic for the batch.
+        # The existing broadcast flow will pick these up.
+        
+    MEDIA_GROUPS[group_id]["timer"] = threading.Timer(2.5, process_album)
+    MEDIA_GROUPS[group_id]["timer"].start()

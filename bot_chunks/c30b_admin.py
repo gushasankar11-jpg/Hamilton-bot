@@ -639,10 +639,59 @@ def _cb_back(call):
 @bot.callback_query_handler(func=lambda c: c.data == "admin_close")
 def _cb_admin_close(call):
     uid = call.from_user.id
+    import sys
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = [k for k, v in _mo.TWO_WAY_CHAT.items() if v.get("admin_uid") == uid]
+            for t in to_remove: 
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                try: bot.send_message(t, "🔒 The admin has closed this chat session.")
+                except: pass
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+    uid = call.from_user.id
+    import sys
+    for _mn, _mo in sys.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = [k for k, v in _mo.TWO_WAY_CHAT.items() if v.get("admin_uid") == uid]
+            for t in to_remove: 
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                try: bot.send_message(t, "🔒 The admin has closed this chat session.")
+                except: pass
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+    uid = call.from_user.id
     try:
         bot.answer_callback_query(call.id, "Closing...")
     except Exception:
         pass
+        
+    # --- CLOSE ACTIVE TWO-WAY CHATS ---
+    import sys as _sys_close
+    _closed_targets = []
+    for _mn, _mo in _sys_close.modules.items():
+        # Clear admin pending input flow
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            if _mo.PENDING_ADMIN_FLOW.pop(uid, None):
+                print(f"[admin_close] Cleared PENDING_ADMIN_FLOW for {uid}")
+        
+        # Clear TWO_WAY_CHAT where this admin is the one chatting
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            to_remove = []
+            for target_uid, data in _mo.TWO_WAY_CHAT.items():
+                if data.get("admin_uid") == uid:
+                    to_remove.append(target_uid)
+            for t in to_remove:
+                _mo.TWO_WAY_CHAT.pop(t, None)
+                _closed_targets.append(t)
+    
+    # Notify the users that the chat was closed by the admin
+    for t in _closed_targets:
+        try:
+            bot.send_message(t, "🔒 The admin has closed this chat session. You can continue using the bot normally.")
+        except Exception as e:
+            print(f"[admin_close] failed to notify {t}: {e}")
+
     deleted = 0
     # 1. Delete every tracked message
     _del = globals().get("delete_all_admin_msgs")
@@ -781,6 +830,36 @@ def _cmd_find(message):
         kb.add(InlineKeyboardButton(f"→ {hku} · {name}", callback_data=f"admin_profile:{u}"))
     kb.add(InlineKeyboardButton("❌ Close", callback_data="admin_close"))
     bot.reply_to(message, text, reply_markup=kb, parse_mode="Markdown")
+
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_close_chat:"))
+def _cb_admin_close_chat(call):
+    uid = call.from_user.id
+    try:
+        target_uid = int(call.data.split(":")[1])
+    except:
+        return
+        
+    import sys as _sys_close
+    for _mn, _mo in _sys_close.modules.items():
+        if hasattr(_mo, "TWO_WAY_CHAT"):
+            if target_uid in _mo.TWO_WAY_CHAT:
+                _mo.TWO_WAY_CHAT.pop(target_uid, None)
+        if hasattr(_mo, "PENDING_ADMIN_FLOW"):
+            if uid in _mo.PENDING_ADMIN_FLOW:
+                _mo.PENDING_ADMIN_FLOW.pop(uid, None)
+
+    try:
+        bot.answer_callback_query(call.id, "Chat Closed")
+        bot.edit_message_text("🔒 *Chat closed with user.*", chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+    except:
+        pass
+        
+    try:
+        bot.send_message(target_uid, "🔒 The admin has closed this chat session. You can now continue using the bot normally.")
+    except:
+        pass
 
 
 print("c30b_admin: loaded (panel v2).")
