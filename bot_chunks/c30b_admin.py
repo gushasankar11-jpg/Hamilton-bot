@@ -202,7 +202,10 @@ def _show_admin_panel(chat_id, page=0, message_id=None):
         kb.add(InlineKeyboardButton("\U0001f6e1 Sub-Admin", callback_data="admin_subadmins"))
         kb.add(InlineKeyboardButton("\U0001f511 API Keys", callback_data="admin_keys"))
         kb.add(InlineKeyboardButton("\U0001f4cb Scheduled", callback_data="sv_tab:text"))
-        kb.add(InlineKeyboardButton("\u274c Close", callback_data="admin_close"))
+        kb.add(InlineKeyboardButton("\U0001f4e6 Pending Orders", callback_data="admin_pending_orders"))
+        kb.add(InlineKeyboardButton("\U0001f511 Manage Keys", callback_data="admin_key_manager"))
+        kb.add(InlineKeyboardButton("📦 Pending Orders", callback_data="admin_pending_orders"),
+            InlineKeyboardButton("\u274c Close", callback_data="admin_close"))
     else:
         header = (
             "\U0001f6e1 *HAMILTON ADMIN PANEL* [READ-ONLY]\n\n"
@@ -2124,3 +2127,108 @@ def _cb_sub_activity(call):
     except Exception:
         try: bot.send_message(uid, text[:4000], reply_markup=kb, parse_mode="Markdown")
         except Exception: pass
+
+
+# ═══════════════════════════════════════════════════
+# PENDING ORDERS INTEGRATION
+# ═══════════════════════════════════════════════════
+
+@bot.callback_query_handler(func=lambda c: c.data == "admin_pending_orders")
+def admin_show_pending(call):
+    session = auth.get_session(call.message.chat.id)
+    if not session or session["role"] != "primary":
+        return bot.answer_callback_query(call.id, "❌ Unauthorized", show_alert=True)
+        
+    import json, os
+    PENDING_FILE = "data/pending_payments.json"
+    try:
+        pending = json.load(open(PENDING_FILE)) if os.path.exists(PENDING_FILE) else {}
+    except:
+        pending = {}
+        
+    if not pending:
+        return bot.answer_callback_query(call.id, "✅ No pending orders right now.", show_alert=True)
+        
+    kb = InlineKeyboardMarkup(row_width=1)
+    for oid, p_data in pending.items():
+        kb.add(InlineKeyboardButton(f"🛒 {p_data['name']} - ₹{p_data['amount']}", callback_data=f"admin_pend_view:{oid}"))
+    
+    kb.add(InlineKeyboardButton("🔙 Back to Panel", callback_data="admin_close"))
+    
+    try:
+        bot.edit_message_text("📋 <b>Pending Payments</b>\nSelect an order to verify:", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+    except: pass
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pend_view:"))
+def admin_pend_view(call):
+    oid = call.data.split(":")[1]
+    import json, os
+    PENDING_FILE = "data/pending_payments.json"
+    try:
+        pending = json.load(open(PENDING_FILE))
+    except:
+        return bot.answer_callback_query(call.id, "File not found.")
+        
+    if oid not in pending:
+        return bot.answer_callback_query(call.id, "Order no longer pending.")
+        
+    p = pending[oid]
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("✅ Approve & Send Receipt", callback_data=f"admin_pend_approve:{oid}"))
+    kb.add(InlineKeyboardButton("❌ Reject", callback_data=f"admin_pend_reject:{oid}"))
+    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_pending_orders"))
+    
+    txt = f"👤 <b>Name:</b> {p['name']}\n💰 <b>Amount:</b> ₹{p['amount']}\n🏷 <b>Order ID:</b> {oid}\n\nConfirm approval?"
+    try:
+        bot.edit_message_text(txt, chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+    except: pass
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pend_approve:"))
+def admin_pend_approve(call):
+    oid = call.data.split(":")[1]
+    import json, os
+    PENDING_FILE = "data/pending_payments.json"
+    try:
+        pending = json.load(open(PENDING_FILE))
+    except:
+        return
+        
+    if oid not in pending: return
+    p = pending[oid]
+    
+    # Trigger the actual approval logic inside c03z_store
+    try:
+        import c03z_store
+        fake_call = type('obj', (object,), {
+            'id': call.id, 
+            'message': call.message, 
+            'data': f'admin_approve:{p["uid"]}:{oid}', 
+            'from_user': call.from_user
+        })
+        c03z_store.admin_verify(fake_call, p['order_data'])
+    except Exception as e:
+        print(f"Admin Approve Error: {e}")
+        
+    del pending[oid]
+    json.dump(pending, open(PENDING_FILE, "w"), indent=2)
+    bot.edit_message_text("✅ Order Approved and Receipt Sent!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pend_reject:"))
+def admin_pend_reject(call):
+    oid = call.data.split(":")[1]
+    import json, os
+    PENDING_FILE = "data/pending_payments.json"
+    try:
+        pending = json.load(open(PENDING_FILE))
+    except:
+        return
+        
+    if oid not in pending: return
+    p = pending[oid]
+    
+    try: bot.send_message(p['uid'], "❌ Your payment was rejected. Please contact Admin.")
+    except: pass
+    
+    del pending[oid]
+    json.dump(pending, open(PENDING_FILE, "w"), indent=2)
+    bot.edit_message_text("❌ Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
