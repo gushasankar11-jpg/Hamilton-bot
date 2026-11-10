@@ -336,6 +336,12 @@ def handle_store_callback(call):
 def process_store_name(message):
     uid = message.chat.id
     _get_cart(uid)["order_name"] = message.text.strip()[:40]
+    msg = bot.send_message(uid, "📞 <b>Please enter your 10-digit Phone Number:</b>")
+    bot.register_next_step_handler(msg, process_store_phone)
+
+def process_store_phone(message):
+    uid = message.chat.id
+    _get_cart(uid)["phone"] = message.text.strip()[:15]
     msg = bot.send_message(uid, "📍 <b>Please enter your City and State</b> (e.g., Nellore, Andhra Pradesh):")
     bot.register_next_step_handler(msg, process_store_location)
 
@@ -351,29 +357,25 @@ def calculate_final_amount(state):
 def process_store_location(message):
     uid = message.chat.id
     state = _get_cart(uid)
-    state["location"] = message.text.strip()[:50]
+    loc_input = message.text.strip()
+    state["location"] = loc_input[:50]
     
-    book_qty = sum(qty for pid, qty in state["cart"].items() if not PRODUCTS[pid].get("is_ai"))
+    is_nellore = ("nellore" in loc_input.lower()) and ("andhra" in loc_input.lower() or "ap" in loc_input.lower())
     
-    if book_qty == 0:
-        base_t, disc, deliv, final_t = calculate_final_amount(state)
-        state["final_amount"] = final_t
-        state["delivery_date"] = "Digital Delivery"
-        kb = InlineKeyboardMarkup().add(InlineKeyboardButton("✅ Confirm & Pay", callback_data="confirm_pay")).add(InlineKeyboardButton("❌ Cancel", callback_data="shop_buy"))
-        msg = f"📦 Base: ₹{base_t}\n🎉 Discount: -₹{disc}\n🚚 Delivery: ₹{deliv}\n💰 <b>Total: ₹{final_t}</b>\n\nProceed to payment?"
-        bot.send_message(uid, msg, parse_mode="HTML", reply_markup=kb)
-    else:
-        import datetime as _dt_fix
-        try: today = _dt_fix.datetime.now().date()
-        except: today = _dt_fix.date.today()
-            
-        kb = InlineKeyboardMarkup(row_width=1)
-        for i in range(3, 8):
-            d = today + _dt_fix.timedelta(days=i)
-            slot = "10 AM - 7 PM" if d.strftime("%A") == "Sunday" else "Evening 7-9 PM"
-            kb.add(InlineKeyboardButton(f"{d.strftime('%d %b')} ({d.strftime('%A')}) - {slot}", callback_data=f"del_date:{d.strftime('%Y-%m-%d')} ({slot})"))
-        kb.add(InlineKeyboardButton("🔙 Cancel", callback_data="shop_buy"))
-        bot.send_message(uid, "📅 <b>Select Delivery Date & Time:</b>\n<i>(Min 3 days, Max 7 days)</i>", reply_markup=kb)
+    if not is_nellore:
+        bot.send_message(uid, "⚠️ <b>Note:</b> You are outside Nellore. External delivery charges may apply. Admin will contact you for confirmation.")
+        
+    import datetime as _dt_fix
+    try: today = _dt_fix.datetime.now().date()
+    except: today = _dt_fix.date.today()
+        
+    kb = InlineKeyboardMarkup(row_width=1)
+    for i in range(3, 8):
+        d = today + _dt_fix.timedelta(days=i)
+        slot = "10 AM - 7 PM" if d.strftime("%A") == "Sunday" else "Evening 7-9 PM"
+        kb.add(InlineKeyboardButton(f"{d.strftime('%d %b')} ({d.strftime('%A')}) - {slot}", callback_data=f"del_date:{d.strftime('%Y-%m-%d')} ({slot})"))
+    kb.add(InlineKeyboardButton("🔙 Cancel", callback_data="shop_buy"))
+    bot.send_message(uid, "📅 <b>Select Delivery Date & Time:</b>\n<i>(Min 3 days, Max 7 days)</i>", reply_markup=kb)
 
 def process_ai_recipient_name(message):
     uid = message.chat.id
@@ -417,6 +419,7 @@ def generate_qr(uid, total):
     ACTIVE_ORDERS[order_id] = {
         "order_id": order_id,
         "name": state.get("order_name"),
+        "phone": state.get("phone", "N/A"),
         "amount": total,
         "cart": state["cart"].copy(),
         "location": state.get("location"),
@@ -576,7 +579,7 @@ def admin_pend_view(call):
     kb.add(InlineKeyboardButton("❌ Reject", callback_data=f"admin_pend_reject:{oid}"))
     kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_pending_orders"))
     
-    txt = f"👤 <b>Name:</b> {p['name']}\n💰 <b>Amount:</b> ₹{p['amount']}\n🏷 <b>Order ID:</b> {oid}\n\nConfirm approval?"
+    txt = f"👤 <b>Name:</b> {p['name']}\n📞 <b>Phone:</b> {p.get('phone', 'N/A')}\n💰 <b>Amount:</b> ₹{p['amount']}\n📍 <b>Location:</b> {p.get('location', 'N/A')}\n🏷 <b>Order ID:</b> {oid}\n\nConfirm approval?"
     try:
         bot.edit_message_text(txt, chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
     except: pass
