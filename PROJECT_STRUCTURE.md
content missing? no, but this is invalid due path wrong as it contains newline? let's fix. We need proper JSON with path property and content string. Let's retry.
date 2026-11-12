@@ -1,0 +1,47 @@
+# Project: Hamilton-bot
+# This file documents the reorganized structure and the backup strategy.
+
+## Final structure
+
+```text
+Hamilton-bot/
+├── _original_backup/
+│   └── README.md
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── runtime/
+│   │   ├── __init__.py
+│   │   └── bot_entry.py
+│   └── utils/
+│       ├── __init__.py
+│       └── pathing.py
+├── PROJECT_STRUCTURE.md
+├── bot.py
+├── config.py
+├── ...existing app files remain in the root for compatibility
+└── ...existing data folders remain unchanged
+```
+
+## How to run
+
+- Keep the existing entrypoint files in the repo root for compatibility.
+- If you want to import the cleaned config/runtime package, use:
+  - `from src.config import *`
+  - `from src.runtime.bot_entry import *`
+- The original root entrypoints remain in place so the application keeps the same runtime behavior.
+
+## Old file -> new file mapping
+
+| Old file | New location | Notes |
+| --- | --- | --- |
+| `config.py` | `src/config.py` | Backed up and mirrored for clean imports |
+| `bot.py` | `src/runtime/bot_entry.py` | Compatibility entry shim |
+| `profiles/` | unchanged | Kept as-is |
+| `data/` | unchanged | Kept as-is |
+
+## Notes
+
+- No original source logic was deleted.
+- The repository now has a clean package layout without changing runtime behavior.
+- The original root files remain as the canonical compatibility layer during migration.
