@@ -1,3 +1,4 @@
+import datetime as _dt_safe
 import os, json, time, threading, datetime, requests, random, string
 from io import BytesIO
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -25,16 +26,16 @@ ACTIVE_ORDERS = _load_active_orders()
 ORDERS_FILE = "data/user_orders.json"
 
 PRODUCTS = {
-    "1": {"name": "📘 Analyser Module", "price": 249, "link": "https://wa.me/p/29345775085017763/918074231426"},
-    "3": {"name": "📕 BIPC 1st Year JEE Mains Revision Book", "price": 679, "link": "https://wa.me/p/37659707166953822/918074231426"},
-    "4": {"name": "📙 JEE Complete 1st Year JEE Main Revision", "price": 859, "link": "https://wa.me/p/27602087376124822/918074231426"},
-    "5": {"name": "🧪 Organic Chemistry 1st Year JEE Mains", "price": 369, "link": "https://wa.me/p/37197185153261563/918074231426"},
-    "6": {"name": "📗 JEE Slim 1st Year JEE Mains Revision", "price": 699, "link": "https://wa.me/p/38161400123451221/918074231426"},
-    "7": {"name": "📘 MPC Without M 1st Year JEE Mains", "price": 699, "link": "https://wa.me/p/36883482691295177/918074231426"},
-    "8": {"name": "⚛️ Physics 1st Year JEE Mains Revision", "price": 369, "link": "https://wa.me/p/27177195635293074/918074231426"},
-    "9": {"name": "📐 Mathematics 1st Year JEE Mains Revision", "price": 319, "link": "https://wa.me/p/28258833240380540/918074231426"},
-    "10": {"name": "🧪 Chemistry 1st Year JEE Mains Revision", "price": 329, "link": "https://wa.me/p/27775224768808817/918074231426"},
-    "ai_1y": {"name": "🤖 Hamilton AI Plan (1 Year)", "price": 299, "is_ai": True, "years": 1, "link": "https://wa.me/p/28858350743773416/918074231426"}
+    "1": {"name": "📘 Analyser Module", "price": 249, "cost": 100, "link": "https://wa.me/p/29345775085017763/918074231426"},
+    "3": {"name": "📕 BIPC Edition (NEET)", "price": 679, "cost": 470, "link": "https://wa.me/p/37659707166953822/918074231426"},
+    "4": {"name": "📙 JEE Complete All-in-One", "price": 859, "cost": 580, "link": "https://wa.me/p/27602087376124822/918074231426"},
+    "5": {"name": "🧪 Organic Chemistry", "price": 369, "cost": 190, "link": "https://wa.me/p/37197185153261563/918074231426"},
+    "6": {"name": "📗 JEE Slim Edition", "price": 699, "cost": 460, "link": "https://wa.me/p/38161400123451221/918074231426"},
+    "7": {"name": "📘 MPC Edition", "price": 699, "cost": 470, "link": "https://wa.me/p/36883482691295177/918074231426"},
+    "8": {"name": "⚛️ Physics", "price": 369, "cost": 230, "link": "https://wa.me/p/27177195635293074/918074231426"},
+    "9": {"name": "📐 Mathematics", "price": 319, "cost": 150, "link": "https://wa.me/p/28258833240380540/918074231426"},
+    "10": {"name": "🧪 Chemistry", "price": 329, "cost": 190, "link": "https://wa.me/p/27775224768808817/918074231426"},
+    "ai_1y": {"name": "🤖 Hamilton AI Plan (1 Year)", "price": 299, "cost": 0, "is_ai": True, "years": 1, "link": "https://wa.me/p/28858350743773416/918074231426"}
 }
 
 FAMGATEWAY_API_KEY = "fam_e90eb23d48d77a1312e9845512c35bb47879e923"
@@ -159,6 +160,65 @@ def cmd_test_fam(message):
             time.sleep(0.5)
             
     threading.Thread(target=run_live_timer, args=(t_msg.message_id, order_id), daemon=True).start()
+
+
+def fam_auto_verify_worker():
+    """Checks pending FamGateway orders every 15 seconds. If paid, auto-delivers."""
+    while True:
+        time.sleep(15)
+        for oid, order in list(ACTIVE_ORDERS.items()):
+            if order.get("paid"): continue
+            
+            fam_id = order.get("fam_id")
+            if not fam_id: continue
+            
+            api_res = check_fam_status(fam_id)
+            if api_res:
+                res_str = str(api_res).lower()
+                if "success" in res_str or "completed" in res_str or "paid" in res_str:
+                    if "pending" not in res_str and "failed" not in res_str:
+                        # IT IS PAID! Auto-fulfill.
+                        order["paid"] = True
+                        order["utr"] = "AUTO_" + str(random.randint(100000, 999999))
+                        order["verify_duration"] = "Auto"
+                        _save_active_orders()
+                        
+                        uid = order.get("uid")
+                        if uid:
+                            try: bot.send_message(uid, "🎉 <b>Payment Verified Automatically!</b>\nYour order is confirmed.", parse_mode="HTML")
+                            except: pass
+                        try:
+                            fake_call = type('obj', (object,), {'id': 0, 'message': type('obj', (object,), {'chat': type('obj', (object,), {'id': ADMIN_GROUP_ID})})(), 'data': f'admin_approve:{uid}:{oid}', 'from_user': type('obj', (object,), {'id': uid})()})
+                            admin_verify(fake_call, order)
+                        except: pass
+
+try:
+    threading.Thread(target=fam_auto_verify_worker, daemon=True).start()
+    print("✅ FamGateway Auto-Verify Worker Started")
+except: pass
+
+@bot.message_handler(commands=['cost'])
+def cmd_cost(message):
+    if str(message.chat.id) != str(ADMIN_GROUP_ID) and message.chat.id != 8857708587: return
+    orders = _load_orders()
+    today = _dt_safe.date.today().isoformat()
+    total_print_cost = 0
+    total_orders = 0
+    total_books = 0
+    
+    for uid, u_orders in orders.items():
+        for o in u_orders:
+            if o.get("date", "").startswith(today) and o.get("status") != "CANCELLED":
+                total_orders += 1
+                # Recalculate cost from cart/items
+                for pid, qty in o.get("cart_raw", {}).items():
+                    if not PRODUCTS[pid].get("is_ai"):
+                        total_print_cost += PRODUCTS[pid]["cost"] * qty
+                        total_books += qty
+                        
+    msg = f"💰 <b>Today's Print Cost Report</b>\n\n📦 Orders: {total_orders}\n📚 Books: {total_books}\n💸 To Pay Manager: ₹{total_print_cost}"
+    bot.send_message(message.chat.id, msg, parse_mode="HTML")
+
 
 @bot.message_handler(commands=['shop'])
 def cmd_shop(message):
@@ -360,11 +420,21 @@ def process_store_location(message):
     loc_input = message.text.strip()
     state["location"] = loc_input[:50]
     
-    is_nellore = ("nellore" in loc_input.lower()) and ("andhra" in loc_input.lower() or "ap" in loc_input.lower())
-    
-    if not is_nellore:
-        bot.send_message(uid, "⚠️ <b>Note:</b> You are outside Nellore. External delivery charges may apply. Admin will contact you for confirmation.")
-        
+    if "nellore" in loc_input.lower():
+        msg = bot.send_message(uid, "📍 <b>Please send your exact Google Maps location link or full house address:</b>")
+        bot.register_next_step_handler(msg, process_store_map_link)
+        return
+    else:
+        bot.send_message(uid, "⚠️ <b>Note:</b> You are outside Nellore. External delivery charges may apply.")
+        state["map_link"] = "Outside Nellore"
+        ask_delivery_date(uid)
+
+def process_store_map_link(message):
+    uid = message.chat.id
+    _get_cart(uid)["map_link"] = message.text.strip()
+    ask_delivery_date(uid)
+
+def ask_delivery_date(uid):
     import datetime as _dt_fix
     try: today = _dt_fix.datetime.now().date()
     except: today = _dt_fix.date.today()
@@ -420,6 +490,7 @@ def generate_qr(uid, total):
         "order_id": order_id,
         "name": state.get("order_name"),
         "phone": state.get("phone", "N/A"),
+        "map_link": state.get("map_link", "N/A"),
         "amount": total,
         "cart": state["cart"].copy(),
         "location": state.get("location"),
@@ -504,11 +575,11 @@ def admin_verify(call, order=None):
         if ai_items:
             years = 1; safe_name = "".join(ch for ch in user_name if ch.isalnum())[:10].capitalize()
             key = f"HK-AI-{safe_name}-{years}Y-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-            exp_date = datetime.datetime.now() + datetime.timedelta(days=365 * int(years))
+            exp_date = _dt_safe.datetime.now() + _dt_safe.timedelta(days=365 * int(years))
             if not os.path.exists("data/paid_keys.json"): json.dump({}, open("data/paid_keys.json", "w"))
             try: pk = json.load(open("data/paid_keys.json"))
             except: pk = {}
-            pk[key] = {"user_id": target_uid, "name": user_name, "years": years, "order_id": call.data, "purchase_date": datetime.datetime.now().isoformat(), "expires_at": exp_date.isoformat(), "status": "ACTIVE"}
+            pk[key] = {"user_id": target_uid, "name": user_name, "years": years, "order_id": call.data, "purchase_date": _dt_safe.datetime.now().isoformat(), "expires_at": exp_date.isoformat(), "status": "ACTIVE"}
             json.dump(pk, open("data/paid_keys.json", "w"), indent=2)
             bot.send_message(target_uid, f"🎉 <b>AI Access Verified!</b>\n\n🔑 Key: <code>{key}</code>\n\n👉 <a href='https://wa.me/918074231426'>Contact Admin</a>", parse_mode="HTML")
             
@@ -517,7 +588,7 @@ def admin_verify(call, order=None):
             uid_str = str(target_uid)
             if uid_str not in orders_data: orders_data[uid_str] = []
             items_txt = "".join([f"- {PRODUCTS[pid]['name']} x{qty}\n" for pid, qty in book_items.items()])
-            orders_data[uid_str].append({"name": user_name, "items": items_txt, "total": order.get("amount"), "delivery": order.get('delivery'), "location": order.get('location'), "status": "PENDING", "contacted_admin": False, "date": datetime.datetime.now().isoformat()})
+            orders_data[uid_str].append({"name": user_name, "items": items_txt, "total": order.get("amount"), "delivery": order.get('delivery'), "location": order.get('location'), "status": "PENDING", "contacted_admin": False, "cart_raw": cart, "date": _dt_safe.datetime.now().isoformat()})
             _save_orders(orders_data)
             bot.send_message(target_uid, f"🎉 <b>Payment Verified Successfully!</b>\n\n🆔 <b>Order ID:</b> <code>{order.get('order_id', 'HK-ORD')}</code>\n🔢 <b>Transaction ID:</b> <code>{order.get('utr', 'N/A')}</code>\n\n📦 <b>Items:</b>\n{items_txt}\n📅 <b>Delivery:</b> {order.get('delivery')}\n📍 <b>Location:</b> {order.get('location')}\n\n👉 <a href='https://wa.me/918074231426'>WhatsApp Admin</a>", parse_mode="HTML")
             
@@ -540,48 +611,43 @@ def admin_show_pending(call):
     if not session or session["role"] != "primary":
         return bot.answer_callback_query(call.id, "❌ Unauthorized", show_alert=True)
         
-    import json, os
-    PENDING_FILE = "data/pending_payments.json"
-    try:
-        pending = json.load(open(PENDING_FILE)) if os.path.exists(PENDING_FILE) else {}
-    except:
-        pending = {}
-        
-    if not pending:
+    orders = _load_orders()
+    kb = InlineKeyboardMarkup(row_width=1)
+    pending_count = 0
+    
+    for u_id, u_orders in orders.items():
+        for i, o in enumerate(u_orders):
+            if o.get("status") != "DELIVERED":
+                pending_count += 1
+                kb.add(InlineKeyboardButton(f"🛒 {o.get('name')} - ₹{o.get('total')} ({o.get('delivery')[:10]})", callback_data=f"admin_pend_view:{u_id}:{i}"))
+                
+    if pending_count == 0:
         return bot.answer_callback_query(call.id, "✅ No pending orders right now.", show_alert=True)
         
-    kb = InlineKeyboardMarkup(row_width=1)
-    for oid, p_data in pending.items():
-        kb.add(InlineKeyboardButton(f"🛒 {p_data['name']} - ₹{p_data['amount']}", callback_data=f"admin_pend_view:{oid}"))
-    
     kb.add(InlineKeyboardButton("🔙 Back to Panel", callback_data="admin_close"))
-    
-    try:
-        bot.edit_message_text("📋 <b>Pending Payments</b>\nSelect an order to verify:", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+    try: bot.edit_message_text("📋 <b>All Orders</b>\nSelect an order to manage:", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
     except: pass
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pend_view:"))
 def admin_pend_view(call):
-    oid = call.data.split(":")[1]
-    import json, os
-    PENDING_FILE = "data/pending_payments.json"
-    try:
-        pending = json.load(open(PENDING_FILE))
-    except:
-        return bot.answer_callback_query(call.id, "File not found.")
-        
-    if oid not in pending:
-        return bot.answer_callback_query(call.id, "Order no longer pending.")
-        
-    p = pending[oid]
-    kb = InlineKeyboardMarkup()
-    kb.add(InlineKeyboardButton("✅ Approve & Send Receipt", callback_data=f"admin_pend_approve:{oid}"))
-    kb.add(InlineKeyboardButton("❌ Reject", callback_data=f"admin_pend_reject:{oid}"))
-    kb.add(InlineKeyboardButton("🔙 Back", callback_data="admin_pending_orders"))
+    _, target_uid, idx = call.data.split(":")
+    idx = int(idx)
+    orders = _load_orders()
     
-    txt = f"👤 <b>Name:</b> {p['name']}\n📞 <b>Phone:</b> {p.get('phone', 'N/A')}\n💰 <b>Amount:</b> ₹{p['amount']}\n📍 <b>Location:</b> {p.get('location', 'N/A')}\n🏷 <b>Order ID:</b> {oid}\n\nConfirm approval?"
-    try:
-        bot.edit_message_text(txt, chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+    if target_uid not in orders or idx >= len(orders[target_uid]):
+        return bot.answer_callback_query(call.id, "Order not found.", show_alert=True)
+        
+    o = orders[target_uid][idx]
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("💬 WhatsApp Customer", url=f"https://wa.me/91{o.get('phone', '')}"))
+    
+    if not o.get("otp") and o.get("status") != "DELIVERED":
+        kb.add(InlineKeyboardButton("🔑 Generate OTP Now", callback_data=f"mgr_gen_otp:{target_uid}:{idx}"))
+        
+    kb.add(InlineKeyboardButton("🔙 Back to Orders", callback_data="admin_pending_orders"))
+    
+    txt = f"👤 <b>Name:</b> {o.get('name')}\n📞 <b>Phone:</b> {o.get('phone')}\n📍 <b>Location:</b> {o.get('location')}\n🗺️ <b>Map/Address:</b> {o.get('map_link', 'N/A')}\n\n📦 <b>Items:</b>\n{o.get('items')}\n📅 <b>Date:</b> {o.get('delivery')}\n💰 <b>Paid:</b> ₹{o.get('total')}\n🔐 <b>OTP:</b> {o.get('otp', 'Not generated')}"
+    try: bot.edit_message_text(txt, chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
     except: pass
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("admin_pend_approve:"))
@@ -631,3 +697,171 @@ def admin_pend_reject(call):
     del pending[oid]
     json.dump(pending, open(PENDING_FILE, "w"), indent=2)
     bot.edit_message_text("❌ Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
+
+
+# ═══════════════════════════════════════════════════
+# MANAGER LOGISTICS PANEL & OTP SYSTEM
+# ═══════════════════════════════════════════════════
+MANAGER_SESSIONS = set()
+
+@bot.message_handler(func=lambda m: m.text == "HK publication order panel access verify")
+def manager_login_start(message):
+    msg = bot.send_message(message.chat.id, "🔐 <b>Enter Manager Password:</b>", parse_mode="HTML")
+    bot.register_next_step_handler(msg, manager_login_verify)
+
+def manager_login_verify(message):
+    if message.text.strip() == "Kv@ast991":
+        MANAGER_SESSIONS.add(message.chat.id)
+        show_manager_panel(message.chat.id)
+    else:
+        bot.send_message(message.chat.id, "❌ Incorrect Password. Access Denied.")
+
+def show_manager_panel(chat_id):
+    import datetime
+    orders = _load_orders()
+    today_str = _dt_safe.date.today().isoformat()
+    
+    kb = InlineKeyboardMarkup(row_width=1)
+    alert_tomorrow = []
+    
+    for uid, u_orders in orders.items():
+        for i, o in enumerate(u_orders):
+            if o.get("status") == "DELIVERED": continue
+            
+            deliv_date = str(o.get("delivery", ""))[:10]
+            
+            if deliv_date == today_str:
+                alert_tomorrow.append(o)
+                
+            status_icon = "🟢" if deliv_date == today_str else "🟡"
+            kb.add(InlineKeyboardButton(f"{status_icon} {o.get('name')} - {deliv_date}", callback_data=f"mgr_view:{uid}:{i}"))
+            
+    kb.add(InlineKeyboardButton("❌ Close Panel", callback_data="mgr_close"))
+    
+    txt = "📦 <b>Manager Logistics Panel</b>\n\n"
+    if alert_tomorrow:
+        txt += f"🚨 <b>ALERT: You have {len(alert_tomorrow)} deliveries scheduled for TODAY!</b>\n\n"
+        
+    txt += "Select an order to manage:"
+    bot.send_message(chat_id, txt, parse_mode="HTML", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("mgr_"))
+def handle_manager_callbacks(call):
+    uid = call.message.chat.id
+    if uid not in MANAGER_SESSIONS:
+        return bot.answer_callback_query(call.id, "❌ Session expired. Please login again.", show_alert=True)
+        
+    data = call.data
+    
+    if data == "mgr_close":
+        MANAGER_SESSIONS.discard(uid)
+        return bot.edit_message_text("✅ Panel Closed.", chat_id=uid, message_id=call.message.message_id)
+        
+    if data.startswith("mgr_view:"):
+        _, target_uid, idx = data.split(":")
+        idx = int(idx)
+        orders = _load_orders()
+        if target_uid not in orders or idx >= len(orders[target_uid]):
+            return bot.answer_callback_query(call.id, "Order not found.", show_alert=True)
+            
+        o = orders[target_uid][idx]
+        
+        kb = InlineKeyboardMarkup(row_width=1)
+        kb.add(InlineKeyboardButton("💬 WhatsApp Customer", url=f"https://wa.me/91{o.get('phone', '')}"))
+        kb.add(InlineKeyboardButton("📅 Change Delivery Date", callback_data=f"mgr_date:{target_uid}:{idx}"))
+        if o.get("otp"):
+            kb.add(InlineKeyboardButton("🔐 Verify OTP & Deliver", callback_data=f"mgr_otp:{target_uid}:{idx}"))
+        else:
+            kb.add(InlineKeyboardButton("🔑 Generate OTP Now", callback_data=f"mgr_gen_otp:{target_uid}:{idx}"))
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="mgr_back"))
+        
+        txt = (
+            f"👤 <b>Name:</b> {o.get('name')}\n"
+            f"📞 <b>Phone:</b> {o.get('phone')}\n"
+            f"📍 <b>Location:</b> {o.get('location')}\n"
+            f"🗺️ <b>Map/Address:</b> {o.get('map_link')}\n"
+            f"📦 <b>Items:</b>\n{o.get('items')}\n"
+            f"📅 <b>Delivery Date:</b> {o.get('delivery')}\n"
+            f"💰 <b>Amount Paid:</b> ₹{o.get('total')}\n"
+            f"🔐 <b>OTP:</b> {o.get('otp', 'Not generated')}"
+        )
+        try: bot.edit_message_text(txt, chat_id=uid, message_id=call.message.message_id, parse_mode="HTML", reply_markup=kb)
+        except: pass
+
+    elif data == "mgr_back":
+        try: bot.delete_message(uid, call.message.message_id)
+        except: pass
+        show_manager_panel(uid)
+
+    elif data.startswith("mgr_gen_otp:"):
+        _, target_uid, idx = data.split(":")
+        idx = int(idx)
+        orders = _load_orders()
+        o = orders[target_uid][idx]
+        
+        import random
+        otp = str(random.randint(10000, 99999))
+        o["otp"] = otp
+        _save_orders(orders)
+        
+        # Send to Customer
+        try:
+            bot.send_message(int(target_uid), f"🔐 <b>Delivery OTP</b>\nYour order is out for delivery! Please share this OTP with the manager:\n\n<code>{otp}</code>", parse_mode="HTML")
+        except: pass
+        
+        bot.answer_callback_query(call.id, f"✅ OTP Generated: {otp}. Sent to customer.", show_alert=True)
+        handle_manager_callbacks(type('obj', (object,), {'id': call.id, 'message': call.message, 'data': f'mgr_view:{target_uid}:{idx}'})())
+
+    elif data.startswith("mgr_otp:"):
+        _, target_uid, idx = data.split(":")
+        idx = int(idx)
+        
+        # Numerical Keyboard for OTP
+        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        kb.row("1", "2", "3")
+        kb.row("4", "5", "6")
+        kb.row("7", "8", "9")
+        kb.row("0", "🔙 Cancel")
+        
+        msg = bot.send_message(uid, "🔐 <b>Enter the 5-digit OTP shown by the customer:</b>", reply_markup=kb, parse_mode="HTML")
+        bot.register_next_step_handler(msg, mgr_verify_otp, target_uid, idx)
+
+def mgr_verify_otp(message, target_uid, idx):
+    uid = message.chat.id
+    if message.text == "🔙 Cancel":
+        bot.send_message(uid, "Cancelled.", reply_markup=ReplyKeyboardRemove())
+        show_manager_panel(uid)
+        return
+        
+    entered_otp = message.text.strip()
+    orders = _load_orders()
+    o = orders[target_uid][idx]
+    
+    if entered_otp == o.get("otp"):
+        # DOUBLE CHECK: Show items before final handover
+        kb = InlineKeyboardMarkup()
+        kb.add(InlineKeyboardButton("✅ Confirm Delivered", callback_data=f"mgr_finalize:{target_uid}:{idx}"))
+        kb.add(InlineKeyboardButton("❌ Cancel", callback_data="mgr_back"))
+        
+        txt = f"✅ <b>OTP MATCHED!</b>\n\nDouble check the items before handing over:\n\n📦 <b>Items:</b>\n{o.get('items')}\n👤 <b>Name:</b> {o.get('name')}\n📍 <b>Location:</b> {o.get('location')}"
+        bot.send_message(uid, txt, parse_mode="HTML", reply_markup=kb)
+    else:
+        bot.send_message(uid, "❌ Incorrect OTP. Please try again.", reply_markup=ReplyKeyboardRemove())
+        show_manager_panel(uid)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("mgr_finalize:"))
+def mgr_finalize(call):
+    _, target_uid, idx = call.data.split(":")
+    idx = int(idx)
+    orders = _load_orders()
+    o = orders[target_uid][idx]
+    
+    o["status"] = "DELIVERED"
+    o["otp"] = "USED"
+    _save_orders(orders)
+    
+    # Notify Customer
+    try: bot.send_message(int(target_uid), "✅ <b>Order Delivered!</b>\nThank you for shopping with HK Publications.", parse_mode="HTML")
+    except: pass
+    
+    bot.edit_message_text("✅ Order marked as DELIVERED. Thank you!", chat_id=call.message.chat.id, message_id=call.message.message_id)

@@ -31,31 +31,52 @@ def _onboarding_name(message):
     n = (message.text or "").strip()[:40]
     
     if not n or len(n) < 3:
-        bot.reply_to(message, "❌ Name must be at least 3 characters long. Please enter your real full name:")
+        msg = bot.reply_to(message, "❌ Name must be at least 3 characters long. Please enter your real full name:")
+        bot.register_next_step_handler(msg, _onboarding_name)
         return
-        
+
     p = load_profile(uid)
     p.setdefault("name_strikes", 0)
-    
+
     if p["name_strikes"] >= 3:
-        bot.reply_to(message, "🔒 You are locked out for entering fake names. Contact Admin on WhatsApp to unlock.")
+        bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your name.")
         return
-        
+
+    # Hardcoded blocklist for obvious fake names
+    fake_names = ["raichu", "pikachu", "charizard", "naruto", "goku", "luffy", "batman", "superman", "ironman", "spiderman"]
+    if n.lower() in fake_names:
+        p["name_strikes"] += 1
+        save_profile(uid, p)
+        left = 3 - p["name_strikes"]
+        if left > 0:
+            msg = bot.reply_to(message, f"❌ This name seems fake or fictional.\n⚠️ You have *{left} attempts left*.\n\nEnter your real full name:", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, _onboarding_name)
+        else:
+            bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your name.")
+        return
+
     try:
-        import ai_client
-        verdict, _ = ai_client.verify_name(n)
-        if verdict == "FICTIONAL":
-            p["name_strikes"] += 1
-            save_profile(uid, p)
-            left = 3 - p["name_strikes"]
-            if left > 0:
-                bot.reply_to(message, f"❌ This name seems fake or fictional.\n⚠️ You have *{left} attempts left*.\n\nEnter your real full name:", parse_mode="Markdown")
-            else:
-                bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your name.")
-            return
-    except Exception:
-        pass
-            
+        import ai_client, json, re
+        prompt = f'Analyze the name: "{n}". Is this a real human name, or is it a fictional character (like Pokemon), a keyboard smash, or a fake name? Real names like "Rahul" or "Ram" are valid. Fictional names like "Raichu" or "Pikachu" are fake. Return ONLY JSON: {{"is_fictional": true/false, "fake_probability": 0-100}}'
+        resp = ai_client.ask_hamilton("JEE_MAIN", prompt) 
+        m = re.search(r'\{.*\}', str(resp), re.DOTALL)
+        if m:
+            data = json.loads(m.group(0))
+            prob = data.get("fake_probability", 0)
+            if prob > 20:
+                p["name_strikes"] += 1
+                save_profile(uid, p)
+                left = 3 - p["name_strikes"]
+                if left > 0:
+                    msg = bot.reply_to(message, f"❌ This name seems fake or fictional. (Fake Score: {prob}%)\n⚠️ You have *{left} attempts left*.\n\nEnter your real full name:", parse_mode="Markdown")
+                    bot.register_next_step_handler(msg, _onboarding_name)
+                else:
+                    bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your name.")
+                return
+    except Exception as e:
+        print(f"AI Name Check Error: {e}")
+
+    bot.reply_to(message, f"✅ Name accepted: *{n}*", parse_mode="Markdown")
     p["name"] = n
     p["onboarding_step"] = "institute"
     save_profile(uid, p)
@@ -64,21 +85,41 @@ def _onboarding_name(message):
 def _onboarding_institute(message):
     uid = message.chat.id
     i = (message.text or "").strip()[:60]
+    
     if not i or len(i) < 3:
-        bot.reply_to(message, "❌ Please enter a valid institute name:")
+        msg = bot.reply_to(message, "❌ Institute name must be at least 3 characters long. Please enter your real institute:")
+        bot.register_next_step_handler(msg, _onboarding_institute)
         return
-        
-    bot.reply_to(message, "⏳ Verifying institute...")
-    try:
-        import ai_client
-        verdict = ai_client.verify_institute(i)
-        if verdict == "FAKE":
-            bot.reply_to(message, "❌ This does not seem to be a real institute. Please enter your actual school/college name:")
-            return
-    except Exception:
-        pass
-        
+
     p = load_profile(uid)
+    p.setdefault("institute_strikes", 0)
+
+    if p["institute_strikes"] >= 3:
+        bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your institute.")
+        return
+
+    try:
+        import ai_client, json, re
+        prompt = f'Check if the following educational institute/school/college exists in the real world (like a real geographical location on Google Maps). Name: "{i}". Return ONLY JSON: {{"is_fictional": true/false, "fake_probability": 0-100}}'
+        resp = ai_client.ask_hamilton("JEE_MAIN", prompt) 
+        m = re.search(r'\{.*\}', str(resp), re.DOTALL)
+        if m:
+            data = json.loads(m.group(0))
+            prob = data.get("fake_probability", 0)
+            if prob > 20:
+                p["institute_strikes"] += 1
+                save_profile(uid, p)
+                left = 3 - p["institute_strikes"]
+                if left > 0:
+                    msg = bot.reply_to(message, f"❌ This institute seems fake or fictional. (Fake Score: {prob}%)\n⚠️ You have *{left} attempts left*.\n\nEnter your real institute name:", parse_mode="Markdown")
+                    bot.register_next_step_handler(msg, _onboarding_institute)
+                else:
+                    bot.reply_to(message, "🔒 Locked out. Contact admin on WhatsApp to verify your institute.")
+                return
+    except Exception as e:
+        print(f"AI Institute Check Error: {e}")
+
+    bot.reply_to(message, f"✅ Institute accepted: *{i}*", parse_mode="Markdown")
     p["institute"] = i
     p["onboarding_step"] = "phone"
     save_profile(uid, p)
@@ -134,7 +175,6 @@ def cmd_start(message):
     # If not yet activated (no key provided)
     if not p.get("secured"):
         save_profile(uid, p)
-        
         greeting = (
             "🙏 *Namaskaram, Aspirant!*\n\n"
             "Welcome to the *Hamilton Study AI* platform. You are here to dedicate your upcoming days to participate in the race of competitive exams and emerge victorious.\n\n"
@@ -144,8 +184,11 @@ def cmd_start(message):
             "🔒 *Send your activation key to begin your journey.*"
         )
         bot.reply_to(message, greeting, parse_mode="Markdown")
-        return
         
+        # Trigger the Free Trial Message instantly
+        trigger_trial(uid)
+        return
+
     # If activated but still in the middle of onboarding
     if p.get("onboarding_step") and p["onboarding_step"] != "done":
         _run_onboarding(uid)

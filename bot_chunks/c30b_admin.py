@@ -202,7 +202,7 @@ def _show_admin_panel(chat_id, page=0, message_id=None):
         kb.add(InlineKeyboardButton("\U0001f6e1 Sub-Admin", callback_data="admin_subadmins"))
         kb.add(InlineKeyboardButton("\U0001f511 API Keys", callback_data="admin_keys"))
         kb.add(InlineKeyboardButton("\U0001f4cb Scheduled", callback_data="sv_tab:text"))
-        kb.add(InlineKeyboardButton("\U0001f4e6 Pending Orders", callback_data="admin_pending_orders"))
+        kb.add(InlineKeyboardButton("\U0001f4e6 Orders", callback_data="admin_pending_orders"))
         kb.add(InlineKeyboardButton("\U0001f511 Manage Keys", callback_data="admin_key_manager"))
         kb.add(InlineKeyboardButton("📦 Pending Orders", callback_data="admin_pending_orders"),
             InlineKeyboardButton("\u274c Close", callback_data="admin_close"))
@@ -768,6 +768,8 @@ def _cb_search_hint(call):
 # ==========================================================
 @bot.callback_query_handler(func=lambda c: c.data.startswith("admin_del_prompt:"))
 def _cb_del_prompt(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
     uid = call.message.chat.id
     session = auth.get_session(uid)
     if not session or session["role"] != "primary":
@@ -920,6 +922,8 @@ def _cb_pmsg_user(call):
 # ---- Admin Block User ----
 @bot.callback_query_handler(func=lambda c: c.data.startswith("user_block:"))
 def _cb_user_block(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
     uid = call.message.chat.id
     session = auth.get_session(uid)
     if not session or session["role"] != "primary":
@@ -950,6 +954,8 @@ def _cb_user_block(call):
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("user_block_do:"))
 def _cb_user_block_do(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
     uid = call.message.chat.id
     if not auth.get_session(uid):
         return
@@ -964,8 +970,8 @@ def _cb_user_block_do(call):
         bot.answer_callback_query(call.id, "User not found")
         return
     p.setdefault("behavior", {})
-    from datetime import datetime, timedelta
-    until = datetime.now() + timedelta(minutes=minutes)
+    import datetime as _dt_fix
+    until = _dt_fix.datetime.now() + _dt_fix.timedelta(minutes=minutes)
     p["behavior"]["blocked_until"] = until.isoformat()
     p["behavior"]["blocked_by"] = "admin"
     p["behavior"]["block_reason"] = "blocked by admin for behaviour"
