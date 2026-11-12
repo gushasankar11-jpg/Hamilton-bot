@@ -508,6 +508,111 @@ def _in_subreg_flow(uid):
     content_types=['text']
 )
 def free_text_handler(message):
+    try:
+        import c03z_store
+        if message.chat.id in c03z_store.STORE_STATE:
+            return
+    except: pass
+    uid = message.chat.id
+    text = message.text.strip() if message.text else ""
+    p = load_profile(uid)
+    
+    if not p or not p.get("secured"):
+        if text.startswith("TRIAL-"):
+            import json, os
+            trials = json.load(open("data/trial_keys.json")) if os.path.exists("data/trial_keys.json") else {}
+            if text in trials:
+                p["secured"] = True
+                p["activation_key"] = text
+                p["is_trial"] = True
+                p["trial_expiry"] = trials[text]["expires_at"]
+                save_profile(uid, p)
+                
+                try:
+                    from c01zt_trial import get_trial_timer
+                    timer = get_trial_timer(uid)
+                except:
+                    timer = ""
+                    
+                bot.send_message(uid, f"✅ <b>Trial Activated Successfully!</b>\nYou have full access for 5 days.{timer}", parse_mode="HTML")
+                
+                if p.get("onboarding_step") != "done":
+                    _run_onboarding(uid)
+                return
+            else:
+                bot.send_message(uid, "❌ <b>Invalid Trial Key.</b>\n\n" + _pricing_message(), parse_mode="HTML", disable_web_page_preview=True)
+                return
+        
+        # Paid key check
+        current_keys = load_keys()
+        if text in current_keys:
+            p["secured"] = True
+            p["activation_key"] = text
+            save_profile(uid, p)
+            bot.send_message(uid, "✅ <b>Key Accepted! Welcome to Hamilton.</b>", parse_mode="HTML")
+            if p.get("onboarding_step") != "done":
+                _run_onboarding(uid)
+            return
+            
+        # Random text
+        if text and not text.startswith("/"):
+            bot.send_message(uid, _no_key_message(), parse_mode="HTML", disable_web_page_preview=True)
+            return
+
+    p = load_profile(message.chat.id)
+    if not p or not p.get("secured"):
+        text = message.text.strip()
+        uid = message.chat.id
+        
+        # 1. Check if user typed the Trial Key
+        if text.startswith("TRIAL-"):
+            import json, os
+            trials = json.load(open("data/trial_keys.json")) if os.path.exists("data/trial_keys.json") else {}
+            if text in trials:
+                p["secured"] = True
+                p["activation_key"] = text
+                p["is_trial"] = True
+                p["trial_expiry"] = trials[text]["expires_at"]
+                save_profile(uid, p)
+                bot.send_message(uid, "✅ <b>Trial Activated Successfully!</b>\nYou have full access for 5 days.", parse_mode="HTML")
+            else:
+                bot.send_message(uid, "❌ <b>Invalid Trial Key.</b>\n\n" + _pricing_message(), parse_mode="HTML")
+                            
+                # Trigger onboarding immediately
+                try:
+                    if p.get("onboarding_step") != "done":
+                        _run_onboarding(uid)
+                except Exception as e:
+                    print(f"Onboarding trigger error: {e}")
+                return
+            
+        # 2. Check if user typed a Paid Key
+        current_keys = load_keys()
+        if text in current_keys:
+            p["secured"] = True
+            p["activation_key"] = text
+            save_profile(uid, p)
+            bot.send_message(uid, "✅ <b>Key Accepted! Welcome to Hamilton.</b>", parse_mode="HTML")
+            return
+            
+        # 3. If it's completely wrong
+        if text and not text.startswith("/"):
+            msg = "🔒 <b>Hamilton needs an activation key to begin.</b>\n\n" + _pricing_message()
+            bot.send_message(uid, msg, parse_mode="HTML", disable_web_page_preview=True)
+            return
+
+    p = load_profile(message.chat.id)
+    if not p or not p.get("secured"):
+        trigger_trial(message.chat.id)
+        return
+
+    p = load_profile(message.chat.id)
+    if p and not p.get("secured"):
+        trial_msg = _no_key_message(uid=message.chat.id)
+        if trial_msg:
+            bot.send_message(message.chat.id, trial_msg, parse_mode="HTML")
+        return
+
     # PLANNER INTERCEPT: Do not interfere if user is in planner
     try:
         import c50_planner
@@ -1331,7 +1436,43 @@ def free_text_handler(message):
     if not p.get("secured"):
         if is_valid_key(text):
             p["secured"] = True
-            p["activation_key"] = text.strip()
+            entered_key = text.strip()
+            p["activation_key"] = entered_key
+            
+            # Check if it's a TRIAL key
+            if entered_key.startswith("TRIAL-"):
+                import json, os
+                trials = json.load(open("data/trial_keys.json")) if os.path.exists("data/trial_keys.json") else {}
+                if entered_key in trials:
+                    p["is_trial"] = True
+                    p["trial_expiry"] = trials[entered_key]["expires_at"]
+                    p["secured"] = True
+                    save_profile(uid, p)
+                    bot.send_message(uid, "✅ <b>Trial Activated Successfully!</b>\nYou have full access for 5 days.", parse_mode="HTML")
+                    return
+                else:
+                    bot.send_message(uid, "❌ <b>Invalid Trial Key.</b>\n\n" + _pricing_message(), parse_mode="HTML")
+                    return
+            
+            # Check if it's a PAID key
+            current_keys = load_keys()
+            if entered_key not in current_keys:
+                bot.send_message(uid, "❌ <b>Invalid Key!</b>\n\n" + _pricing_message(), parse_mode="HTML")
+                return
+            else:
+                p["secured"] = True
+                save_profile(uid, p)
+                bot.send_message(uid, "✅ <b>Key Accepted! Welcome to Hamilton.</b>", parse_mode="HTML")
+                return
+            # Validate the key immediately
+            current_keys = load_keys()
+            if text.strip() not in current_keys:
+                from c01zt_trial import trigger_trial
+                if text.strip().startswith("TRIAL-"):
+                    trigger_trial(uid)
+                else:
+                    bot.send_message(uid, "❌ <b>Invalid Key!</b>\n\n" + _pricing_message(), parse_mode="HTML")
+                return
             p["key_expired"] = False
             p["onboarding_step"] = "name"
             save_profile(uid, p)
@@ -1517,12 +1658,28 @@ def free_text_handler(message):
 
     # 3-tier classification (merged single-call: classify + answer)
     bump_api_calls(uid)
+    prompt = f"Analyze the user message: '{text}'.\n"
+    prompt += "If it is related to JEE Main, JEE Advanced, EAPCET, exam planning, or how to use the Hamilton bot, reply starting with 'YES|' followed immediately by your helpful answer.\n"
+    prompt += "If it is completely off-topic (e.g., movies, random chat, abuse, fake names), reply with exactly 'NO'."
+    
     try:
-        intent, merged_reply = ai_client.classify_message_and_answer(
-            exam, text, selected_exams=p.get("exams") or [exam]
-        )
+        raw_res = ai_client.ask_hamilton(exam, prompt) or "YES|AI is currently unavailable."
     except Exception:
-        intent, merged_reply = "STUDY", None
+        raw_res = "YES|AI Error. Please try again."
+        
+    if raw_res.strip().upper() == "NO":
+        intent = "OFF_TOPIC"
+        merged_reply = None
+    else:
+        intent = "STUDY"
+        merged_reply = raw_res.replace("YES|", "", 1).strip()
+
+    # --- SAFETY BYPASS FOR STUDY QUESTIONS ---
+    study_keywords = ["thermo", "ktg", "kinetic", "heat", "physics", "chemistry", "maths", "math", "explain", "what is", "define", "formula", "derive", "solve", "question", "chapter", "concept", "theory"]
+    if intent == "OFF_TOPIC" and any(k in text.lower() for k in study_keywords):
+        intent = "STUDY"
+        merged_reply = None # Force it to generate a proper answer below
+    # -----------------------------------------
 
     if intent == "OFF_TOPIC":
         blocked_now, mins = register_strike(uid)

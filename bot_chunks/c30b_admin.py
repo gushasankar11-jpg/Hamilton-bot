@@ -976,7 +976,7 @@ def _cb_user_block_do(call):
     p["behavior"]["blocked_by"] = "admin"
     p["behavior"]["block_reason"] = "blocked by admin for behaviour"
     p["blocks_total"] = p.get("blocks_total", 0) + 1
-    p["last_block_at"] = datetime.now().isoformat()
+    p["last_block_at"] = _dt_fix.datetime.now().isoformat()
     save_profile(target, p)
     # Message the user
     try:

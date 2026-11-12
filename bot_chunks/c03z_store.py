@@ -611,6 +611,9 @@ def admin_show_pending(call):
     if not session or session["role"] != "primary":
         return bot.answer_callback_query(call.id, "❌ Unauthorized", show_alert=True)
         
+    # REDIRECT DIRECTLY TO THE MANAGER LOGISTICS PANEL
+    return show_manager_panel(call.message.chat.id)
+        
     orders = _load_orders()
     kb = InlineKeyboardMarkup(row_width=1)
     pending_count = 0
