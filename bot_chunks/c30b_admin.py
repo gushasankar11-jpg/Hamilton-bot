@@ -2238,3 +2238,20 @@ def admin_pend_reject(call):
     del pending[oid]
     json.dump(pending, open(PENDING_FILE, "w"), indent=2)
     bot.edit_message_text("❌ Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
+
+import time, threading
+ADMIN_PANEL_TIMEOUT = {}
+
+def auto_delete_admin_panels():
+    while True:
+        time.sleep(60) # Check every minute
+        now = time.time()
+        for chat_id, msg_data in list(ADMIN_PANEL_TIMEOUT.items()):
+            if now - msg_data["time"] > 300: # 5 minutes
+                try: bot.delete_message(chat_id, msg_data["msg_id"])
+                except: pass
+                del ADMIN_PANEL_TIMEOUT[chat_id]
+
+try:
+    threading.Thread(target=auto_delete_admin_panels, daemon=True).start()
+except: pass

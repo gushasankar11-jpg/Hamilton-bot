@@ -801,12 +801,53 @@ def handle_manager_callbacks(call):
         kb.add(InlineKeyboardButton("0", callback_data="otp_press:0"), InlineKeyboardButton("Clear", callback_data="otp_press:C"), InlineKeyboardButton("Submit", callback_data="otp_press:S"))
         kb.add(InlineKeyboardButton("🔙 Back", callback_data="mgr_back"))
         
-        bot.send_message(uid, f"🔐 <b>Enter OTP for {o.get('name')}</b>\nCurrent: ---", reply_markup=kb, parse_mode="HTML")
+        msg = bot.send_message(uid, f"🔐 <b>Enter OTP for {o.get('name')}</b>\nCurrent: ---", reply_markup=kb, parse_mode="HTML")
         
         if not hasattr(bot, "MANAGER_SESSIONS_OTP"): bot.MANAGER_SESSIONS_OTP = {}
-        bot.MANAGER_SESSIONS_OTP[uid] = {"target_uid": target_uid, "idx": idx, "entered": "", "msg_id": None}
+        bot.MANAGER_SESSIONS_OTP[uid] = {"target_uid": target_uid, "idx": idx, "entered": "", "msg_id": msg.message_id}
 
 @bot.callback_query_handler(func=lambda c: c.data.startswith("otp_press:"))
+def handle_otp_press(call):
+    uid = call.message.chat.id
+    if not hasattr(bot, "MANAGER_SESSIONS_OTP") or uid not in bot.MANAGER_SESSIONS_OTP: 
+        return bot.answer_callback_query(call.id, "Session expired. Please click Generate OTP again.", show_alert=True)
+    
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    
+    val = call.data.split(":")[1]
+    state = bot.MANAGER_SESSIONS_OTP[uid]
+    
+    if val == "C":
+        state["entered"] = ""
+    elif val == "S":
+        orders = _load_orders()
+        o = orders[state["target_uid"]][state["idx"]]
+        if state["entered"] == o.get("otp"):
+            o["status"] = "DELIVERED"
+            o["otp"] = "USED"
+            _save_orders(orders)
+            
+            try: bot.edit_message_text("✅ <b>OTP MATCHED. ORDER DELIVERED!</b>", chat_id=uid, message_id=call.message.message_id)
+            except: pass
+            try: bot.send_message(int(state["target_uid"]), "✅ <b>Order Delivered!</b>\nThank you for shopping with HK Publications.", parse_mode="HTML")
+            except: pass
+            
+            del bot.MANAGER_SESSIONS_OTP[uid]
+        else:
+            bot.answer_callback_query(call.id, "❌ Incorrect OTP. Try again.", show_alert=True)
+            state["entered"] = ""
+            masked = "---"
+            try: bot.edit_message_text(f"🔐 <b>Enter OTP for Order</b>\nCurrent: <code>{masked}</code>", chat_id=uid, message_id=call.message.message_id, reply_markup=call.message.reply_markup, parse_mode="HTML")
+            except: pass
+        return
+    else:
+        if len(state["entered"]) < 5: state["entered"] += val
+        
+    masked = state["entered"] + "-" * (5 - len(state["entered"]))
+    try: bot.edit_message_text(f"🔐 <b>Enter OTP for Order</b>\nCurrent: <code>{masked}</code>", chat_id=uid, message_id=call.message.message_id, reply_markup=call.message.reply_markup, parse_mode="HTML")
+    except: pass
+
 def handle_otp_press(call):
     uid = call.message.chat.id
     if not hasattr(bot, "MANAGER_SESSIONS_OTP") or uid not in bot.MANAGER_SESSIONS_OTP: return
