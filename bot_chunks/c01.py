@@ -386,23 +386,32 @@ def _check_key_expired(uid, profile):
     used_key = profile.get("activation_key")
     if not used_key:
         return False
+
+    # 1. CHECK IF IT IS A TRIAL KEY
+    if profile.get("is_trial"):
+        import datetime as _dt
+        try:
+            exp = _dt.datetime.fromisoformat(profile.get("trial_expiry"))
+            if _dt.datetime.now() > exp:
+                safe_send(uid, "⏳ <b>Your 5-Day Free Trial has expired.</b>\n\nContact Admin to buy the original key:\n👉 <a href='https://wa.me/918074231426'>WhatsApp +91 80742 31426</a>", parse_mode="HTML")
+                return True
+        except: pass
+        return False # Trial is valid and active!
+
+    # 2. CHECK PAID KEYS
     current_keys = load_keys()
     if used_key not in current_keys:
         profile["secured"] = False
         profile["key_expired"] = True
         save_profile(uid, profile)
         safe_send(uid,
-            "⌛ Your activation key has expired.\n\n"
-            f"To get a fresh key, WhatsApp *{WHATSAPP_CONTACT}*.\n\n"
+            "⌛ <b>Your activation key has expired.</b>\n\n"
+            f"To get a fresh key, WhatsApp <a href='https://wa.me/918074231426'>Admin</a>.\n\n"
             "Send your new key here to unlock.",
-            parse_mode="Markdown")
+            parse_mode="HTML")
         return True
     return False
 
-
-# ==========================================================
-# COUNTDOWN
-# ==========================================================
 def _days_until_exam(exam, year):
     if exam not in EXAM_MD:
         return None
@@ -450,25 +459,23 @@ def _countdown_footer(uid):
 # ==========================================================
 def _pricing_message():
     return (
-        f"💰 *Price: ₹{PRICE_UNIVERSAL}* — any exam, full prep duration.\n\n"
-        f"{PRICING_NOTE}\n"
-        f"WhatsApp: *{WHATSAPP_CONTACT}*"
+        "💰 <b>Price: ₹369</b> — fixed for all exams.\n"
+        "Note: This price is valid for <b>1 year</b> of access.\n\n"
+        "📞 To get your key, message admin Krishna Vamsi at Hemanth and Krishna Publications:\n"
+        "WhatsApp: <a href='https://wa.me/918074231426'>+91 80742 31426</a>"
     )
 
-
-def _no_key_message(short=False):
+def _no_key_message(short=False, uid=None):
     if short:
         return (
             "🔒 Hamilton needs an activation key.\n\n"
-            f"Send your key to begin, or contact *{WHATSAPP_CONTACT}*."
+            "Send your key to begin, or contact <a href='https://wa.me/918074231426'>Admin</a>."
         )
     return (
-        "🔒 *Hamilton needs an activation key to begin.*\n\n"
-        f"If you don't have a key yet, message WhatsApp *{WHATSAPP_CONTACT}*.\n\n"
+        "🔒 <b>Hamilton needs an activation key to begin.</b>\n\n"
         + _pricing_message()
         + "\n\nOnce you receive your key, send it here to unlock Hamilton."
     )
-
 
 def _hamilton_story():
     return (

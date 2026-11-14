@@ -1,0 +1,26 @@
+{
+  "TRIAL-XJVCZ1": {
+    "expires_at": "2026-11-13T07:59:27.619201",
+    "used_by": null,
+    "generated_for": 5586609986,
+    "is_used": false
+  },
+  "TRIAL-JQB3CR": {
+    "expires_at": "2026-11-14T11:47:34.345208",
+    "used_by": null,
+    "generated_for": 7591846553,
+    "is_used": false
+  },
+  "TRIAL-ENKPUL": {
+    "expires_at": "2026-11-17T07:02:29.384229",
+    "used_by": null,
+    "generated_for": 7579136493,
+    "is_used": false
+  },
+  "TRIAL-CJYF79": {
+    "expires_at": "2026-11-19T05:53:27.036474",
+    "used_by": null,
+    "generated_for": 502031209,
+    "is_used": false
+  }
+}

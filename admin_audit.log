@@ -350,3 +350,26 @@
 {"ts": "2026-11-02T08:59:14.995002", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
 {"ts": "2026-11-02T08:59:27.761030", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
 {"ts": "2026-11-02T08:59:32.483985", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-06T06:42:26.314244", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-06T06:42:26.401295", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-06T06:42:26.721181", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-07T06:51:08.974554", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-07T06:51:15.581006", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-07T23:39:20.710411", "event": "lockin_generator_used", "chat_id": 5586609986, "extra": {"expires_in_min": 10}}
+{"ts": "2026-11-07T23:39:26.077754", "event": "lockin_used", "chat_id": 5586609986, "extra": {}}
+{"ts": "2026-11-10T06:46:40.479870", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T06:46:47.718814", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-10T20:19:28.694334", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T20:19:33.967421", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-10T20:52:20.202714", "event": "panel_opened", "chat_id": 5586609986, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T20:52:28.885960", "event": "primary_login_ok", "chat_id": 5586609986, "extra": {}}
+{"ts": "2026-11-10T20:53:12.212617", "event": "panel_opened", "chat_id": 5586609986, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T20:53:21.824571", "event": "primary_login_ok", "chat_id": 5586609986, "extra": {}}
+{"ts": "2026-11-10T21:15:12.239579", "event": "panel_opened", "chat_id": 5586609986, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T21:15:18.563028", "event": "primary_login_ok", "chat_id": 5586609986, "extra": {}}
+{"ts": "2026-11-10T21:16:57.085846", "event": "panel_opened", "chat_id": 5586609986, "extra": {"role": "primary"}}
+{"ts": "2026-11-10T21:17:00.981267", "event": "primary_login_ok", "chat_id": 5586609986, "extra": {}}
+{"ts": "2026-11-12T06:10:06.675632", "event": "panel_opened", "chat_id": 8857708587, "extra": {"role": "primary"}}
+{"ts": "2026-11-12T06:10:12.990753", "event": "primary_login_ok", "chat_id": 8857708587, "extra": {}}
+{"ts": "2026-11-12T07:24:31.548463", "event": "panel_opened", "chat_id": 5586609986, "extra": {"role": "primary"}}
+{"ts": "2026-11-12T07:24:42.482223", "event": "primary_login_ok", "chat_id": 5586609986, "extra": {}}

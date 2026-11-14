@@ -91,7 +91,7 @@ def _live_loop():
                             new_kb = None
 
                     # Edit message with the rebuilt keyboard
-                    bot.edit_message_text(
+                    _b().edit_message_text(
                         chat_id=uid,
                         message_id=msg_id,
                         text=new_text,

@@ -1,0 +1,273 @@
+import os, json, qrcode, datetime, random, string
+from io import BytesIO
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# CONFIGURATION
+UPI_ID = "7032617894@ybl"
+ADMIN_GROUP_ID = 8857708587 # Replace with your group ID if different
+STORE_STATE = {}
+
+PRODUCTS = [
+    {"id": "1", "name": "HK Physics Material", "price": 230, "link": "https://wa.me/p/29345775085017763/918074231426"},
+    {"id": "2", "name": "HK Chemistry Material", "price": 230, "link": "https://wa.me/p/28858350743773416/918074231426"},
+    {"id": "3", "name": "HK Maths Material", "price": 230, "link": "https://wa.me/p/37659707166953822/918074231426"},
+    {"id": "4", "name": "HK EAPCET Grand Test", "price": 150, "link": "https://wa.me/p/27602087376124822/918074231426"},
+    {"id": "5", "name": "HK JEE Main Grand Test", "price": 150, "link": "https://wa.me/p/37197185153261563/918074231426"},
+    {"id": "6", "name": "HK JEE Adv Grand Test", "price": 150, "link": "https://wa.me/p/38161400123451221/918074231426"},
+    {"id": "7", "name": "HK Formula Booklet", "price": 99, "link": "https://wa.me/p/36883482691295177/918074231426"},
+    {"id": "8", "name": "HK Previous Year Papers", "price": 199, "link": "https://wa.me/p/27177195635293074/918074231426"},
+    {"id": "9", "name": "HK Study Planner", "price": 49, "link": "https://wa.me/p/28258833240380540/918074231426"},
+    {"id": "10", "name": "Hamilton AI Premium (1 Year)", "price": 369, "link": "https://wa.me/p/27775224768808817/918074231426"}
+]
+
+def _get_cart(uid):
+    if uid not in STORE_STATE: STORE_STATE[uid] = {"cart": {}, "delivery_date": None, "address": "", "is_ai": False}
+    return STORE_STATE[uid]
+
+@bot.message_handler(commands=['shop'])
+def cmd_shop(message):
+    uid = message.chat.id
+    STORE_STATE[uid] = {"cart": {}, "delivery_date": None, "address": "", "is_ai": False}
+    
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(InlineKeyboardButton("🎓 Hamilton AI Prep", callback_data="shop_ai"))
+    kb.add(InlineKeyboardButton("🛒 HK Publications Store", callback_data="shop_catalog"))
+    bot.send_message(uid, "🏪 <b>Welcome to Hemanth & Krishna Publications!</b>\nWhat would you like to browse?", parse_mode="HTML", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("shop_"))
+def handle_shop(call):
+    uid = call.message.chat.id
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    data = call.data
+
+    if data == "shop_catalog":
+        kb = InlineKeyboardMarkup(row_width=1)
+        for p in PRODUCTS:
+            kb.add(InlineKeyboardButton(f"{p['name']} - ₹{p['price']}", callback_data=f"add_prod:{p['id']}"))
+        kb.add(InlineKeyboardButton("🛒 View Cart", callback_data="view_cart"))
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="shop_main"))
+        try: bot.delete_message(uid, call.message.message_id)
+        except: pass
+        bot.send_message(uid, "📚 <b>Select a Product:</b>", parse_mode="HTML", reply_markup=kb)
+
+    elif data.startswith("add_prod:"):
+        pid = data.split(":")[1]
+        cart = _get_cart(uid)["cart"]
+        cart[pid] = cart.get(pid, 0) + 1
+        
+        prod = next(p for p in PRODUCTS if p["id"] == pid)
+        kb = InlineKeyboardMarkup()
+        kb.row(InlineKeyboardButton("➖", callback_data=f"rem_prod:{pid}"), InlineKeyboardButton("➕", callback_data=f"add_prod:{pid}"))
+        kb.add(InlineKeyboardButton("✅ Done Adding", callback_data="view_cart"))
+        
+        try: bot.edit_message_text(f"📦 <b>{prod['name']}</b>\nQty: {cart[pid]}\nPrice: ₹{prod['price']} each", chat_id=uid, message_id=call.message.message_id, reply_markup=kb, parse_mode="HTML")
+        except: pass
+
+    elif data.startswith("rem_prod:"):
+        pid = data.split(":")[1]
+        cart = _get_cart(uid)["cart"]
+        if pid in cart:
+            cart[pid] -= 1
+            if cart[pid] <= 0: del cart[pid]
+        
+        if not cart:
+            handle_shop(type('obj', (object,), {'id': call.id, 'message': call.message, 'data': 'shop_catalog'})())
+            return
+            
+        prod = next(p for p in PRODUCTS if p["id"] == pid)
+        kb = InlineKeyboardMarkup()
+        kb.row(InlineKeyboardButton("➖", callback_data=f"rem_prod:{pid}"), InlineKeyboardButton("➕", callback_data=f"add_prod:{pid}"))
+        kb.add(InlineKeyboardButton("✅ Done Adding", callback_data="view_cart"))
+        
+        try: bot.edit_message_text(f"📦 <b>{prod['name']}</b>\nQty: {cart.get(pid, 0)}\nPrice: ₹{prod['price']} each", chat_id=uid, message_id=call.message.message_id, reply_markup=kb, parse_mode="HTML")
+        except: pass
+
+    elif data == "view_cart":
+        cart = _get_cart(uid)["cart"]
+        if not cart:
+            bot.answer_callback_query(call.id, "Your cart is empty!", show_alert=True)
+            return
+            
+        total = 0
+        txt = "🛒 <b>Your Cart:</b>\n\n"
+        for pid, qty in cart.items():
+            p = next(pr for pr in PRODUCTS if pr["id"] == pid)
+            subtotal = p["price"] * qty
+            total += subtotal
+            txt += f"• {p['name']} (x{qty}) = ₹{subtotal}\n"
+        
+        txt += f"\n💰 <b>Total: ₹{total}</b>"
+        
+        kb = InlineKeyboardMarkup()
+        kb.add(InlineKeyboardButton("✅ Checkout", callback_data="checkout"))
+        kb.add(InlineKeyboardButton("🔙 Back to Shop", callback_data="shop_catalog"))
+        try: bot.delete_message(uid, call.message.message_id)
+        except: pass
+        bot.send_message(uid, txt, parse_mode="HTML", reply_markup=kb)
+
+    elif data == "shop_ai":
+        kb = InlineKeyboardMarkup(row_width=1)
+        kb.add(InlineKeyboardButton("1 Year - ₹369", callback_data="ai_plan:1"))
+        kb.add(InlineKeyboardButton("2 Years - ₹699", callback_data="ai_plan:2"))
+        kb.add(InlineKeyboardButton("3 Years - ₹999", callback_data="ai_plan:3"))
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="shop_main"))
+        try: bot.delete_message(uid, call.message.message_id)
+        except: pass
+        bot.send_message(uid, "🤖 <b>Hamilton AI Premium Plans</b>\nSelect duration:", parse_mode="HTML", reply_markup=kb)
+
+    elif data.startswith("ai_plan:"):
+        years = data.split(":")[1]
+        price = {"1": 369, "2": 699, "3": 999}[years]
+        STORE_STATE[uid] = {"cart": {}, "delivery_date": None, "address": "Digital", "is_ai": True, "ai_years": years, "ai_price": price}
+        
+        kb = InlineKeyboardMarkup()
+        kb.add(InlineKeyboardButton("✅ Proceed to Pay", callback_data="checkout"))
+        kb.add(InlineKeyboardButton("🔙 Back", callback_data="shop_main"))
+        bot.send_message(uid, f"🤖 <b>Hamilton AI Premium</b>\nDuration: {years} Year(s)\nTotal: ₹{price}", parse_mode="HTML", reply_markup=kb)
+
+    elif data == "shop_main":
+        try: bot.delete_message(uid, call.message.message_id)
+        except: pass
+        cmd_shop(call.message)
+
+    elif data == "checkout":
+        state = _get_cart(uid)
+        if state["is_ai"]:
+            generate_qr(uid, state["ai_price"], state["is_ai"])
+        else:
+            if not state["cart"]: return
+            # Calculate Total (Min 3 days logic)
+            total = sum(next(p for p in PRODUCTS if p["id"] == pid)["price"] * qty for pid, qty in state["cart"].items())
+            
+            kb = InlineKeyboardMarkup()
+            d1 = (datetime.datetime.now() + datetime.timedelta(days=3)).strftime("%Y-%m-%d")
+            d2 = (datetime.datetime.now() + datetime.timedelta(days=5)).strftime("%Y-%m-%d")
+            d3 = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+            kb.add(InlineKeyboardButton(f"{d1}", callback_data=f"del_date:{d1}"))
+            kb.add(InlineKeyboardButton(f"{d2}", callback_data=f"del_date:{d2}"))
+            kb.add(InlineKeyboardButton(f"{d3}", callback_data=f"del_date:{d3}"))
+            kb.add(InlineKeyboardButton("🔙 Back", callback_data="view_cart"))
+            
+            try: bot.delete_message(uid, call.message.message_id)
+            except: pass
+            bot.send_message(uid, f"📦 <b>Total: ₹{total}</b>\n\nWhen do you want to receive your order?\n<i>(Minimum 3 days from today)</i>", parse_mode="HTML", reply_markup=kb)
+
+    elif data.startswith("del_date:"):
+        date = data.split(":")[1]
+        state = _get_cart(uid)
+        state["delivery_date"] = date
+        
+        # Ask for Location
+        kb = InlineKeyboardMarkup(row_width=1)
+        kb.add(InlineKeyboardButton("📍 Nellore (₹50 Delivery)", callback_data="loc:Nellore"))
+        kb.add(InlineKeyboardButton("🌍 Outside Nellore", callback_data="loc:Outside"))
+        bot.send_message(uid, "📍 <b>Where do you want delivery?</b>", parse_mode="HTML", reply_markup=kb)
+
+    elif data.startswith("loc:"):
+        loc = data.split(":")[1]
+        state = _get_cart(uid)
+        state["location"] = loc
+        
+        base_total = sum(next(p for p in PRODUCTS if p["id"] == pid)["price"] * qty for pid, qty in state["cart"].items())
+        final_total = base_total + (50 if loc == "Nellore" else 0)
+        
+        if loc == "Outside":
+            bot.send_message(uid, "⚠️ External delivery charges will be applied. Please contact Admin after payment:\n👉 <a href='https://wa.me/918074231426'>WhatsApp</a>", parse_mode="HTML")
+        
+        generate_qr(uid, final_total, False)
+
+def generate_qr(uid, total, is_ai):
+    # Dynamic UPI String
+    order_id = "ORD-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    upi_str = f"upi://pay?pa={UPI_ID}&pn=HK_Publications&am={total:.2f}&cu=INR&tn={order_id}"
+    
+    qr = qrcode.make(upi_str)
+    bio = BytesIO()
+    qr.save(bio, "PNG")
+    bio.seek(0)
+    
+    STORE_STATE[uid]["order_id"] = order_id
+    STORE_STATE[uid]["total_amount"] = total
+    
+    caption = f"🏷 <b>Order ID: {order_id}</b>\n💰 <b>Amount: ₹{total:.2f}</b>\n\nScan this QR with GPay/PhonePe to pay.\n\nOnce paid, click the button below."
+    
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("✅ I Have Paid", callback_data="verify_manual"))
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="cancel_order"))
+    
+    bot.send_photo(uid, bio, caption=caption, parse_mode="HTML", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data == "cancel_order")
+def cancel_order(call):
+    uid = call.message.chat.id
+    try: bot.delete_message(uid, call.message.message_id)
+    except: pass
+    bot.send_message(uid, "❌ Order Cancelled.")
+    STORE_STATE.pop(uid, None)
+
+@bot.callback_query_handler(func=lambda c: c.data == "verify_manual")
+def verify_manual(call):
+    uid = call.message.chat.id
+    state = _get_cart(uid)
+    
+    try: bot.edit_message_caption("⏳ <b>Waiting for Admin Approval...</b>\nPlease wait while we verify your payment.", chat_id=uid, message_id=call.message.message_id, parse_mode="HTML")
+    except: pass
+    
+    # Send to Admin Group
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("✅ Approve Payment", callback_data=f"admin_approve:{uid}"))
+    kb.add(InlineKeyboardButton("❌ Reject", callback_data=f"admin_reject:{uid}"))
+    
+    msg = (f"🚨 <b>NEW PAYMENT TO VERIFY</b>\n"
+           f"👤 User ID: {uid}\n"
+           f"🏷 Order ID: {state['order_id']}\n"
+           f"💰 Amount: ₹{state['total_amount']}\n"
+           f"📍 Location: {state.get('location', 'Digital')}\n"
+           f"📅 Delivery: {state.get('delivery_date', 'Immediate')}\n")
+    try:
+        bot.send_message(ADMIN_GROUP_ID, msg, parse_mode="HTML", reply_markup=kb)
+    except Exception as e:
+        bot.send_message(uid, f"⚠️ Could not notify admin. Error: {e}")
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("admin_approve:") or c.data.startswith("admin_reject:"))
+def admin_verify(call):
+    action, target_uid = call.data.split(":")
+    target_uid = int(target_uid)
+    state = STORE_STATE.get(target_uid)
+    if not state: return
+    
+    if action == "admin_approve":
+        try: bot.edit_message_text("✅ Payment Approved!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        except: pass
+        
+        if state.get("is_ai"):
+            years = state["ai_years"]
+            key = f"HK-AI-{years}Y-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            
+            # Save as a paid key in paid_keys.json
+            if not os.path.exists("data/paid_keys.json"): json.dump({}, open("data/paid_keys.json", "w"))
+            pk = json.load(open("data/paid_keys.json"))
+            pk[key] = {"user_id": target_uid, "years": years, "date": datetime.datetime.now().isoformat()}
+            json.dump(pk, open("data/paid_keys.json", "w"), indent=2)
+            
+            bot.send_message(target_uid, f"🎉 <b>Payment Verified!</b>\n\nThank you for purchasing Hamilton AI Premium.\n\n🔑 <b>Your Access Key:</b>\n<code>{key}</code>\n\nSave this key. You will need it to login.", parse_mode="HTML")
+        else:
+            items_txt = ""
+            for pid, qty in state["cart"].items():
+                p = next(pr for pr in PRODUCTS if pr["id"] == pid)
+                items_txt += f"- {p['name']} x{qty}\n"
+            
+            receipt = (f"🎉 <b>Payment Verified!</b>\n\nYour order has been placed.\n\n"
+                       f"📦 <b>Items:</b>\n{items_txt}\n"
+                       f"📅 <b>Delivery Date:</b> {state.get('delivery_date')}\n"
+                       f"📍 <b>Location:</b> {state.get('location')}\n\n"
+                       f"We will contact you soon on WhatsApp.")
+            bot.send_message(target_uid, receipt, parse_mode="HTML")
+            
+        STORE_STATE.pop(target_uid, None)
+        
+    elif action == "admin_reject":
+        try: bot.edit_message_text("❌ Payment Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        except: pass
+        bot.send_message(target_uid, "❌ Your payment was rejected. Please contact admin.")

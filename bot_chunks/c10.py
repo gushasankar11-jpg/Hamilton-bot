@@ -9,14 +9,14 @@ def _no_key_message(short=False):
     if short:
         return (
             "🔒 Hamilton needs an activation key.\n\n"
-            f"💰 Price: *₹169* (fixed)\n"
+            f"💰 Price: *₹359* (fixed)\n"
             f"_May vary on your year of selection._\n\n"
             f"📞 Contact admin *Krishna Vamsi* at *Hemanth and Krishna Publications*:\n"
             f"WhatsApp *{WHATSAPP_CONTACT}*"
         )
     return (
         "🔒 *Hamilton needs an activation key to begin.*\n\n"
-        f"💰 *Price: ₹169* — fixed for all exams.\n"
+        f"💰 *Price: ₹359* — fixed for all exams.\n"
         f"_Note: Price may vary based on your year of selection._\n\n"
         f"📞 To get your key, message admin *Krishna Vamsi* at "
         f"*Hemanth and Krishna Publications*:\n"

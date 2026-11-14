@@ -456,3 +456,24 @@ print("✅ c50_planner: Master Version (Back Btn + Time Logic + Emojis) loaded."
 print('##### C50 FINISHED EXECUTING #####', flush=True)
 
 print('C50_END_MARK', flush=True)
+
+# ─── /sample command (safe addition, bot already defined by c01) ───
+@bot.message_handler(commands=['sample'])
+def cmd_sample_crops(message):
+    import glob as _g, os as _o, random as _r
+    uid = message.chat.id
+    files = []
+    for f in _g.glob('pyq_images/extracted_books_v3/**/*.png', recursive=True):
+        try:
+            if _o.path.getsize(f) > 40000: files.append(f)
+        except: pass
+    if not files:
+        bot.send_message(uid, "⚠️ No crops ≥40KB yet. Wait for extraction to finish.")
+        return
+    bot.send_message(uid, f"📤 Sending 3 of {len(files)} sample crops...")
+    for f in _r.sample(files, min(3, len(files))):
+        try:
+            with open(f, 'rb') as fh:
+                bot.send_photo(uid, fh, caption=_o.path.basename(f))
+        except Exception as e:
+            bot.send_message(uid, f"⚠️ {f}: {e}")

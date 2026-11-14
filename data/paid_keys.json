@@ -1,0 +1,20 @@
+{
+  "HK-AI-Krishnavam-1Y-Q9KXUM": {
+    "user_id": 5483091877,
+    "name": "Krishna Vamsi",
+    "years": 1,
+    "order_id": "HK-ORD-0005",
+    "purchase_date": "2026-11-08T18:28:09.619461",
+    "expires_at": "2027-11-08T18:28:09.618088",
+    "status": "ACTIVE"
+  },
+  "HK-AI-Viharinaid-1Y-Y67IBO": {
+    "user_id": 5586609986,
+    "name": "Vihari Naidu",
+    "years": 1,
+    "order_id": "admin_approve:5586609986:HK-ORD-0018",
+    "purchase_date": "2026-11-14T06:01:18.467011",
+    "expires_at": "2027-11-14T06:01:18.463729",
+    "status": "ACTIVE"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "secured": true,
-  "name": "D.ariharsha",
+  "name": "D.sriharsha",
   "institute": "Viswasai junior college",
   "level": "Junior",
   "exams": [
@@ -18,10 +18,10 @@
   "subtopic_stats": {},
   "onboarding_step": "done",
   "behavior": {
-    "strikes": 2,
+    "strikes": 0,
     "blocked_until": null
   },
-  "strikes_total": 2,
+  "strikes_total": 0,
   "blocks_total": 0,
   "api_calls_total": 12,
   "last_strike_at": "2026-10-29T06:00:17.263890",
