@@ -141,6 +141,12 @@ def cmd_test_fam(message):
     
     def run_live_timer(msg_id, o_id):
         while True:
+            # STOP THE TIMER IF THE ORDER IS PAID
+            if o_id in ACTIVE_ORDERS and ACTIVE_ORDERS[o_id].get("paid"):
+                try: bot.delete_message(uid, msg_id)
+                except: pass
+                break
+                
             rem = int(expiry_time - time.time())
             if rem < 0: rem = 0
             mins, secs = divmod(rem, 60)
@@ -489,6 +495,7 @@ def generate_qr(uid, total):
     ACTIVE_ORDERS[order_id] = {
         "order_id": order_id,
         "name": state.get("order_name"),
+        "timer_msg_id": None,
         "phone": state.get("phone", "N/A"),
         "map_link": state.get("map_link", "N/A"),
         "amount": total,
@@ -519,6 +526,9 @@ def generate_qr(uid, total):
 
     # EXACT 1-SECOND TIMER
     t_msg = bot.send_message(uid, "⏳ <b>Time Remaining:</b> 05:00", parse_mode="HTML")
+    if order_id in ACTIVE_ORDERS:
+        ACTIVE_ORDERS[order_id]["timer_msg_id"] = t_msg.message_id
+        _save_active_orders()
     
     if order_id in ACTIVE_ORDERS:
         ACTIVE_ORDERS[order_id]["photo_msg_id"] = photo_msg.message_id
@@ -526,6 +536,12 @@ def generate_qr(uid, total):
         _save_active_orders()
     def run_live_timer(msg_id, o_id):
         while True:
+            # STOP THE TIMER IF THE ORDER IS PAID
+            if o_id in ACTIVE_ORDERS and ACTIVE_ORDERS[o_id].get("paid"):
+                try: bot.delete_message(uid, msg_id)
+                except: pass
+                break
+                
             rem = int(expiry_time - time.time())
             if rem < 0: rem = 0
             mins, secs = divmod(rem, 60)
@@ -550,60 +566,95 @@ def generate_qr(uid, total):
     threading.Thread(target=run_live_timer, args=(t_msg.message_id, order_id), daemon=True).start()
 
 def admin_verify(call, order=None):
-    parts = call.data.split(":")
-    action = parts[0]
-    target_uid = int(parts[1])
-    
-    if not order and len(parts) > 2:
-        order_id = parts[2]
-        order = ACTIVE_ORDERS.get(order_id)
+    try:
+        parts = call.data.split(":")
+        action = parts[0]
+        target_uid = int(parts[1])
         
-    if not order: 
-        try: bot.answer_callback_query(call.id, "❌ Order data missing or expired.", show_alert=True)
-        except: pass
-        return
-    
-    if action == "admin_approve":
-        try: bot.edit_message_text("✅ Payment Approved!", chat_id=call.message.chat.id, message_id=call.message.message_id)
-        except: pass
-        
-        cart = order.get("cart", {})
-        ai_items = {pid: qty for pid, qty in cart.items() if PRODUCTS[pid].get("is_ai")}
-        book_items = {pid: qty for pid, qty in cart.items() if not PRODUCTS[pid].get("is_ai")}
-        user_name = order.get("name", "User")
-        
-        if ai_items:
-            years = 1; safe_name = "".join(ch for ch in user_name if ch.isalnum())[:10].capitalize()
-            key = f"HK-AI-{safe_name}-{years}Y-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-            exp_date = _dt_safe.datetime.now() + _dt_safe.timedelta(days=365 * int(years))
-            if not os.path.exists("data/paid_keys.json"): json.dump({}, open("data/paid_keys.json", "w"))
-            try: pk = json.load(open("data/paid_keys.json"))
-            except: pk = {}
-            pk[key] = {"user_id": target_uid, "name": user_name, "years": years, "order_id": call.data, "purchase_date": _dt_safe.datetime.now().isoformat(), "expires_at": exp_date.isoformat(), "status": "ACTIVE"}
-            json.dump(pk, open("data/paid_keys.json", "w"), indent=2)
-            bot.send_message(target_uid, f"🎉 <b>AI Access Verified!</b>\n\n🔑 Key: <code>{key}</code>\n\n👉 <a href='https://wa.me/918074231426'>Contact Admin</a>", parse_mode="HTML")
+        if not order and len(parts) > 2:
+            order_id = parts[2]
+            order = ACTIVE_ORDERS.get(order_id)
             
-        if book_items:
-            orders_data = _load_orders()
-            uid_str = str(target_uid)
-            if uid_str not in orders_data: orders_data[uid_str] = []
-            items_txt = "".join([f"- {PRODUCTS[pid]['name']} x{qty}\n" for pid, qty in book_items.items()])
-            orders_data[uid_str].append({"name": user_name, "items": items_txt, "total": order.get("amount"), "delivery": order.get('delivery'), "location": order.get('location'), "status": "PENDING", "contacted_admin": False, "cart_raw": cart, "date": _dt_safe.datetime.now().isoformat()})
-            _save_orders(orders_data)
-            bot.send_message(target_uid, f"🎉 <b>Payment Verified Successfully!</b>\n\n🆔 <b>Order ID:</b> <code>{order.get('order_id', 'HK-ORD')}</code>\n🔢 <b>Transaction ID:</b> <code>{order.get('utr', 'N/A')}</code>\n\n📦 <b>Items:</b>\n{items_txt}\n📅 <b>Delivery:</b> {order.get('delivery')}\n📍 <b>Location:</b> {order.get('location')}\n\n👉 <a href='https://wa.me/918074231426'>WhatsApp Admin</a>", parse_mode="HTML")
+        if not order: 
+            try: bot.answer_callback_query(call.id, "❌ Order data missing or expired.", show_alert=True)
+            except: pass
+            return
+
+        if action == "admin_approve":
+            try: bot.edit_message_text("✅ Payment Approved!", chat_id=call.message.chat.id, message_id=call.message.message_id)
+            except: pass
             
-    elif action == "admin_reject":
-        try: bot.edit_message_text("❌ Payment Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
+            # Delete the timer message
+            if order.get("timer_msg_id"):
+                try: bot.delete_message(target_uid, order.get("timer_msg_id"))
+                except: pass
+            
+            cart = order.get("cart", {})
+            ai_items = {pid: qty for pid, qty in cart.items() if PRODUCTS[pid].get("is_ai")}
+            book_items = {pid: qty for pid, qty in cart.items() if not PRODUCTS[pid].get("is_ai")}
+            
+            prof_data = {}
+            if os.path.exists(f"profiles/{target_uid}.json"):
+                try: 
+                    prof_data = json.load(open(f"profiles/{target_uid}.json"))
+                except: pass
+            user_name = order.get("name", "User")
+
+            if ai_items:
+                years = 1; safe_name = "".join(ch for ch in user_name if ch.isalnum())[:10].capitalize()
+                key = f"HK-AI-{safe_name}-{years}Y-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                exp_date = _dt_safe.datetime.now() + _dt_safe.timedelta(days=365 * int(years))
+                if not os.path.exists("data/paid_keys.json"): json.dump({}, open("data/paid_keys.json", "w"))
+                try: pk = json.load(open("data/paid_keys.json"))
+                except: pk = {}
+                pk[key] = {"user_id": target_uid, "name": user_name, "years": years, "order_id": order.get("order_id"), "purchase_date": _dt_safe.datetime.now().isoformat(), "expires_at": exp_date.isoformat(), "status": "ACTIVE"}
+                json.dump(pk, open("data/paid_keys.json", "w"), indent=2)
+                
+                # Send Key to User
+                bot.send_message(target_uid, f"🎉 <b>Payment Verified for Hamilton AI!</b>\nYour payment has been settled in our bank account. Your order is confirmed.\n\n🔑 <b>Your Key:</b> <code>{key}</code>{TRUST_LINKS}", parse_mode="HTML")
+                
+                # Post to Channel
+                try:
+                    proof_msg = f"✅ <b>PAYMENT VERIFIED (AI PLAN)</b>\n👤 Customer: {user_name}\n🏷 Order ID: <code>{order.get('order_id')}</code>\n💰 Amount Paid: ₹{order.get('amount')}\n🔑 Key Generated: <code>{key}</code>\n\n🛡️ <i>Verified via automated gateway.</i>"
+                    bot.send_message(PROOF_CHANNEL, proof_msg, parse_mode="HTML")
+                except Exception as e: print(f"Channel Error: {e}")
+                
+            if book_items:
+                orders_data = _load_orders()
+                uid_str = str(target_uid)
+                if uid_str not in orders_data: orders_data[uid_str] = []
+                items_txt = "".join([f"- {PRODUCTS[pid]['name']} x{qty}\n" for pid, qty in book_items.items()])
+                
+                book_qty = sum(book_items.values())
+                base_total = sum(PRODUCTS[pid]["price"] * qty for pid, qty in book_items.items())
+                discount = book_qty * 30
+                delivery = 50 + (book_qty - 1) * 20
+                
+                orders_data[uid_str].append({"name": user_name, "phone": order.get("phone", "N/A"), "map_link": order.get("map_link", "N/A"), "items": items_txt, "total": order.get("amount"), "delivery": order.get('delivery'), "location": order.get('location'), "status": "PENDING", "contacted_admin": False, "cart_raw": cart, "date": _dt_safe.datetime.now().isoformat()})
+                _save_orders(orders_data)
+                
+                bot.send_message(target_uid, f"🎉 <b>Payment Verified for Books!</b>\nYour payment has been settled in our bank account.\n\n📦 <b>Items:</b>\n{items_txt}\n💰 <b>Base:</b> ₹{base_total}\n🎉 <b>Discount:</b> -₹{discount}\n🚚 <b>Delivery:</b> ₹{delivery}\n📅 <b>Date:</b> {order.get('delivery')}\n📍 <b>Location:</b> {order.get('location')}{TRUST_LINKS}", parse_mode="HTML")
+                
+                # Post to Channel
+                try:
+                    now_str = _dt_safe.datetime.now().strftime("%d-%b-%Y %I:%M:%S %p")
+                    proof_msg = f"✅ <b>PAYMENT VERIFIED (BOOKS)</b>\n👤 {user_name}\n🏷 {order.get('order_id')}\n📦 {items_txt}\n💰 Total: ₹{order.get('amount')}\n📅 Delivery: {order.get('delivery')}\n\n🛡️ <i>Verified securely.</i>"
+                    bot.send_message(PROOF_CHANNEL, proof_msg, parse_mode="HTML")
+                except Exception as e: print(f"Channel Error: {e}")
+                
+            STORE_STATE.pop(target_uid, None)
+            
+        elif action == "admin_reject":
+            try: bot.edit_message_text("❌ Payment Rejected.", chat_id=call.message.chat.id, message_id=call.message.message_id)
+            except: pass
+            bot.send_message(target_uid, "❌ Payment rejected. Contact Admin.")
+            
+    except Exception as e:
+        print(f"Admin Verify Error: {e}")
+        try: bot.send_message(ADMIN_GROUP_ID, f"⚠️ Verify Error: {e}", parse_mode="HTML")
         except: pass
-        bot.send_message(target_uid, "❌ Payment rejected. Contact Admin.")
-
-print("✅ c03z_store.py: PERFECT REBUILD SUCCESSFUL.", flush=True)
 
 
-# ═══════════════════════════════════════════════════
-# PENDING ORDERS INTEGRATION
-# ═══════════════════════════════════════════════════
-@bot.callback_query_handler(func=lambda c: c.data == "admin_pending_orders")
 def admin_show_pending(call):
     # Bypass strict session check because this is called from the Admin Panel
     return show_manager_panel(call.message.chat.id)

@@ -508,6 +508,37 @@ def _in_subreg_flow(uid):
     content_types=['text']
 )
 def free_text_handler(message):
+    # --- BULLETPROOF HK-AI KEY INTERCEPTOR ---
+    if message.text and message.text.strip().startswith("HK-AI-"):
+        try:
+            import json, os
+            from c01 import load_profile, save_profile
+            uid = message.chat.id
+            text = message.text.strip()
+            
+            if os.path.exists("data/paid_keys.json"):
+                pk = json.load(open("data/paid_keys.json"))
+                if text in pk:
+                    p = load_profile(uid)
+                    p["secured"] = True
+                    p["activation_key"] = text
+                    p["is_paid"] = True
+                    p["is_trial"] = False
+                    p["paid_expiry"] = pk[text].get("expires_at")
+                    save_profile(uid, p)
+                    
+                    bot.send_message(uid, "✅ <b>Hamilton AI Paid Key Activated Successfully!</b>\nWelcome to Premium.", parse_mode="HTML")
+                    if p.get("onboarding_step") != "done":
+                        import c02
+                        if hasattr(c02, "_run_onboarding"):
+                            c02._run_onboarding(uid)
+                    return
+                else:
+                    bot.send_message(uid, "❌ <b>Invalid HK-AI Key.</b> Please check the key and try again.", parse_mode="HTML")
+                    return
+        except Exception as e:
+            print(f"AI Key Error: {e}")
+    # -----------------------------------------
     try:
         import c03z_store
         if message.chat.id in c03z_store.STORE_STATE:
